@@ -1,0 +1,36 @@
+name: app_mobile
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  curved_navigation_bar: ^1.0.6
+    
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_secure_storage: ^5.0.2
+  path: 
+  http: 
+  flutter_speed_dial: ^6.1.0
+  flutter_rating_bar: ^4.0.1
+  curved_navigation_bar: ^1.0.6
+  google_maps_flutter: ^2.7.0
+  geolocator: ^12.0.0
+  url_launcher:
+  file_picker: ^4.2.7
+  permission_handler: ^10.2.0
+  pin_code_fields: ^8.0.1
+  carousel_slider: ^4.2.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
