@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'RecomendacaoView.dart'; // Certifique-se de ajustar o caminho conforme necessário
+import '../Components/RecomendacaoComponents/RecomendacaoCard.dart'; // Certifique-se de ajustar o caminho conforme necessário
 import '../models/Recomendacao.dart';
 
 void main() {
@@ -20,11 +21,11 @@ class RecomendacaoViewData extends StatelessWidget {
       categoria: 'Alojamento',
     );
 
-    return RecomendacaoView(
-      recomendacao: recomendacao,
-      onLike: () {
-        print('Liked');
-      },
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: RecomendacaoCard(recomendacao: recomendacao),
+      ),
     );
   }
 }

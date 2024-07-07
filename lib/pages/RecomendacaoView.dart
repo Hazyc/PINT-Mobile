@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../Components/geocoding_service.dart'; 
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'dart:io';
 import '../models/Recomendacao.dart';
 import '../pages/MapPage.dart';
@@ -20,7 +20,13 @@ class RecomendacaoView extends StatefulWidget {
 
 class _RecomendacaoViewState extends State<RecomendacaoView> {
   bool isFavorite = false;
-  List<String> additionalImages = [];
+  List<String> additionalImages = [
+    'assets/desporto.jpg',
+    'assets/saúde.jpg',
+    'assets/transportes.jpg',
+    'assets/gastronomia.jpg',
+  ]; // Adicionando imagens estáticas para teste visual
+
 
   void _showRatingDialog() {
     showDialog(
@@ -142,6 +148,29 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
     }
   }
 
+  void _showImageDialog(String imagePath) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: GestureDetector(
+          onTap: () => Navigator.of(context).pop(),
+          child: Container(
+            width: 200,
+            height: 250,
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage(imagePath),
+                fit: BoxFit.cover,
+              ),
+              borderRadius: BorderRadius.circular(15),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -151,6 +180,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,39 +333,6 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                     style: TextStyle(fontSize: 16),
                   ),
                   SizedBox(height: 16),
-                  if (additionalImages.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Mais Imagens:',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 8),
-                        CarouselSlider(
-                          options: CarouselOptions(
-                            height: 200,
-                            enableInfiniteScroll: false,
-                            enlargeCenterPage: true,
-                          ),
-                          items: additionalImages.map((imagePath) {
-                            return Builder(
-                              builder: (BuildContext context) {
-                                return Container(
-                                  width: MediaQuery.of(context).size.width,
-                                  margin: EdgeInsets.symmetric(horizontal: 5.0),
-                                  child: Image.file(
-                                    File(imagePath),
-                                    fit: BoxFit.cover,
-                                  ),
-                                );
-                              },
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  SizedBox(height: 16),
                   Center(
                     child: ElevatedButton(
                       onPressed: _showRatingDialog,
@@ -348,6 +345,41 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                       ),
                     ),
                   ),
+                  SizedBox(height: 16),
+                  if (additionalImages.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Mais Imagens:',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 8),
+                        Container(
+                          height: 100, // Altura das imagens
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: additionalImages.length,
+                            itemBuilder: (context, index) {
+                              return GestureDetector(
+                                onTap: () => _showImageDialog(additionalImages[index]),
+                                child: Container(
+                                  width: 100,
+                                  margin: EdgeInsets.symmetric(horizontal: 5.0),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(15),
+                                    image: DecorationImage(
+                                      image: AssetImage(additionalImages[index]),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),               
                 ],
               ),
             ),

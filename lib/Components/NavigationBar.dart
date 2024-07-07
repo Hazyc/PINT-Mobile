@@ -7,6 +7,7 @@ import '../pages/SearchPage.dart';
 import '../pages/AddPage.dart';
 import '../pages/EventoViewData.dart';
 import '../pages/RecomendacaoViewData.dart';
+import '../pages/ListaGenerica.dart';
 
 class BarraDeNavegacao extends StatefulWidget {
   const BarraDeNavegacao({Key? key}) : super(key: key);
@@ -21,7 +22,7 @@ class _BarraDeNavegacaoState extends State<BarraDeNavegacao> {
   static List<Widget> _telas = [
     HomePage(),
     SearchPage(),
-    RecomendacaoViewData(),
+    ListaGenerica(),
     MapPage(),
     ProfilePage(),
   ];

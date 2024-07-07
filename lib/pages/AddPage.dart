@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../Components/RecomendacaoComponents/RecomendacaoCard.dart'; 
 
 class AddPage extends StatelessWidget {
   @override
@@ -10,7 +11,7 @@ class AddPage extends StatelessWidget {
         centerTitle: true,
       ),
       body: Center(
-        child: Text("Tela Adicionar"),
+        
       ),
     );
   }
