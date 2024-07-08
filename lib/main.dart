@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'pages/LoginScreen.dart';
 import 'Components/NavigationBar.dart';
 import 'Components/Drawer.dart'; // Certifique-se de ajustar o caminho conforme necessário
@@ -17,6 +18,16 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: LoginPage(),
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: [
+        const Locale('en', 'US'), // English
+        const Locale('pt', 'BR'), // Portuguese
+      ],
+      locale: Locale('pt', 'BR'), // Defina o idioma padrão como português
     );
   }
 }

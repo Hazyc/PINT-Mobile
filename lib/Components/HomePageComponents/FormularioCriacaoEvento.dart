@@ -46,11 +46,19 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
       initialDate: DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
+      locale: Locale('pt', 'BR'), // Configurar o calendário para português
     );
     if (pickedDate != null) {
       TimeOfDay? pickedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),
+        builder: (BuildContext context, Widget? child) {
+          return Localizations.override(
+            context: context,
+            locale: Locale('pt', 'BR'), // Configurar o seletor de hora para português
+            child: child,
+          );
+        },
       );
       if (pickedTime != null) {
         final pickedDateTime = DateTime(
@@ -73,7 +81,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
       final newEvent = Evento(
         bannerImage: _image!.path,
         eventName: _eventName,
-        dateTime: DateFormat('dd/MM/yyyy HH:mm').format(_dateTime!),
+        dateTime: DateFormat('dd/MM/yyyy HH:mm', 'pt_BR').format(_dateTime!),
         address: _address,
         category: _category!,
         subcategory: _subcategoria!,
@@ -330,7 +338,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
             controller: TextEditingController(
               text: dateTime == null
                   ? ''
-                  : DateFormat('dd/MM/yyyy HH:mm').format(dateTime),
+                  : DateFormat('dd/MM/yyyy HH:mm', 'pt_BR').format(dateTime),
             ),
           ),
         ),
