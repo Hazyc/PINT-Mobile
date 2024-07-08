@@ -40,7 +40,7 @@ class RecomendacaoCard extends StatelessWidget {
                       topLeft: Radius.circular(15),
                       topRight: Radius.circular(15),
                     ),
-                    child: Image.asset(
+                    child: Image.network(
                       recomendacao.bannerImage,
                       height: 130, // Definindo a altura da imagem dentro do card
                       width: double.infinity,

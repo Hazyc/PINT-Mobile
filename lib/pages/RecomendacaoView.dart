@@ -7,6 +7,7 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'dart:io';
 import '../models/Recomendacao.dart';
 import '../pages/MapPage.dart';
+import '../Components/ComentariosPageRecomendacao.dart';
 
 class RecomendacaoView extends StatefulWidget {
   final Recomendacao recomendacao;
@@ -194,7 +195,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                     bottomLeft: Radius.circular(30),
                     bottomRight: Radius.circular(30),
                   ),
-                  child: Image.asset(
+                  child: Image.network(
                     widget.recomendacao.bannerImage,
                     height: 350,
                     width: double.infinity,
@@ -385,29 +386,51 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                     ),
                   SizedBox(height: 16),
                   Center(
-                    child: ElevatedButton(
-                      onPressed: _showRatingDialog,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF0DCAF0), // Background color
-                      ),
-                      child: Text(
-                        'Deixar a sua avaliação',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  Center(
-                    child: CircleAvatar(
-                      backgroundColor: Colors.white,
-                      radius: 22,
-                      child: IconButton(
-                        icon: Icon(Icons.forum, color: Color(0xFF0DCAF0)),
-                        onPressed: () {
-                          // Redirecionar para o fórum da recomendação
-                        },
-                        iconSize: 22,
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          onPressed: _showRatingDialog,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Color(0xFF0DCAF0), // Background color
+                          ),
+                          child: Text(
+                            'Deixar a sua avaliação',
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        CircleAvatar(
+                          backgroundColor: Color(0xFF0DCAF0),
+                          radius: 22,
+                          child: IconButton(
+                            icon: Icon(Icons.forum, color: Colors.white),
+                            onPressed: () {
+                              // Redirecionar para o fórum da recomendação
+                            },
+                            iconSize: 22,
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        CircleAvatar(
+                          backgroundColor: Color(0xFF0DCAF0),
+                          radius: 22,
+                          child: IconButton(
+                            icon: Icon(Icons.comment, color: Colors.white),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ComentariosPageRecomendacao(
+                                      recomendacao: widget.recomendacao),
+                                ),
+                              );
+                            },
+                            iconSize: 22,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

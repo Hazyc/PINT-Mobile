@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import '../Components/HomePageComponents/WelcomeCard.dart';
 import '../Components/Drawer.dart';
 import '../Components/HomePageComponents/Meteorologia.dart'; // Certifique-se de ajustar o caminho conforme necessário
-import '../Components/HomePageComponents/CriacaoEvento.dart';
-import '../Components/HomePageComponents/CriacaoRecomendacao.dart';
 import '../Components/HomePageComponents/CardsCategorias.dart'; // Importando o HomeCard
 import '../Components/NavigationBar.dart';
 import './ListaGenerica.dart'; // Importando a ListaGenerica
@@ -79,7 +77,7 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       appBar: CustomAppBar(greeting: greeting),
       drawer: Container(
-        width: 250, // Defina a largura desejada
+        width: 300, // Defina a largura desejada
         child: CustomDrawer(
           onAreaTap: (area) {
             _navigateToListaGenerica(context, area);
@@ -91,23 +89,6 @@ class HomePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(child: CityWeatherCard()), // Centraliza o CityWeatherCard
-            SizedBox(height: 10.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CriacaoRecomendacao(
-                  onTap: () {
-                    print('Adicionar Avaliação');
-                  },
-                ),
-                SizedBox(width: 16.0),
-                CriacaoEvento(
-                  onTap: () {
-                    print('Adicionar Evento');
-                  },
-                ),
-              ],
-            ),
             SizedBox(height: 10.0),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0),

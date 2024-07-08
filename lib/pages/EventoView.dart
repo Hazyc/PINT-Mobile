@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../models/Evento.dart';
 import '../pages/MapPage.dart';
 import '../Components/geocoding_service.dart'; // Importa o serviço de geocodificação
+import '../Components/ComentariosPageEvento.dart';
 
 class EventoView extends StatefulWidget {
   final Evento evento;
@@ -100,7 +101,8 @@ class _EventoViewState extends State<EventoView> {
 
       if (result != null) {
         // Aqui você pode lidar com os arquivos selecionados
-        print("Files picked: ${result.files.map((file) => file.name).join(", ")}");
+        print(
+            "Files picked: ${result.files.map((file) => file.name).join(", ")}");
       } else {
         // O usuário cancelou a seleção
         print("No files picked.");
@@ -108,7 +110,8 @@ class _EventoViewState extends State<EventoView> {
     } else {
       // Permissão negada
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Permissão de acesso ao armazenamento foi negada.')),
+        SnackBar(
+            content: Text('Permissão de acesso ao armazenamento foi negada.')),
       );
     }
   }
@@ -142,7 +145,7 @@ class _EventoViewState extends State<EventoView> {
                     bottomLeft: Radius.circular(30),
                     bottomRight: Radius.circular(30),
                   ),
-                  child: Image.asset(
+                  child: Image.network(
                     widget.evento.bannerImage,
                     height: 350,
                     width: double.infinity,
@@ -161,6 +164,25 @@ class _EventoViewState extends State<EventoView> {
                         Navigator.of(context).pop();
                       },
                       iconSize: 22,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 40,
+                  right: 16,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      widget.evento.category,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF0DCAF0),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -234,7 +256,8 @@ class _EventoViewState extends State<EventoView> {
                     widget.evento.dateTime,
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
-                  SizedBox(height: 16), // Increased space for better readability
+                  SizedBox(
+                      height: 16), // Increased space for better readability
                   Row(
                     children: [
                       Text(
@@ -253,7 +276,8 @@ class _EventoViewState extends State<EventoView> {
                       }).toList(),
                     ],
                   ),
-                  SizedBox(height: 16), // Increased space for better readability
+                  SizedBox(
+                      height: 16), // Increased space for better readability
                   Text(
                     'Descrição:',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -265,15 +289,52 @@ class _EventoViewState extends State<EventoView> {
                   ),
                   SizedBox(height: 16),
                   Center(
-                    child: ElevatedButton(
-                      onPressed: _handleRegistration,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isRegistered ? Colors.green : Color(0xFF0DCAF0), // Background color
-                      ),
-                      child: Text(
-                        isRegistered ? 'Inscrito' : 'Inscreve-te no evento',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          onPressed: _handleRegistration,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isRegistered
+                                ? Colors.green
+                                : Color(0xFF0DCAF0), // Background color
+                          ),
+                          child: Text(
+                            isRegistered ? 'Inscrito' : 'Inscreve-te no evento',
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        CircleAvatar(
+                          backgroundColor: Color(0xFF0DCAF0),
+                          radius: 22,
+                          child: IconButton(
+                            icon: Icon(Icons.forum, color: Colors.white),
+                            onPressed: () {
+                              // Redirecionar para o fórum da recomendação
+                            },
+                            iconSize: 22,
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        CircleAvatar(
+                          backgroundColor: Color(0xFF0DCAF0),
+                          radius: 22,
+                          child: IconButton(
+                            icon: Icon(Icons.comment, color: Colors.white),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ComentariosPageEvento(
+                                      evento: widget.evento),
+                                ),
+                              );
+                            },
+                            iconSize: 22,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

@@ -98,7 +98,7 @@ class _CityWeatherCardState extends State<CityWeatherCard> {
   Widget build(BuildContext context) {
     return Container(
       width: 450,
-      height: 80,
+      height: 200,
       decoration: BoxDecoration(
         //borderRadius: BorderRadius.circular(12.0),
         image: DecorationImage(
@@ -133,7 +133,7 @@ class _CityWeatherCardState extends State<CityWeatherCard> {
                   cityName,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 20.0,
+                    fontSize: 30.0,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -144,7 +144,7 @@ class _CityWeatherCardState extends State<CityWeatherCard> {
               temperature,
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 16.0,
+                fontSize: 24.0,
               ),
             ),
           ],

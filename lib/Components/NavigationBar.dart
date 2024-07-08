@@ -4,9 +4,6 @@ import '../pages/HomePage.dart';
 import '../pages/MapPage.dart';
 import '../pages/ProfilePage.dart';
 import '../pages/SearchPage.dart';
-import '../pages/AddPage.dart';
-import '../pages/EventoViewData.dart';
-import '../pages/RecomendacaoViewData.dart';
 import '../pages/ListaGenerica.dart';
 
 class BarraDeNavegacao extends StatefulWidget {

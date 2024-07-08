@@ -39,7 +39,7 @@ class EventoCard extends StatelessWidget {
                       topLeft: Radius.circular(15),
                       topRight: Radius.circular(15),
                     ),
-                    child: Image.asset(
+                    child: Image.network(
                       evento.bannerImage,
                       height: 130, // Definindo a altura da imagem dentro do card
                       width: double.infinity,

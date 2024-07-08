@@ -3,8 +3,6 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
-import '../providers/participation_provider.dart';
-import '../models/review.dart';
 import '../LoginPageComponents/Botao.dart';
 
 class ReviewPage extends StatefulWidget {
@@ -129,23 +127,6 @@ class _ReviewPageState extends State<ReviewPage> {
       );
       return;
     }
-
-    final review = Review(
-      description: _commentController.text,
-      rating: _serviceRating,
-      serviceRating: _serviceRating,
-      cleanlinessRating: _cleanlinessRating,
-      valueRating: _valueRating,
-      images: _images,
-      creator: 'CurrentUserId',
-      imageURL: '',
-      tags: [],
-      title: _locationController.text,
-    );
-
-    print('Review saved with images: ${review.images}');
-
-    Provider.of<ParticipationProvider>(context, listen: false).addReview(review);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
