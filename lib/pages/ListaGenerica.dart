@@ -4,7 +4,6 @@ import '../Components/EventoComponents/EventoCard.dart';
 import '../models/Recomendacao.dart';
 import '../models/Evento.dart';
 import '../Components/HomePageComponents/FormularioCriacaoEvento.dart';
-import '../Components/HomePageComponents/CriacaoRecomendacao.dart';
 
 class ListaGenerica extends StatefulWidget {
   final String initialSelectedArea;

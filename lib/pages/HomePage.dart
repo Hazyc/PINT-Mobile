@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import '../Components/HomePageComponents/WelcomeCard.dart';
 import '../Components/Drawer.dart';
 import '../Components/HomePageComponents/Meteorologia.dart'; // Certifique-se de ajustar o caminho conforme necessário
 import '../Components/HomePageComponents/CardsCategorias.dart'; // Importando o HomeCard
 import '../Components/NavigationBar.dart';
 import './ListaGenerica.dart'; // Importando a ListaGenerica
-import 'package:intl/intl.dart'; // Para obter a hora atual
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String greeting;
