@@ -2,9 +2,10 @@ class Recomendacao {
   final String bannerImage;
   final String nomeLocal;
   final String endereco;
-  final double avaliacaoGeral; // Valor médio da avaliação
+  final double avaliacaoGeral;
   final String descricao;
   final String categoria;
+  final String subcategoria;
 
   Recomendacao({
     required this.bannerImage,
@@ -13,5 +14,6 @@ class Recomendacao {
     required this.avaliacaoGeral,
     required this.descricao,
     required this.categoria,
+    required this.subcategoria,
   });
 }

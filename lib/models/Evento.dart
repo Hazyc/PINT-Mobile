@@ -4,6 +4,7 @@ class Evento {
   final String dateTime;
   final String address;
   final String category;
+  final String subcategory;
   final List<String> lastThreeAttendees;
   final String description;
 
@@ -13,6 +14,7 @@ class Evento {
     required this.dateTime,
     required this.address,
     required this.category,
+    required this.subcategory,
     required this.lastThreeAttendees,
     required this.description,
   });

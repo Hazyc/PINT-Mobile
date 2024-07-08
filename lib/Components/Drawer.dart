@@ -3,6 +3,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class CustomDrawer extends StatefulWidget {
+  final Function(String) onAreaTap;
+
+  CustomDrawer({required this.onAreaTap});
+
   @override
   _CustomDrawerState createState() => _CustomDrawerState();
 }
@@ -90,6 +94,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
   Widget build(BuildContext context) {
     return Drawer(
       child: Container(
+        width: 340, // Defina a largura desejada
         color: Colors.white, // Define o fundo do Drawer como branco
         child: ListView(
           padding: EdgeInsets.zero,
@@ -98,34 +103,32 @@ class _CustomDrawerState extends State<CustomDrawer> {
               decoration: BoxDecoration(
                 color: Color(0xFF0DCAF0),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CircleAvatar(
                     radius: 30,
                     backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
                     child: avatarUrl.isEmpty ? Icon(Icons.person, size: 50) : null,
                   ),
-                  SizedBox(width: 15),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        userName,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        userEmail,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14.0,
-                        ),
-                      ),
-                    ],
+                  SizedBox(height: 15),
+                  Text(
+                    userName,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis, // Adiciona reticências se o texto for muito longo
+                  ),
+                  Text(
+                    userEmail,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14.0,
+                    ),
+                    overflow: TextOverflow.ellipsis, // Adiciona reticências se o texto for muito longo
                   ),
                 ],
               ),
@@ -136,6 +139,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
             ...areasOfInterest.map((area) => ListTile(
                   leading: Icon(Icons.star), // Pode usar um ícone adequado para cada área
                   title: Text(area),
+                  onTap: () {
+                    Navigator.pop(context); // Fecha o Drawer
+                    widget.onAreaTap(area); // Chama a função de callback
+                  },
                 )).toList(),
             Divider(),
             ListTile(

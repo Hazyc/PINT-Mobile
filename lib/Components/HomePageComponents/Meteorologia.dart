@@ -97,10 +97,10 @@ class _CityWeatherCardState extends State<CityWeatherCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 350,
+      width: 450,
       height: 80,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.0),
+        //borderRadius: BorderRadius.circular(12.0),
         image: DecorationImage(
           image: AssetImage(imageUrl),
           fit: BoxFit.cover,

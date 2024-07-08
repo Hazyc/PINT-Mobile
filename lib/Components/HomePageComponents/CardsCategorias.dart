@@ -3,15 +3,14 @@ import 'package:flutter/material.dart';
 class HomeCard extends StatelessWidget {
   final String imageAsset;
   final String title;
+  final VoidCallback onTap; // Adicionado para passar a função de callback
 
-  HomeCard({required this.imageAsset, required this.title});
+  HomeCard({required this.imageAsset, required this.title, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        print('Card $title clicado');
-      },
+      onTap: onTap, // Chama a função de callback passada
       child: Container(
         width: 200,
         child: Card(

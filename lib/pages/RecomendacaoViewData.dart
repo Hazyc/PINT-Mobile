@@ -19,6 +19,7 @@ class RecomendacaoViewData extends StatelessWidget {
       avaliacaoGeral: 4.5,
       descricao: 'Bora Bora is an island in the Leeward group of the Society Islands of French Polynesia, an overseas collectivity of France in the Pacific Ocean.',
       categoria: 'Alojamento',
+      subcategoria: 'Hotel',
     );
 
     return Scaffold(

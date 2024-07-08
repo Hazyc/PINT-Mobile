@@ -11,8 +11,8 @@ class CriacaoEvento extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: 150.0, // Defina a largura fixa
-        height: 120.0, // Defina a altura fixa
-        padding: EdgeInsets.all(16.0),
+        height: 100.0, // Defina a altura fixa
+        padding: EdgeInsets.all(10.0),
         decoration: BoxDecoration(
           color: Color(0xFF0DCAF0),
           borderRadius: BorderRadius.circular(10.0),
@@ -28,7 +28,7 @@ class CriacaoEvento extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.event, color: Colors.white, size: 40.0),
+            Icon(Icons.event, color: Colors.white, size: 30.0),
             SizedBox(height: 8.0),
             RichText(
               textAlign: TextAlign.center,

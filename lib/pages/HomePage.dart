@@ -5,55 +5,104 @@ import '../Components/HomePageComponents/Meteorologia.dart'; // Certifique-se de
 import '../Components/HomePageComponents/CriacaoEvento.dart';
 import '../Components/HomePageComponents/CriacaoRecomendacao.dart';
 import '../Components/HomePageComponents/CardsCategorias.dart'; // Importando o HomeCard
+import '../Components/NavigationBar.dart';
+import './ListaGenerica.dart'; // Importando a ListaGenerica
+import 'package:intl/intl.dart'; // Para obter a hora atual
 
-class HomePage extends StatelessWidget {
-  void _navigateWithoutAnimation(BuildContext context, Widget page) {
-    Navigator.push(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation1, animation2) => page,
-        transitionDuration: Duration.zero,
+class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final String greeting;
+
+  CustomAppBar({required this.greeting});
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            greeting,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 25.0,
+            ),
+          ),
+          Text(
+            'Descobre o melhor para ti!',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14.0,
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: const Color(0xFF0DCAF0),
+      centerTitle: false,
+      iconTheme: IconThemeData(
+        color: Colors.white, // Altere esta cor para a cor desejada
       ),
     );
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Home',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24.0,
-          ),
-        ),
-        backgroundColor: const Color(0xFF0DCAF0),
-        centerTitle: true,
+  Size get preferredSize => Size.fromHeight(70.0); // Defina a altura desejada
+}
+
+class HomePage extends StatelessWidget {
+  final void Function(int) onItemTapped;
+
+  HomePage({required this.onItemTapped});
+
+  void _navigateToListaGenerica(BuildContext context, String area) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ListaGenerica(initialSelectedArea: area),
       ),
-      drawer: CustomDrawer(), // Adiciona o CustomDrawer
+    );
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour >= 6 && hour < 12) {
+      return 'Bom Dia!';
+    } else if (hour >= 12 && hour < 19) {
+      return 'Boa Tarde!';
+    } else {
+      return 'Boa Noite!';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final greeting = _getGreeting();
+    return Scaffold(
+      appBar: CustomAppBar(greeting: greeting),
+      drawer: Container(
+        width: 250, // Defina a largura desejada
+        child: CustomDrawer(
+          onAreaTap: (area) {
+            _navigateToListaGenerica(context, area);
+          },
+        ), // Adiciona o CustomDrawer com a função de callback
+      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 10.0),
             Center(child: CityWeatherCard()), // Centraliza o CityWeatherCard
-            SizedBox(height: 10.0),
-            WelcomeCard(userName: "Usuário"),
             SizedBox(height: 10.0),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 CriacaoRecomendacao(
                   onTap: () {
-                    // Implementar ação para Adicionar Avaliação
                     print('Adicionar Avaliação');
                   },
                 ),
                 SizedBox(width: 16.0),
                 CriacaoEvento(
                   onTap: () {
-                    // Implementar ação para Adicionar Evento
                     print('Adicionar Evento');
                   },
                 ),
@@ -74,7 +123,7 @@ class HomePage extends StatelessWidget {
                   ),
                   TextButton(
                     onPressed: () {
-                      // Adicione a ação para o botão "Ver Todos"
+                      onItemTapped(2); // Abre a opção ListaGenerica
                     },
                     child: Text(
                       'Ver Todas',
@@ -96,36 +145,43 @@ class HomePage extends StatelessWidget {
                   HomeCard(
                     imageAsset: 'assets/alojamento.jpg',
                     title: 'Alojamento',
+                    onTap: () => _navigateToListaGenerica(context, 'Alojamento'),
                   ),
                   SizedBox(width: 5),
                   HomeCard(
                     imageAsset: 'assets/desporto.jpg',
                     title: 'Desporto',
+                    onTap: () => _navigateToListaGenerica(context, 'Desporto'),
                   ),
                   SizedBox(width: 5),
                   HomeCard(
                     imageAsset: 'assets/formação.jpg',
                     title: 'Formação',
+                    onTap: () => _navigateToListaGenerica(context, 'Formação'),
                   ),
                   SizedBox(width: 5),
                   HomeCard(
                     imageAsset: 'assets/gastronomia.jpg',
                     title: 'Gastronomia',
+                    onTap: () => _navigateToListaGenerica(context, 'Gastronomia'),
                   ),
                   SizedBox(width: 5),
                   HomeCard(
                     imageAsset: 'assets/lazer.webp',
                     title: 'Lazer',
+                    onTap: () => _navigateToListaGenerica(context, 'Lazer'),
                   ),
                   SizedBox(width: 5),
                   HomeCard(
                     imageAsset: 'assets/saúde.jpg',
                     title: 'Saúde',
+                    onTap: () => _navigateToListaGenerica(context, 'Saúde'),
                   ),
                   SizedBox(width: 5),
                   HomeCard(
                     imageAsset: 'assets/transportes.jpg',
-                    title: 'Transportes'
+                    title: 'Transportes',
+                    onTap: () => _navigateToListaGenerica(context, 'Transportes'),
                   ),
                 ],
               ),
@@ -225,6 +281,6 @@ class HomePage extends StatelessWidget {
 
 void main() {
   runApp(MaterialApp(
-    home: HomePage(), // Passe o nome do usuário aqui se necessário
+    home: BarraDeNavegacao(), // Passe o nome do usuário aqui se necessário
   ));
 }

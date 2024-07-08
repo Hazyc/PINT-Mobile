@@ -6,7 +6,8 @@ import '../../models/Evento.dart';
 
 class FormularioCriacaoEvento extends StatefulWidget {
   @override
-  _FormularioCriacaoEventoState createState() => _FormularioCriacaoEventoState();
+  _FormularioCriacaoEventoState createState() =>
+      _FormularioCriacaoEventoState();
 }
 
 class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
@@ -17,16 +18,17 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   File? _image;
   String _address = '';
   String? _category;
+  String? _subcategoria;
 
-  final List<String> categories = [
-    'Alojamento',
-    'Desporto',
-    'Formação',
-    'Gastronomia',
-    'Lazer',
-    'Saúde',
-    'Transportes'
-  ];
+  final Map<String, List<String>> categoriesWithSubcategories = {
+    'Alojamento': ['Hotel', 'Apartamento', 'Hostel'],
+    'Desporto': ['Ginásio', 'Campo de Futebol', 'Piscina'],
+    'Formação': ['Curso', 'Workshop', 'Palestra'],
+    'Gastronomia': ['Restaurante', 'Café', 'Bar'],
+    'Lazer': ['Parque', 'Cinema', 'Museu'],
+    'Saúde': ['Hospital', 'Clínica', 'Veterinário'],
+    'Transportes': ['Ônibus', 'Táxi', 'Metrô'],
+  };
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
@@ -74,6 +76,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
         dateTime: DateFormat('dd/MM/yyyy HH:mm').format(_dateTime!),
         address: _address,
         category: _category!,
+        subcategory: _subcategoria!,
         lastThreeAttendees: [],
         description: _description,
       );
@@ -85,9 +88,6 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Criação de Evento'),
-      ),
       body: Stack(
         children: [
           Positioned(
@@ -104,7 +104,8 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
             children: [
               Container(
                 width: double.infinity,
-                padding: EdgeInsets.only(top: 32.0, bottom: 8.0, left: 16.0, right: 16.0),
+                padding: EdgeInsets.only(
+                    top: 32.0, bottom: 8.0, left: 16.0, right: 16.0),
                 decoration: BoxDecoration(
                   color: Colors.blue,
                   borderRadius: BorderRadius.only(
@@ -116,7 +117,8 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.arrow_back, size: 30, color: Colors.white),
+                      icon:
+                          Icon(Icons.arrow_back, size: 30, color: Colors.white),
                       onPressed: () {
                         Navigator.of(context).pop();
                       },
@@ -178,11 +180,18 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
                           SizedBox(height: 16.0),
                           _buildTitle('Data e Hora do Evento'),
                           SizedBox(height: 8.0),
-                          _buildDateTimePicker('Insira a data e hora', _dateTime, _pickDateTime),
+                          _buildDateTimePicker(
+                              'Insira a data e hora', _dateTime, _pickDateTime),
                           SizedBox(height: 16.0),
                           _buildTitle('Categoria'),
                           SizedBox(height: 8.0),
                           _buildCategoryDropdown(),
+                          if (_category != null) ...[
+                            SizedBox(height: 16.0),
+                            _buildTitle('Subcategoria'),
+                            SizedBox(height: 8.0),
+                            _buildSubcategoryDropdown(),
+                          ],
                           SizedBox(height: 16.0),
                           Container(
                             margin: EdgeInsets.only(bottom: 20.0),
@@ -197,9 +206,16 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.create),
+                                  Icon(Icons.create,
+                                      size: 20, color: Colors.white),
                                   SizedBox(width: 8),
-                                  Text('Criar Evento'),
+                                  Text(
+                                    'Criar Evento',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -272,7 +288,8 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
                 ? Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.add_a_photo, size: 30, color: Colors.grey[600]),
+                      Icon(Icons.add_a_photo,
+                          size: 30, color: Colors.grey[600]),
                       SizedBox(height: 8),
                       Text(label),
                     ],
@@ -292,7 +309,8 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
     );
   }
 
-  Widget _buildDateTimePicker(String hintText, DateTime? dateTime, VoidCallback onTap) {
+  Widget _buildDateTimePicker(
+      String hintText, DateTime? dateTime, VoidCallback onTap) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25.0),
       child: GestureDetector(
@@ -310,7 +328,9 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
               suffixIcon: Icon(Icons.calendar_today, color: Colors.grey[600]),
             ),
             controller: TextEditingController(
-              text: dateTime == null ? '' : DateFormat('dd/MM/yyyy HH:mm').format(dateTime),
+              text: dateTime == null
+                  ? ''
+                  : DateFormat('dd/MM/yyyy HH:mm').format(dateTime),
             ),
           ),
         ),
@@ -330,7 +350,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
         child: DropdownButton<String>(
           hint: Text('Selecione uma categoria'),
           value: _category,
-          items: categories.map((category) {
+          items: categoriesWithSubcategories.keys.map((category) {
             return DropdownMenuItem<String>(
               value: category,
               child: Text(category),
@@ -339,6 +359,35 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           onChanged: (newValue) {
             setState(() {
               _category = newValue;
+              _subcategoria = null; // Reset subcategory when category changes
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubcategoryDropdown() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 25.0),
+      padding: EdgeInsets.symmetric(horizontal: 12.0),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          hint: Text('Selecione uma subcategoria'),
+          value: _subcategoria,
+          items: (categoriesWithSubcategories[_category] ?? []).map((subcategory) {
+            return DropdownMenuItem<String>(
+              value: subcategory,
+              child: Text(subcategory),
+            );
+          }).toList(),
+          onChanged: (newValue) {
+            setState(() {
+              _subcategoria = newValue;
             });
           },
         ),

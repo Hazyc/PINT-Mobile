@@ -17,6 +17,7 @@ class EventoViewData extends StatelessWidget {
       dateTime: 'July 14, 2024 - 6:00 PM',
       address: 'Rua das Eiras, nº 28 3525-515',
       category: 'Alojamento',
+      subcategory: 'Hotel',
       lastThreeAttendees: [
         'assets/user-1.png',
         'assets/user-2.png',

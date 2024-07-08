@@ -19,13 +19,19 @@ class BarraDeNavegacao extends StatefulWidget {
 class _BarraDeNavegacaoState extends State<BarraDeNavegacao> {
   int _selectedIndex = 0;
 
-  static List<Widget> _telas = [
-    HomePage(),
-    SearchPage(),
-    ListaGenerica(),
-    MapPage(),
-    ProfilePage(),
-  ];
+  static List<Widget> _telas = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _telas = [
+      HomePage(onItemTapped: _onItemTapped),
+      SearchPage(),
+      ListaGenerica(),
+      MapPage(),
+      ProfilePage(),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {

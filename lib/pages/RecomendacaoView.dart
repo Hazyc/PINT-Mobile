@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../Components/geocoding_service.dart'; 
+import '../Components/geocoding_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -26,7 +26,6 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
     'assets/transportes.jpg',
     'assets/gastronomia.jpg',
   ]; // Adicionando imagens estáticas para teste visual
-
 
   void _showRatingDialog() {
     showDialog(
@@ -103,7 +102,8 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
             TextButton(
               onPressed: () {
                 // Aqui você pode enviar os ratings para a API
-                print("Limpeza: $cleanlinessRating, Serviço: $serviceRating, Localização: $locationRating");
+                print(
+                    "Limpeza: $cleanlinessRating, Serviço: $serviceRating, Localização: $locationRating");
                 Navigator.of(context).pop();
               },
               child: Text('Enviar'),
@@ -126,7 +126,8 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
           additionalImages.addAll(result.paths.whereType<String>());
         });
         // Aqui você pode lidar com os arquivos selecionados
-        print("Files picked: ${result.files.map((file) => file.name).join(", ")}");
+        print(
+            "Files picked: ${result.files.map((file) => file.name).join(", ")}");
       } else {
         // O usuário cancelou a seleção
         print("No files picked.");
@@ -134,7 +135,8 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
     } else {
       // Permissão negada
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Permissão de acesso ao armazenamento foi negada.')),
+        SnackBar(
+            content: Text('Permissão de acesso ao armazenamento foi negada.')),
       );
     }
   }
@@ -282,7 +284,8 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                   ),
                   SizedBox(height: 8),
                   GestureDetector(
-                    onTap: () => _openMap(context, widget.recomendacao.endereco),
+                    onTap: () =>
+                        _openMap(context, widget.recomendacao.endereco),
                     child: Row(
                       children: [
                         Icon(Icons.location_pin, color: Color(0xFF0DCAF0)),
@@ -299,11 +302,20 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                     ),
                   ),
                   SizedBox(height: 8),
+                  Text(
+                    'Subcategoria: ${widget.recomendacao.subcategoria}', // Adicionando subcategoria
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  SizedBox(height: 8),
                   Row(
                     children: [
                       Text(
                         'Avaliação Geral:',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       SizedBox(width: 8),
                       RatingBar.builder(
@@ -313,7 +325,8 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                         allowHalfRating: true,
                         itemCount: 5,
                         itemSize: 24,
-                        ignoreGestures: true, // Para não permitir alteração direta
+                        ignoreGestures:
+                            true, // Para não permitir alteração direta
                         itemBuilder: (context, _) => Icon(
                           Icons.star,
                           color: Colors.amber,
@@ -333,6 +346,44 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                     style: TextStyle(fontSize: 16),
                   ),
                   SizedBox(height: 16),
+                  if (additionalImages.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Mais Imagens:',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 8),
+                        Container(
+                          height: 100, // Altura das imagens
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: additionalImages.length,
+                            itemBuilder: (context, index) {
+                              return GestureDetector(
+                                onTap: () =>
+                                    _showImageDialog(additionalImages[index]),
+                                child: Container(
+                                  width: 100,
+                                  margin: EdgeInsets.symmetric(horizontal: 5.0),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(15),
+                                    image: DecorationImage(
+                                      image:
+                                          AssetImage(additionalImages[index]),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  SizedBox(height: 16),
                   Center(
                     child: ElevatedButton(
                       onPressed: _showRatingDialog,
@@ -346,40 +397,19 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                     ),
                   ),
                   SizedBox(height: 16),
-                  if (additionalImages.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Mais Imagens:',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 8),
-                        Container(
-                          height: 100, // Altura das imagens
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: additionalImages.length,
-                            itemBuilder: (context, index) {
-                              return GestureDetector(
-                                onTap: () => _showImageDialog(additionalImages[index]),
-                                child: Container(
-                                  width: 100,
-                                  margin: EdgeInsets.symmetric(horizontal: 5.0),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(15),
-                                    image: DecorationImage(
-                                      image: AssetImage(additionalImages[index]),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),               
+                  Center(
+                    child: CircleAvatar(
+                      backgroundColor: Colors.white,
+                      radius: 22,
+                      child: IconButton(
+                        icon: Icon(Icons.forum, color: Color(0xFF0DCAF0)),
+                        onPressed: () {
+                          // Redirecionar para o fórum da recomendação
+                        },
+                        iconSize: 22,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

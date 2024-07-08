@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import '../Components/RecomendacaoComponents/RecomendacaoCard.dart';
+import '../Components/EventoComponents/EventoCard.dart';
 import '../models/Recomendacao.dart';
+import '../models/Evento.dart';
 import '../Components/HomePageComponents/FormularioCriacaoEvento.dart';
 import '../Components/HomePageComponents/CriacaoRecomendacao.dart';
 
 class ListaGenerica extends StatefulWidget {
+  final String initialSelectedArea;
+
+  ListaGenerica({this.initialSelectedArea = 'Todos'});
+
   @override
   _ListaGenericaState createState() => _ListaGenericaState();
 }
@@ -21,8 +27,8 @@ class _ListaGenericaState extends State<ListaGenerica> {
     'Transportes'
   ];
 
-  String? selectedArea = 'Todos';
-  
+  String? selectedArea;
+
   List<Recomendacao> recomendacoes = [
     Recomendacao(
       bannerImage: 'assets/alojamento.jpg',
@@ -31,6 +37,7 @@ class _ListaGenericaState extends State<ListaGenerica> {
       avaliacaoGeral: 4.5,
       descricao: 'Bora Bora is an island...',
       categoria: 'Alojamento',
+      subcategoria: 'Hotel',
     ),
     Recomendacao(
       bannerImage: 'assets/desporto.jpg',
@@ -39,24 +46,65 @@ class _ListaGenericaState extends State<ListaGenerica> {
       avaliacaoGeral: 4.0,
       descricao: 'Um ótimo lugar para esportes...',
       categoria: 'Desporto',
+      subcategoria: 'Ginásio',
     ),
     // Adicione mais recomendações estáticas aqui
+  ];
+
+  List<Evento> eventos = [
+    Evento(
+      bannerImage: 'assets/night.jpg',
+      eventName: 'Evento Esportivo',
+      dateTime: 'July 14, 2024 - 6:00 PM',
+      address: 'Avenida Principal, nº 100',
+      category: 'Desporto',
+      subcategory: 'Futebol',
+      lastThreeAttendees: [
+        'assets/user-1.png',
+        'assets/user-2.png',
+        'assets/user-3.png',
+      ],
+      description: 'Um evento esportivo para toda a família...',
+    ),
+    Evento(
+      bannerImage: 'assets/day.jpg',
+      eventName: 'Gastronomia Expo',
+      dateTime: 'August 5, 2024 - 10:00 AM',
+      address: 'Rua das Eiras, nº 28',
+      category: 'Gastronomia',
+      subcategory: 'Comida',
+      lastThreeAttendees: [
+        'assets/user-1.png',
+        'assets/user-2.png',
+        'assets/user-3.png',
+      ],
+      description: 'Uma exposição de gastronomia com os melhores chefs...',
+    ),
+    // Adicione mais eventos estáticos aqui
   ];
 
   bool showRecommendations = true;
   bool showEvents = true;
 
-  List<Recomendacao> get filteredRecomendacoes {
-    List<Recomendacao> filteredList = recomendacoes;
+  @override
+  void initState() {
+    super.initState();
+    selectedArea = widget.initialSelectedArea;
+  }
+
+  List<dynamic> get filteredItems {
+    List<dynamic> filteredList = [];
     
-    if (selectedArea != 'Todos') {
-      filteredList = filteredList
-          .where((recomendacao) => recomendacao.categoria == selectedArea)
-          .toList();
+    if (showRecommendations) {
+      filteredList.addAll(recomendacoes.where((item) =>
+          selectedArea == 'Todos' || item.categoria == selectedArea));
     }
     
-    // Adicione lógica de filtragem para eventos e recomendações aqui
-    // No exemplo atual, apenas consideramos as recomendações
+    if (showEvents) {
+      filteredList.addAll(eventos.where((item) =>
+          selectedArea == 'Todos' || item.category == selectedArea));
+    }
+
     return filteredList;
   }
 
@@ -194,11 +242,14 @@ class _ListaGenericaState extends State<ListaGenerica> {
           ),
           Expanded(
             child: ListView.builder(
-              itemCount: filteredRecomendacoes.length,
+              itemCount: filteredItems.length,
               itemBuilder: (context, index) {
+                final item = filteredItems[index];
                 return Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: RecomendacaoCard(recomendacao: filteredRecomendacoes[index]),
+                  child: item is Recomendacao
+                      ? RecomendacaoCard(recomendacao: item)
+                      : EventoCard(evento: item),
                 );
               },
             ),

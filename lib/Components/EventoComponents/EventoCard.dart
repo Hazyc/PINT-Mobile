@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../models/Recomendacao.dart';
-import '../../pages/RecomendacaoView.dart';
+import '../../models/Evento.dart';
+import '../../pages/EventoView.dart'; // Certifique-se de criar este widget para visualizar os detalhes do evento
 
-class RecomendacaoCard extends StatelessWidget {
-  final Recomendacao recomendacao;
+class EventoCard extends StatelessWidget {
+  final Evento evento;
 
-  RecomendacaoCard({required this.recomendacao});
+  EventoCard({required this.evento});
 
   @override
   Widget build(BuildContext context) {
@@ -14,8 +14,8 @@ class RecomendacaoCard extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => RecomendacaoView(
-              recomendacao: recomendacao,
+            builder: (context) => EventoView(
+              evento: evento,
               onLike: () {
                 print('Liked');
               },
@@ -29,7 +29,6 @@ class RecomendacaoCard extends StatelessWidget {
         ),
         elevation: 5,
         child: Container(
-          height: 220, // Definindo a altura do card
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -41,7 +40,7 @@ class RecomendacaoCard extends StatelessWidget {
                       topRight: Radius.circular(15),
                     ),
                     child: Image.asset(
-                      recomendacao.bannerImage,
+                      evento.bannerImage,
                       height: 130, // Definindo a altura da imagem dentro do card
                       width: double.infinity,
                       fit: BoxFit.cover,
@@ -57,7 +56,7 @@ class RecomendacaoCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(15),
                       ),
                       child: Text(
-                        'Recomendação',
+                        'Evento',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -76,23 +75,20 @@ class RecomendacaoCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          recomendacao.nomeLocal,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Row(
-                          children: [
-                            Icon(Icons.star, color: Colors.amber, size: 20),
-                            SizedBox(width: 4),
-                            Text(
-                              recomendacao.avaliacaoGeral.toString(),
-                              style: TextStyle(fontSize: 16),
+                        Expanded(
+                          child: Text(
+                            evento.eventName,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
-                          ],
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          evento.dateTime,
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -101,15 +97,57 @@ class RecomendacaoCard extends StatelessWidget {
                       children: [
                         Icon(Icons.location_pin, color: Color(0xFF0DCAF0)),
                         SizedBox(width: 4),
-                        Text(
-                          recomendacao.endereco,
+                        Expanded(
+                          child: Text(
+                            evento.address,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF0DCAF0),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      evento.category,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      evento.description.length > 50
+                          ? evento.description.substring(0, 50) + '...'
+                          : evento.description,
+                      style: TextStyle(fontSize: 14, color: Colors.black87),
+                    ),
+                    if (evento.description.length > 50)
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EventoView(
+                                evento: evento,
+                                onLike: () {
+                                  print('Liked');
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          'ver mais...',
                           style: TextStyle(
                             fontSize: 14,
                             color: Color(0xFF0DCAF0),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
                   ],
                 ),
               ),
