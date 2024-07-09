@@ -145,7 +145,7 @@ class _EventoViewState extends State<EventoView> {
                     bottomLeft: Radius.circular(30),
                     bottomRight: Radius.circular(30),
                   ),
-                  child: Image.network(
+                  child: Image.asset(
                     widget.evento.bannerImage,
                     height: 350,
                     width: double.infinity,

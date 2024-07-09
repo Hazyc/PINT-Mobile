@@ -42,7 +42,8 @@ class _MapPageState extends State<MapPage> {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      return Future.error('Permissão de localização foi negada permanentemente.');
+      return Future.error(
+          'Permissão de localização foi negada permanentemente.');
     }
 
     // Obtém a posição atual do dispositivo
@@ -50,7 +51,8 @@ class _MapPageState extends State<MapPage> {
 
     setState(() {
       // Atualiza a posição inicial para a localização atual
-      _initialPosition = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
+      _initialPosition =
+          LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
     });
 
     if (widget.targetLocation != null) {
@@ -91,7 +93,8 @@ class _MapPageState extends State<MapPage> {
                 if (_currentPosition != null && widget.targetLocation == null) {
                   _controller?.animateCamera(
                     CameraUpdate.newLatLng(
-                      LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                      LatLng(_currentPosition!.latitude,
+                          _currentPosition!.longitude),
                     ),
                   );
                 }

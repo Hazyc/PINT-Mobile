@@ -193,7 +193,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                     bottomLeft: Radius.circular(30),
                     bottomRight: Radius.circular(30),
                   ),
-                  child: Image.network(
+                  child: Image.asset(
                     widget.recomendacao.bannerImage,
                     height: 350,
                     width: double.infinity,

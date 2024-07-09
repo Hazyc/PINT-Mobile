@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../pages/ListaForuns.dart'; // Certifique-se de ajustar o caminho conforme necessário
 
 class CustomDrawer extends StatefulWidget {
   final Function(String) onAreaTap;
@@ -156,7 +157,13 @@ class _CustomDrawerState extends State<CustomDrawer> {
               leading: Icon(Icons.forum),
               title: Text('Fórum'),
               onTap: () {
-                // Navegação para a página de fórum
+                Navigator.pop(context); // Fecha o Drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ListaForuns(),
+                  ),
+                );
               },
             ),
             Divider(),

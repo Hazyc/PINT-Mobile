@@ -86,6 +86,7 @@ class HomePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            SizedBox(height: 20.0),
             Center(child: CityWeatherCard()), // Centraliza o CityWeatherCard
             SizedBox(height: 10.0),
             Padding(
