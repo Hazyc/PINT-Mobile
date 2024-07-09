@@ -3,8 +3,8 @@ import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import '../pages/HomePage.dart';
 import '../pages/MapPage.dart';
 import '../pages/ProfilePage.dart';
-import '../pages/SearchPage.dart';
 import '../pages/ListaGenerica.dart';
+import '../pages/ListaForuns.dart';
 
 class BarraDeNavegacao extends StatefulWidget {
   const BarraDeNavegacao({Key? key}) : super(key: key);
@@ -23,7 +23,7 @@ class _BarraDeNavegacaoState extends State<BarraDeNavegacao> {
     super.initState();
     _telas = [
       HomePage(onItemTapped: _onItemTapped),
-      SearchPage(),
+      ListaForuns(),
       ListaGenerica(),
       MapPage(),
       ProfilePage(),
@@ -49,7 +49,7 @@ class _BarraDeNavegacaoState extends State<BarraDeNavegacao> {
         height: 50.0,
         items: <Widget>[
           Icon(Icons.home, size: 30),
-          Icon(Icons.search, size: 30),
+          Icon(Icons.forum, size: 30),
           Icon(Icons.local_activity, size: 30),
           Icon(Icons.map, size: 30),
           Icon(Icons.person, size: 30),
