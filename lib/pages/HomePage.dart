@@ -1,48 +1,9 @@
 import 'package:flutter/material.dart';
 import '../Components/Drawer.dart';
-import '../Components/HomePageComponents/Meteorologia.dart'; // Certifique-se de ajustar o caminho conforme necessário
-import '../Components/HomePageComponents/CardsCategorias.dart'; // Importando o HomeCard
+import '../Components/HomePageComponents/Meteorologia.dart';
+import '../Components/HomePageComponents/CardsCategorias.dart';
 import '../Components/NavigationBar.dart';
-import './ListaGenerica.dart'; // Importando a ListaGenerica
-
-class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final String greeting;
-
-  CustomAppBar({required this.greeting});
-
-  @override
-  Widget build(BuildContext context) {
-    return AppBar(
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            greeting,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 25.0,
-            ),
-          ),
-          Text(
-            'Descobre o melhor para ti!',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14.0,
-            ),
-          ),
-        ],
-      ),
-      backgroundColor: const Color(0xFF0DCAF0),
-      centerTitle: false,
-      iconTheme: IconThemeData(
-        color: Colors.white, // Altere esta cor para a cor desejada
-      ),
-    );
-  }
-
-  @override
-  Size get preferredSize => Size.fromHeight(70.0); // Defina a altura desejada
-}
+import './ListaGenerica.dart';
 
 class HomePage extends StatelessWidget {
   final void Function(int) onItemTapped;
@@ -61,11 +22,11 @@ class HomePage extends StatelessWidget {
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour >= 6 && hour < 12) {
-      return 'Bom Dia!';
+      return 'Bom Dia, Eduardo!';
     } else if (hour >= 12 && hour < 19) {
-      return 'Boa Tarde!';
+      return 'Boa Tarde, Eduardo!';
     } else {
-      return 'Boa Noite!';
+      return 'Boa Noite, Eduardo!';
     }
   }
 
@@ -73,21 +34,77 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final greeting = _getGreeting();
     return Scaffold(
-      appBar: CustomAppBar(greeting: greeting),
       drawer: Container(
-        width: 300, // Defina a largura desejada
+        width: 300,
         child: CustomDrawer(
           onAreaTap: (area) {
             _navigateToListaGenerica(context, area);
           },
-        ), // Adiciona o CustomDrawer com a função de callback
+        ),
       ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.only(top: 32.0, left: 16.0, right: 16.0, bottom: 16.0),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0DCAF0),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(10),
+                  bottomRight: Radius.circular(10),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Builder(
+                        builder: (context) => IconButton(
+                          icon: Icon(Icons.menu, size: 30, color: Colors.white),
+                          onPressed: () => Scaffold.of(context).openDrawer(),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    greeting,
+                    style: TextStyle(
+                      fontSize: 25,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    'Descobre o melhor para ti!',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Pesquisar',
+                        border: InputBorder.none,
+                        icon: Icon(Icons.search),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             SizedBox(height: 20.0),
-            Center(child: CityWeatherCard()), // Centraliza o CityWeatherCard
+            Center(child: CityWeatherCard()),
             SizedBox(height: 10.0),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -103,7 +120,7 @@ class HomePage extends StatelessWidget {
                   ),
                   TextButton(
                     onPressed: () {
-                      onItemTapped(2); // Abre a opção ListaGenerica
+                      onItemTapped(2);
                     },
                     child: Text(
                       'Ver Todas',
@@ -118,7 +135,7 @@ class HomePage extends StatelessWidget {
             ),
             SizedBox(height: 10.0),
             Container(
-              height: 200, // Definindo altura desejada
+              height: 200,
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: [
@@ -176,7 +193,7 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 10.0),
             Container(
-              height: 150.0, // Definindo altura desejada
+              height: 150.0,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -219,7 +236,7 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 10.0),
             Container(
-              height: 150.0, // Definindo altura desejada
+              height: 150.0,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -261,6 +278,6 @@ class HomePage extends StatelessWidget {
 
 void main() {
   runApp(MaterialApp(
-    home: BarraDeNavegacao(), // Passe o nome do usuário aqui se necessário
+    home: BarraDeNavegacao(),
   ));
 }

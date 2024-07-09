@@ -3,6 +3,45 @@ import '../Components/ForumComponents/ForumCard.dart'; // Certifique-se de ajust
 import '../Components/ForumComponents/SubForumPage.dart';
 
 class ListaForuns extends StatelessWidget {
+  // Estrutura de dados para armazenar sub-fóruns exclusivos por área
+  final Map<String, List<Map<String, dynamic>>> subForunsPorArea = {
+    'Alojamento': [
+      {
+        'nome': 'Procura-se casa para alugar!',
+        'imagem': 'assets/AlojamentoForum.png',
+        'subarea': 'Casas',
+        'dataCriacao': '01/07/2024 14:30',
+      },
+      {
+        'nome': 'Oferece-se T2 perto do centro',
+        'imagem': 'assets/AlojamentoForum.png',
+        'subarea': 'Apartamentos',
+        'dataCriacao': '02/07/2024 10:15',
+      },
+      {
+        'nome': 'Dicas para encontrar uma casa barata',
+        'imagem': 'assets/AlojamentoForum.png',
+        'subarea': 'Dicas',
+        'dataCriacao': '03/07/2024 09:45',
+      },
+    ],
+    'Desporto': [
+      {
+        'nome': 'Melhores academias da cidade',
+        'imagem': 'assets/DesportoForum.png',
+        'subarea': 'Ginásios',
+        'dataCriacao': '05/07/2024 16:00',
+      },
+      {
+        'nome': 'Jogos de futebol amador',
+        'imagem': 'assets/DesportoForum.png',
+        'subarea': 'Campos',
+        'dataCriacao': '06/07/2024 17:30',
+      },
+    ],
+    // Adicione sub-fóruns para outras áreas conforme necessário
+  };
+
   @override
   Widget build(BuildContext context) {
     final foruns = [
@@ -23,6 +62,7 @@ class ListaForuns extends StatelessWidget {
         ),
         backgroundColor: const Color(0xFF0DCAF0),
         centerTitle: true,
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: GridView.builder(
         padding: EdgeInsets.all(10.0),
@@ -41,7 +81,7 @@ class ListaForuns extends StatelessWidget {
                 MaterialPageRoute(
                   builder: (context) => SubForumPage(
                     title: foruns[index]['nome']!,
-                    subForuns: getSubForuns(foruns[index]['nome']!),
+                    subForuns: subForunsPorArea[foruns[index]['nome']!] ?? [],
                   ),
                 ),
               );
@@ -54,23 +94,5 @@ class ListaForuns extends StatelessWidget {
         },
       ),
     );
-  }
-
-  List<Map<String, String>> getSubForuns(String forumName) {
-    // Você pode substituir essa lógica pelo carregamento real dos subfóruns
-    // de um banco de dados ou API.
-    final subForunsMap = {
-      'Alojamento': [
-        {'nome': 'Procura-se casa para alugar!'},
-        {'nome': 'Alguém conhece uma pessoa a alugar um T1'},
-      ],
-      'Desporto': [
-        {'nome': 'Partida de futebol no sábado!'},
-        {'nome': 'Procurando parceiros para correr'},
-      ],
-      // Adicione outros subfóruns para outras categorias conforme necessário
-    };
-
-    return subForunsMap[forumName] ?? [];
   }
 }

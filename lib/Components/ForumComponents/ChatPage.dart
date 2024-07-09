@@ -2,17 +2,40 @@ import 'package:flutter/material.dart';
 
 class ChatPage extends StatefulWidget {
   final String title;
+  final String subForumId;
 
-  ChatPage({required this.title});
+  ChatPage({required this.title, required this.subForumId});
 
   @override
   _ChatPageState createState() => _ChatPageState();
 }
 
 class _ChatPageState extends State<ChatPage> {
-  final List<Map<String, dynamic>> messages = [];
+  final Map<String, List<Map<String, dynamic>>> subForumChats = {
+    'Alojamento-Procura-se casa para alugar!': [
+      {
+        'avatar': 'https://via.placeholder.com/150',
+        'username': 'Usuario1',
+        'message': 'Olá, alguém conhece algum T1 para alugar?',
+        'timestamp': DateTime.now().subtract(Duration(minutes: 5)),
+      },
+      {
+        'avatar': 'https://via.placeholder.com/150',
+        'username': 'Usuario2',
+        'message': 'Eu conheço um perto do centro, posso passar o contato!',
+        'timestamp': DateTime.now().subtract(Duration(minutes: 3)),
+      },
+      {
+        'avatar': 'https://via.placeholder.com/150',
+        'username': 'Usuario3',
+        'message': 'Estou procurando algo também, de preferência com garagem.',
+        'timestamp': DateTime.now().subtract(Duration(minutes: 1)),
+      },
+    ],
+  };
   final TextEditingController _controller = TextEditingController();
   final String currentUser = 'UsuárioAtual'; // Nome do usuário atual (pode ser obtido de uma autenticação)
+  final ScrollController _scrollController = ScrollController();
 
   void _sendMessage(String text) {
     final message = {
@@ -22,9 +45,18 @@ class _ChatPageState extends State<ChatPage> {
       'timestamp': DateTime.now(),
     };
     setState(() {
-      messages.add(message);
+      subForumChats[widget.subForumId]?.add(message);
     });
     _controller.clear();
+    _scrollToBottom();
+  }
+
+  void _scrollToBottom() {
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 
   Widget _buildMessage(Map<String, dynamic> message) {
@@ -86,6 +118,14 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -95,15 +135,16 @@ class _ChatPageState extends State<ChatPage> {
         ),
         backgroundColor: const Color(0xFF0DCAF0),
         centerTitle: true,
+        iconTheme: IconThemeData(size: 30, color: Colors.white),
       ),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
-              reverse: true,
-              itemCount: messages.length,
+              controller: _scrollController,
+              itemCount: subForumChats[widget.subForumId]?.length ?? 0,
               itemBuilder: (context, index) {
-                final message = messages[messages.length - 1 - index];
+                final message = subForumChats[widget.subForumId]![index];
                 return _buildMessage(message);
               },
             ),
