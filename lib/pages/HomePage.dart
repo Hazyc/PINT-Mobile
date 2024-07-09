@@ -3,6 +3,7 @@ import '../Components/Drawer.dart';
 import '../Components/HomePageComponents/Meteorologia.dart';
 import '../Components/HomePageComponents/CardsCategorias.dart';
 import '../Components/NavigationBar.dart';
+import './NotificacoesPage.dart';
 import './ListaGenerica.dart';
 import '../models/Evento.dart'; // Certifique-se de importar o modelo Evento
 
@@ -16,6 +17,16 @@ class HomePage extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (context) => ListaGenerica(initialSelectedArea: area),
+      ),
+    );
+  }
+
+  void _navigateToNotifications(BuildContext context) {
+    // Implement the actual NotificationsPage navigation
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NotificationsPage(),
       ),
     );
   }
@@ -103,6 +114,10 @@ class HomePage extends StatelessWidget {
                           icon: Icon(Icons.menu, size: 30, color: Colors.white),
                           onPressed: () => Scaffold.of(context).openDrawer(),
                         ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.notifications, size: 30, color: Colors.white),
+                        onPressed: () => _navigateToNotifications(context),
                       ),
                     ],
                   ),
