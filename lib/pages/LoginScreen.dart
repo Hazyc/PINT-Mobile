@@ -4,6 +4,9 @@ import '../handlers/TokenHandler.dart';
 import 'package:http/http.dart' as http;
 import '../Components/NavigationBar.dart';
 import '../pages/LoginScreenProcess/RecoverPasswordView.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import '../pages/LoginScreenProcess/AccountRegisterGoogleFacebook.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -15,6 +18,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
   String mensagem = "Bem-vindo ao Softshares!";
   late Future<bool> _checkTokenFuture;
 
@@ -22,6 +26,104 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     _checkTokenFuture = _checkToken();
+  }
+
+  Future<void> _signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        print('login cancelado pelo user');
+        return;
+      }
+
+      // Enviar os dados da conta para o backend
+      final response = await http.post(
+        Uri.parse('https://backendpint-5wnf.onrender.com/googleauth/google/callback'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'id': googleUser.id,
+          'displayName': googleUser.displayName,
+          'email': googleUser.email,
+          'photoUrl': googleUser.photoUrl,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+
+        if (responseData['token']) {
+          TokenHandler().saveToken(responseData['token']);
+          Navigator.pushReplacementNamed(context, '/home'); 
+        } else {
+          // Redirecionar para a página de criação de conta com os dados preenchidos
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AccountRegisterGoogleFacebook(
+                email: googleUser.email,
+                initialAvatarUrl: googleUser.photoUrl,
+              ),
+            ),
+          );
+        }
+      } else {
+        print('Erro na comunicaçao com o backend');
+      }
+    } catch (error) {
+      print(error);
+    }
+  }
+
+  Future<void> _signInWithFacebook() async {
+    try {
+      final LoginResult result = await FacebookAuth.instance.login();
+
+      if (result.status == LoginStatus.success) {
+        final AccessToken accessToken = result.accessToken!;
+        final userData = await FacebookAuth.instance.getUserData(fields: "email,name,picture");
+
+        final String id = userData['id'];
+        final String email = userData['email'];
+        final String picture = userData['picture']['data']['url'];
+
+        // Enviar os dados da conta para o backend
+        final response = await http.post(
+          Uri.parse('https://backendpint-5wnf.onrender.com/facebookauth/facebook/callback'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'id': id,
+            'email': email,
+            'picture': picture,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final responseData = jsonDecode(response.body);
+
+          if (responseData['token']) {
+            TokenHandler().saveToken(responseData['token']);
+            Navigator.pushReplacementNamed(context, '/home');
+          } else {
+            // Redirecionar para a página de criação de conta com os dados preenchidos
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AccountRegisterGoogleFacebook(
+                  email: email,
+                  initialAvatarUrl: picture,
+                ),
+              ),
+            );
+          }
+        } else {
+          print('Erro na comunicaçao com o backend');
+        }
+      } else {
+        print('Falha ao fazer login no Facebook: ${result.status}');
+      }
+    } catch (error) {
+      print('Erro ao tentar fazer login com o Facebook: $error');
+    }
   }
 
   Future<bool> _checkToken() async {
@@ -53,7 +155,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final response = await http.post(
         Uri.parse('https://backendpint-5wnf.onrender.com/utilizadores/loginmobile'),
-        headers: {'Content-Type': 'application/json'}, // Adicione esta linha
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'EMAIL_UTILIZADOR': email,
           'PASSWORD_UTILIZADOR': password,
@@ -85,7 +187,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
-    future: _checkTokenFuture,
+      future: _checkTokenFuture,
       builder: (context, snapshot) {
         // Show a loading indicator while checking the token
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -104,7 +206,6 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 children: [
                   Container(
-                    
                     width: double.infinity,
                     child: Image.asset(
                       'assets/vetor.png',
@@ -113,18 +214,18 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   SizedBox(height: 20),
-                // logo
-                Image.asset(
-                  'assets/softinsa_logo.png',
-                  height: 100,
-                ),
-                Text(
-                  'Bem-vindo ao SoftShares!',
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 16,
+                  // logo
+                  Image.asset(
+                    'assets/softinsa_logo.png',
+                    height: 100,
                   ),
-                ),
+                  Text(
+                    'Bem-vindo ao SoftShares!',
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontSize: 16,
+                    ),
+                  ),
                   SizedBox(height: 40),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 25.0),
@@ -226,9 +327,17 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       GestureDetector(
                         child: Image.asset('assets/google.png', width: 50, height: 50),
+                        onTap: () async  {
+                          await _signInWithGoogle();
+                        },
                       ),
                       SizedBox(width: 25),
-                      Image.asset('assets/facebook.webp', width: 50, height: 50),
+                      GestureDetector(
+                        onTap: () async {
+                          await _signInWithFacebook();
+                        },
+                        child: Image.asset('assets/facebook.webp', width: 50, height: 50),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 30),
@@ -247,7 +356,7 @@ class _LoginPageState extends State<LoginPage> {
                         SizedBox(width: 4),
                         InkWell(
                           onTap: () {
-                            print("Registre-se agora!");
+                            Navigator.pushNamed(context, '/create-account');
                           },
                           child: Text(
                             'Registre-se agora!',

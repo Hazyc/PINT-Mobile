@@ -1,6 +1,9 @@
+import 'package:app_mobile/Components/NavigationBar.dart';
+import 'package:app_mobile/pages/LoginScreenProcess/AccountRegister.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'pages/LoginScreen.dart';
+
 
 void main() {
   runApp(MyApp());
@@ -16,6 +19,12 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: LoginPage(),
+
+      routes: {
+        '/login': (context) => LoginPage(),
+        '/home' : (context) => BarraDeNavegacao(),
+        '/create-account': (context) => AccountRegister(),
+      },
       localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

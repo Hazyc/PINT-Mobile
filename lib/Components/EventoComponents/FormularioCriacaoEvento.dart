@@ -76,23 +76,22 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   }
 
   void _saveForm() {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-      final newEvent = Evento(
-        bannerImage: _image!.path,
-        eventName: _eventName,
-        dateTime: DateFormat('dd/MM/yyyy HH:mm', 'pt_BR').format(_dateTime!),
-        address: _address,
-        category: _category!,
-        subcategory: _subcategoria!,
-        lastThreeAttendees: [],
-        description: _description,
-      );
-      // Aqui você pode adicionar lógica para salvar o evento
-      Navigator.of(context).pop();
-    }
+  if (_formKey.currentState!.validate()) {
+    _formKey.currentState!.save();
+    final newEvent = Evento(
+      bannerImage: _image!.path,
+      eventName: _eventName,
+      dateTime: DateFormat('dd/MM/yyyy HH:mm').format(_dateTime!),
+      address: _address,
+      category: _category!,
+      subcategory: _subcategoria!,
+      lastThreeAttendees: [],
+      description: _description,
+    );
+    Navigator.of(context).pop(newEvent);
   }
-
+}
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(

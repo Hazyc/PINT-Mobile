@@ -51,36 +51,37 @@ class _ListaGenericaState extends State<ListaGenerica> {
   ];
 
   List<Evento> eventos = [
-    Evento(
-      bannerImage: 'assets/night.jpg',
-      eventName: 'Evento Esportivo',
-      dateTime: 'July 14, 2024 - 6:00 PM',
-      address: 'Avenida Principal, nº 100',
-      category: 'Desporto',
-      subcategory: 'Futebol',
-      lastThreeAttendees: [
-        'assets/user-1.png',
-        'assets/user-2.png',
-        'assets/user-3.png',
-      ],
-      description: 'Um evento esportivo para toda a família...',
-    ),
-    Evento(
-      bannerImage: 'assets/day.jpg',
-      eventName: 'Gastronomia Expo',
-      dateTime: 'August 5, 2024 - 10:00 AM',
-      address: 'Rua das Eiras, nº 28',
-      category: 'Gastronomia',
-      subcategory: 'Comida',
-      lastThreeAttendees: [
-        'assets/user-1.png',
-        'assets/user-2.png',
-        'assets/user-3.png',
-      ],
-      description: 'Uma exposição de gastronomia com os melhores chefs...',
-    ),
-    // Adicione mais eventos estáticos aqui
-  ];
+  Evento(
+    bannerImage: 'assets/night.jpg',
+    eventName: 'Evento Esportivo',
+    dateTime: '2024-07-14 18:00', // Certifique-se de que a data esteja no formato yyyy-MM-dd
+    address: 'Avenida Principal, nº 100',
+    category: 'Desporto',
+    subcategory: 'Futebol',
+    lastThreeAttendees: [
+      'assets/user-1.png',
+      'assets/user-2.png',
+      'assets/user-3.png',
+    ],
+    description: 'Um evento esportivo para toda a família...',
+  ),
+  Evento(
+    bannerImage: 'assets/day.jpg',
+    eventName: 'Gastronomia Expo',
+    dateTime: '2024-08-05 10:00', // Certifique-se de que a data esteja no formato yyyy-MM-dd
+    address: 'Rua das Eiras, nº 28',
+    category: 'Gastronomia',
+    subcategory: 'Comida',
+    lastThreeAttendees: [
+      'assets/user-1.png',
+      'assets/user-2.png',
+      'assets/user-3.png',
+    ],
+    description: 'Uma exposição de gastronomia com os melhores chefs...',
+  ),
+  // Adicione mais eventos estáticos aqui
+];
+
 
   bool showRecommendations = true;
   bool showEvents = true;

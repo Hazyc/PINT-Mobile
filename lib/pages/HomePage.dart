@@ -4,6 +4,7 @@ import '../Components/HomePageComponents/Meteorologia.dart';
 import '../Components/HomePageComponents/CardsCategorias.dart';
 import '../Components/NavigationBar.dart';
 import './ListaGenerica.dart';
+import '../models/Evento.dart'; // Certifique-se de importar o modelo Evento
 
 class HomePage extends StatelessWidget {
   final void Function(int) onItemTapped;
@@ -33,13 +34,48 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final greeting = _getGreeting();
+
+    // Adicione aqui a lista de eventos
+    List<Evento> eventos = [
+      Evento(
+        bannerImage: 'assets/night.jpg',
+        eventName: 'Evento Esportivo',
+        dateTime: 'July 14, 2024 - 6:00 PM',
+        address: 'Avenida Principal, nº 100',
+        category: 'Desporto',
+        subcategory: 'Futebol',
+        lastThreeAttendees: [
+          'assets/user-1.png',
+          'assets/user-2.png',
+          'assets/user-3.png',
+        ],
+        description: 'Um evento esportivo para toda a família...',
+      ),
+      Evento(
+        bannerImage: 'assets/day.jpg',
+        eventName: 'Gastronomia Expo',
+        dateTime: 'August 5, 2024 - 10:00 AM',
+        address: 'Rua das Eiras, nº 28',
+        category: 'Gastronomia',
+        subcategory: 'Comida',
+        lastThreeAttendees: [
+          'assets/user-1.png',
+          'assets/user-2.png',
+          'assets/user-3.png',
+        ],
+        description: 'Uma exposição de gastronomia com os melhores chefs...',
+      ),
+      // Adicione mais eventos aqui
+    ];
+
     return Scaffold(
       drawer: Container(
         width: 300,
         child: CustomDrawer(
-          onAreaTap: (area) {
+          onAreaTap: (String area) {
             _navigateToListaGenerica(context, area);
           },
+          eventos: eventos, // Passando a lista de eventos aqui
         ),
       ),
       body: SingleChildScrollView(

@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../handlers/TokenHandler.dart';
 import '../pages/ListaForuns.dart'; // Certifique-se de ajustar o caminho conforme necessário
 import '../pages/DefiniçõesPage.dart';
+import '../pages/CalendarioPage.dart'; // Adicione a importação da página de calendário
+import '../models/Evento.dart'; // Adicione a importação do modelo de evento
 
 class CustomDrawer extends StatefulWidget {
   final Function(String) onAreaTap;
+  final List<Evento> eventos; // Adicione esta linha para receber a lista de eventos
 
-  CustomDrawer({required this.onAreaTap});
+  CustomDrawer({required this.onAreaTap, required this.eventos});
 
   @override
   _CustomDrawerState createState() => _CustomDrawerState();
@@ -82,7 +86,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
               child: Text('Sair'),
               onPressed: () {
                 Navigator.of(context).pop(); // Fecha o diálogo
-                // Lógica para sair
+                TokenHandler().deleteToken();
                 Navigator.pushReplacementNamed(context, '/login');
               },
             ),
@@ -151,7 +155,13 @@ class _CustomDrawerState extends State<CustomDrawer> {
               leading: Icon(Icons.calendar_today),
               title: Text('Calendário'),
               onTap: () {
-                // Navegação para a página de calendário
+                Navigator.pop(context); // Fecha o Drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CalendarioPage(eventos: widget.eventos), // Passa os eventos
+                  ),
+                );
               },
             ),
             ListTile(
