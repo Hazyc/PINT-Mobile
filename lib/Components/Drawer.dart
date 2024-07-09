@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../pages/ListaForuns.dart'; // Certifique-se de ajustar o caminho conforme necessário
+import '../pages/DefiniçõesPage.dart';
 
 class CustomDrawer extends StatefulWidget {
   final Function(String) onAreaTap;
@@ -170,9 +171,12 @@ class _CustomDrawerState extends State<CustomDrawer> {
             ListTile(
               leading: Icon(Icons.settings),
               title: Text('Definições'),
-              onTap: () {
-                // Navegação para a página de definições
-              },
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SettingsPage(),
+                ),
+              ),
             ),
             ListTile(
               leading: Icon(Icons.exit_to_app),

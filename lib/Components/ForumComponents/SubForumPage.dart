@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'ChatPage.dart'; // Certifique-se de ajustar o caminho conforme necessário
 
 class SubForumPage extends StatelessWidget {
   final String title;
@@ -31,7 +32,12 @@ class SubForumPage extends StatelessWidget {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               onTap: () {
-                // Adicione a navegação para a página de detalhes do sub-fórum, se necessário
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChatPage(title: subForuns[index]['nome']!),
+                  ),
+                );
               },
             ),
           );
