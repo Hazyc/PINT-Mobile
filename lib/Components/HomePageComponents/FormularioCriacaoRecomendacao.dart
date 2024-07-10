@@ -44,8 +44,10 @@ class _ReviewPageState extends State<ReviewPage> {
       print('Token não encontrado');
       return;
     }
-    final areasResponse = await http.get(Uri.parse('http://localhost:7000/areas/listarareasativas'),
-    headers: {
+    final areasResponse = await http.get(
+      Uri.parse(
+          'https://backendpint-5wnf.onrender.com/areas/listarareasativas'),
+      headers: {
         'Authorization': 'Bearer $token',
       },
     );
@@ -62,14 +64,19 @@ class _ReviewPageState extends State<ReviewPage> {
         ];
         tempAreaParameters[areaName] = parameters;
 
-        final subareasResponse = await http.get(Uri.parse('http://localhost:7000/subareas/listarPorAreaAtivos/$areaId'),
-        headers: {
+        final subareasResponse = await http.get(
+          Uri.parse(
+              'https://backendpint-5wnf.onrender.com/subareas/listarPorAreaAtivos/$areaId'),
+          headers: {
             'Authorization': 'Bearer $token',
           },
         );
         if (subareasResponse.statusCode == 200) {
-          final List<dynamic> subareasData = jsonDecode(subareasResponse.body)['data'];
-          List<String> subareaNames = subareasData.map((subarea) => subarea['NOME_SUBAREA'].toString()).toList();
+          final List<dynamic> subareasData =
+              jsonDecode(subareasResponse.body)['data'];
+          List<String> subareaNames = subareasData
+              .map((subarea) => subarea['NOME_SUBAREA'].toString())
+              .toList();
 
           setState(() {
             areaParameters = tempAreaParameters;
@@ -126,7 +133,8 @@ class _ReviewPageState extends State<ReviewPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text('Confirmar remoção'),
           content: Text('Tem certeza de que deseja remover esta imagem?'),
           actions: [
@@ -151,126 +159,127 @@ class _ReviewPageState extends State<ReviewPage> {
     );
   }
 
- void _saveReview() async {
-  if (_locationController.text.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Por favor, adicione o nome do local.'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
+  void _saveReview() async {
+    if (_locationController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Por favor, adicione o nome do local.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
-  if (_commentController.text.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Por favor, adicione um comentário.'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
+    if (_commentController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Por favor, adicione um comentário.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
-  if (_serviceRating == 0 || _cleanlinessRating == 0 || _valueRating == 0) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Por favor, adicione uma avaliação para todos os aspectos.'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
+    if (_serviceRating == 0 || _cleanlinessRating == 0 || _valueRating == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text('Por favor, adicione uma avaliação para todos os aspectos.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
-   setState(() {
-    _isLoading = true;
-  });
-
-  try {
-    TokenHandler tokenHandler = TokenHandler();
-  final String? token = await tokenHandler.getToken();
-
-  if (token == null) {
-    print('Token não encontrado');
     setState(() {
-      _isLoading = false;
+      _isLoading = true;
     });
-    return;
-  }
 
-  String? imageId;
+    try {
+      TokenHandler tokenHandler = TokenHandler();
+      final String? token = await tokenHandler.getToken();
 
-  // Upload do banner se existir
-  if (_bannerImage != null) {
-    var uploadRequest = http.MultipartRequest(
-      'POST',
-      Uri.parse('http://localhost:7000/imagens/upload'),
-    );
-    uploadRequest.headers['Authorization'] = 'Bearer $token';
+      if (token == null) {
+        print('Token não encontrado');
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
 
-    uploadRequest.files.add(await http.MultipartFile.fromPath(
-      'imagem',
-      _bannerImage!.path,
-    ));
+      String? imageId;
 
-    final uploadResponse = await uploadRequest.send();
+      // Upload do banner se existir
+      if (_bannerImage != null) {
+        var uploadRequest = http.MultipartRequest(
+          'POST',
+          Uri.parse('https://backendpint-5wnf.onrender.com/imagens/upload'),
+        );
+        uploadRequest.headers['Authorization'] = 'Bearer $token';
 
-    if (uploadResponse.statusCode == 200) {
-      var uploadResponseBody = await uploadResponse.stream.bytesToString();
-      var uploadData = jsonDecode(uploadResponseBody)['data'];
-      imageId = uploadData['ID_IMAGEM'];
-    } else {
-      throw Exception('Failed to upload image');
-    }
-  }
+        uploadRequest.files.add(await http.MultipartFile.fromPath(
+          'imagem',
+          _bannerImage!.path,
+        ));
 
-final response = await http.post(
-  Uri.parse('http://localhost:7000/recomendacoes/create'),
-  headers: <String, String>{
-    'Content-Type': 'application/json; charset=UTF-8',
-    'Authorization': 'Bearer $token',
-  },
-  body: jsonEncode(<String, dynamic>{
-    'ID_IMAGEM': imageId,
-    'CIDADE': 'Viseu',
-    'NOME_SUBAREA': _selectedSubarea ?? '',
-    'TITULO_RECOMENDACAO': _locationController.text, // Corrigido para TITULO_RECOMENDACAO
-    'DESCRICAO_RECOMENDACAO': _commentController.text, // Corrigido para DESCRICAO_RECOMENDACAO
-  }),
-);
+        final uploadResponse = await uploadRequest.send();
 
-if (response.statusCode == 200) {
-  var recomendacaoData = jsonDecode(response.body)['data'];
-  var idRecomendacao = recomendacaoData['ID_RECOMENDACAO'];
+        if (uploadResponse.statusCode == 200) {
+          var uploadResponseBody = await uploadResponse.stream.bytesToString();
+          var uploadData = jsonDecode(uploadResponseBody)['data'];
+          imageId = uploadData['ID_IMAGEM'];
+        } else {
+          throw Exception('Failed to upload image');
+        }
+      }
 
-    // 2. Criar a avaliação
-    final avaliacaoResponse = await http.post(
-      Uri.parse('http://localhost:7000/avaliacoes/create'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'ID_RECOMENDACAO': idRecomendacao,
-        'AVALIACAO_PARAMETRO_1': _serviceRating,
-        'AVALIACAO_PARAMETRO_2': _cleanlinessRating,
-        'AVALIACAO_PARAMETRO_3': _valueRating,
-      }),
-    );
+      final response = await http.post(
+        Uri.parse('https://backendpint-5wnf.onrender.com/recomendacoes/create'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(<String, dynamic>{
+          'ID_IMAGEM': imageId,
+          'CIDADE': 'Viseu',
+          'NOME_SUBAREA': _selectedSubarea ?? '',
+          'TITULO_RECOMENDACAO':
+              _locationController.text, // Corrigido para TITULO_RECOMENDACAO
+          'DESCRICAO_RECOMENDACAO':
+              _commentController.text, // Corrigido para DESCRICAO_RECOMENDACAO
+        }),
+      );
 
-    if (avaliacaoResponse.statusCode != 200) {
-      throw Exception('Failed to create evaluation');
-    }
+      if (response.statusCode == 200) {
+        var recomendacaoData = jsonDecode(response.body)['data'];
+        var idRecomendacao = recomendacaoData['ID_RECOMENDACAO'];
 
-      
+        // 2. Criar a avaliação
+        final avaliacaoResponse = await http.post(
+          Uri.parse('https://backendpint-5wnf.onrender.com/avaliacoes/create'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'ID_RECOMENDACAO': idRecomendacao,
+            'AVALIACAO_PARAMETRO_1': _serviceRating,
+            'AVALIACAO_PARAMETRO_2': _cleanlinessRating,
+            'AVALIACAO_PARAMETRO_3': _valueRating,
+          }),
+        );
 
-      // Envio das outras imagens para /imagens/create
-      /*for (int i = 0; i < _images.length; i++) {
+        if (avaliacaoResponse.statusCode != 200) {
+          throw Exception('Failed to create evaluation');
+        }
+
+        // Envio das outras imagens para /imagens/create
+        /*for (int i = 0; i < _images.length; i++) {
         File imageFile = File(_images[i]);
         if (imageFile.existsSync()) {
           var requestImage = http.MultipartRequest(
             'POST',
-            Uri.parse('http://localhost:7000/imagens/create'),
+            Uri.parse('https://backendpint-5wnf.onrender.com/imagens/create'),
           );
           requestImage.headers['Authorization'] = 'Bearer $token';
           requestImage.fields['ID_ALBUM'] = idAlbum.toString();
@@ -290,47 +299,41 @@ if (response.statusCode == 200) {
         }
       }*/
 
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Recomendação salva com sucesso!'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+        setState(() {
+          _serviceRating = 0;
+          _cleanlinessRating = 0;
+          _valueRating = 0;
+          _commentController.clear();
+          _images.clear();
+          _locationController.clear();
+          _bannerImage = null;
+          _isLoading = false;
+        });
+
+        Navigator.pop(context);
+      } else {
+        throw Exception('Failed to create recommendation');
+      }
+    } catch (error) {
+      print('Erro ao salvar recomendação: $error');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Recomendação salva com sucesso!'),
-          backgroundColor: Colors.blue,
+          content: Text('Erro ao salvar recomendação.'),
+          backgroundColor: Colors.red,
         ),
       );
+    } finally {
       setState(() {
-        _serviceRating = 0;
-        _cleanlinessRating = 0;
-        _valueRating = 0;
-        _commentController.clear();
-        _images.clear();
-        _locationController.clear();
-        _bannerImage = null;
         _isLoading = false;
       });
-
-      Navigator.pop(context);
-
-    } else {
-      throw Exception('Failed to create recommendation');
     }
-
-  } catch (error) {
-    print('Erro ao salvar recomendação: $error');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Erro ao salvar recomendação.'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  } finally {
-    setState(() {
-      _isLoading = false;
-    });
   }
-}
-
-
-
-
 
   void _selectTag(String tag) {
     setState(() {
@@ -365,7 +368,8 @@ if (response.statusCode == 200) {
             children: [
               Container(
                 width: double.infinity,
-                padding: EdgeInsets.only(top: 32.0, bottom: 8.0, left: 16.0, right: 16.0),
+                padding: EdgeInsets.only(
+                    top: 32.0, bottom: 8.0, left: 16.0, right: 16.0),
                 decoration: BoxDecoration(
                   color: Colors.blue,
                   borderRadius: BorderRadius.only(
@@ -377,7 +381,8 @@ if (response.statusCode == 200) {
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.arrow_back, size: 30, color: Colors.white),
+                      icon:
+                          Icon(Icons.arrow_back, size: 30, color: Colors.white),
                       onPressed: () {
                         Navigator.of(context).pop();
                       },
@@ -501,7 +506,8 @@ if (response.statusCode == 200) {
           ),
           filled: true,
           fillColor: Colors.grey[200],
-          contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
         ),
       ),
     );
@@ -523,7 +529,8 @@ if (response.statusCode == 200) {
                 ? Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.add_a_photo, size: 30, color: Colors.grey[600]),
+                      Icon(Icons.add_a_photo,
+                          size: 30, color: Colors.grey[600]),
                       SizedBox(height: 8),
                       Text(label),
                     ],
@@ -627,37 +634,34 @@ if (response.statusCode == 200) {
   }
 
   Widget _buildRatingBarSection() {
-  if (isLoading) {
-    return Center(child: CircularProgressIndicator());
-  }
+    if (isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
 
-  List<String> parameters = areaParameters[_selectedTag] ?? [];
+    List<String> parameters = areaParameters[_selectedTag] ?? [];
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      for (String parameter in parameters) ...[
-        _buildTitleRatings(parameter),
-        SizedBox(height: 8.0),
-        _buildRatingBar(parameter, (rating) {
-          setState(() {
-            if (parameter == parameters[0]) {
-              _serviceRating = rating;
-            } else if (parameter == parameters[1]) {
-              _cleanlinessRating = rating;
-            } else if (parameter == parameters[2]) {
-              _valueRating = rating;
-            }
-          });
-        }),
-        SizedBox(height: 15),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (String parameter in parameters) ...[
+          _buildTitleRatings(parameter),
+          SizedBox(height: 8.0),
+          _buildRatingBar(parameter, (rating) {
+            setState(() {
+              if (parameter == parameters[0]) {
+                _serviceRating = rating;
+              } else if (parameter == parameters[1]) {
+                _cleanlinessRating = rating;
+              } else if (parameter == parameters[2]) {
+                _valueRating = rating;
+              }
+            });
+          }),
+          SizedBox(height: 15),
+        ],
       ],
-    ],
-  );
-}
-
-
-
+    );
+  }
 
   Widget _buildTitleRatings(String title) {
     return Container(
@@ -728,7 +732,9 @@ if (response.statusCode == 200) {
     }
 
     if (_images.isEmpty) {
-      return Center(child: Text('Nenhuma imagem adicionada', style: TextStyle(color: Colors.black)));
+      return Center(
+          child: Text('Nenhuma imagem adicionada',
+              style: TextStyle(color: Colors.black)));
     }
 
     return Container(

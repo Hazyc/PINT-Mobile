@@ -12,7 +12,8 @@ class EditProfilePage extends StatefulWidget {
   final String userDescription;
   final Function(String, String, String, String) onSave;
 
-  EditProfilePage({    required this.bannerImageUrl,
+  EditProfilePage({
+    required this.bannerImageUrl,
     required this.avatarImageUrl,
     required this.userName,
     required this.userDescription,
@@ -39,143 +40,152 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _bannerImageUrl = widget.bannerImageUrl;
     _avatarImageUrl = widget.avatarImageUrl;
     _nameController = TextEditingController(text: widget.userName);
-    _descriptionController = TextEditingController(text: widget.userDescription);
+    _descriptionController =
+        TextEditingController(text: widget.userDescription);
   }
 
   Future<void> _updateUserProfile() async {
-  try {
-    final String? token = await tokenHandler.getToken();
-    if (token == null) {
-      print('Token não encontrado');
-      return;
-    }
+    try {
+      final String? token = await tokenHandler.getToken();
+      if (token == null) {
+        print('Token não encontrado');
+        return;
+      }
 
-    final tokenResponse = await http.get(
-      Uri.parse('http://localhost:7000/utilizadores/getbytoken'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (tokenResponse.statusCode == 200) {
-      final userData = json.decode(tokenResponse.body)['data'];
-      int userId = userData['ID_UTILIZADOR'];
-
-      final response = await http.put(
-        Uri.parse('http://localhost:7000/utilizadores/update/$userId'),
+      final tokenResponse = await http.get(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode({
-          'ID_IMAGEM_BANNER': _bannerID,
-          'ID_IMAGEM_PERFIL': _avatarID,
-          'NOME_UTILIZADOR': _nameController.text,
-          'DESCRICAO_UTILIZADOR': _descriptionController.text,
-        }),
       );
 
-      if (response.statusCode == 200) {
-        print('Perfil atualizado com sucesso');
+      if (tokenResponse.statusCode == 200) {
+        final userData = json.decode(tokenResponse.body)['data'];
+        int userId = userData['ID_UTILIZADOR'];
+
+        final response = await http.put(
+          Uri.parse(
+              'https://backendpint-5wnf.onrender.com/utilizadores/update/$userId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: json.encode({
+            'ID_IMAGEM_BANNER': _bannerID,
+            'ID_IMAGEM_PERFIL': _avatarID,
+            'NOME_UTILIZADOR': _nameController.text,
+            'DESCRICAO_UTILIZADOR': _descriptionController.text,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          print('Perfil atualizado com sucesso');
+        } else {
+          print('Falha ao atualizar perfil: ${response.statusCode}');
+        }
       } else {
-        print('Falha ao atualizar perfil: ${response.statusCode}');
+        print(
+            'Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
       }
-    } else {
-      print('Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
+    } catch (e) {
+      print('Erro ao atualizar perfil: $e');
     }
-  } catch (e) {
-    print('Erro ao atualizar perfil: $e');
   }
-}
 
+  Future<Map<String, dynamic>> _uploadImage(
+      double idImagem, String filePath, String type) async {
+    try {
+      final url = idImagem != 0
+          ? Uri.parse(
+              'https://backendpint-5wnf.onrender.com/imagem/update/$idImagem')
+          : Uri.parse('https://backendpint-5wnf.onrender.com/imagem/upload');
 
-  Future<Map<String, dynamic>> _uploadImage(double idImagem, String filePath, String type) async {
-  try {
-    final url = idImagem != 0
-        ? Uri.parse('http://localhost:7000/imagem/update/$idImagem')
-        : Uri.parse('http://localhost:7000/imagem/upload');
+      var request = http.MultipartRequest('POST', url)
+        ..files.add(await http.MultipartFile.fromPath('file', filePath));
 
-    var request = http.MultipartRequest('POST', url)
-      ..files.add(await http.MultipartFile.fromPath('file', filePath));
+      var response = await request.send();
 
-    var response = await request.send();
-
-    if (response.statusCode == 200) {
-      var responseData = await http.Response.fromStream(response);
-      var jsonResponse = json.decode(responseData.body);
-      return jsonResponse['data'];
-    } else {
-      print('Falha ao fazer upload da imagem: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        var responseData = await http.Response.fromStream(response);
+        var jsonResponse = json.decode(responseData.body);
+        return jsonResponse['data'];
+      } else {
+        print('Falha ao fazer upload da imagem: ${response.statusCode}');
+        return {};
+      }
+    } catch (e) {
+      print('Erro ao fazer upload da imagem: $e');
       return {};
     }
-  } catch (e) {
-    print('Erro ao fazer upload da imagem: $e');
-    return {};
   }
-}
-
 
   Future<void> _pickImage(ImageSource source, bool isBanner) async {
-  try {
-    final String? token = await tokenHandler.getToken();
-    if (token == null) {
-      print('Token não encontrado');
-      return;
-    }
+    try {
+      final String? token = await tokenHandler.getToken();
+      if (token == null) {
+        print('Token não encontrado');
+        return;
+      }
 
-    final tokenResponse = await http.get(
-      Uri.parse('http://localhost:7000/utilizadores/getbytoken'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
+      final tokenResponse = await http.get(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
 
-    if (tokenResponse.statusCode == 200) {
-      final userData = json.decode(tokenResponse.body)['data'];
-      double idImagem = isBanner ? userData['ID_IMAGEM_BANNER'] ?? 0 : userData['ID_IMAGEM_PERFIL'] ?? 0;
-      final pickedFile = await ImagePicker().pickImage(source: source);
+      if (tokenResponse.statusCode == 200) {
+        final userData = json.decode(tokenResponse.body)['data'];
+        double idImagem = isBanner
+            ? userData['ID_IMAGEM_BANNER'] ?? 0
+            : userData['ID_IMAGEM_PERFIL'] ?? 0;
+        final pickedFile = await ImagePicker().pickImage(source: source);
 
-      if (pickedFile != null) {
-        Map<String, dynamic> imageResponse = {};
+        if (pickedFile != null) {
+          Map<String, dynamic> imageResponse = {};
 
-        if (idImagem == 0) {
-          // Não existe ID de imagem, faz upload
-          imageResponse = await _uploadImage(0, pickedFile.path, isBanner ? 'banner' : 'perfil');
+          if (idImagem == 0) {
+            // Não existe ID de imagem, faz upload
+            imageResponse = await _uploadImage(
+                0, pickedFile.path, isBanner ? 'banner' : 'perfil');
+          } else {
+            // Existe ID de imagem, faz update
+            imageResponse = await _uploadImage(
+                idImagem, pickedFile.path, isBanner ? 'banner' : 'perfil');
+          }
+
+          if (imageResponse.isNotEmpty) {
+            setState(() {
+              if (isBanner) {
+                _bannerImageUrl = imageResponse['NOME_IMAGEM'];
+                _bannerID = imageResponse['ID_IMAGEM'];
+              } else {
+                _avatarImageUrl = imageResponse['NOME_IMAGEM'];
+                _avatarID = imageResponse['ID_IMAGEM'];
+              }
+            });
+          }
         } else {
-          // Existe ID de imagem, faz update
-          imageResponse = await _uploadImage(idImagem, pickedFile.path, isBanner ? 'banner' : 'perfil');
-        }
-
-        if (imageResponse.isNotEmpty) {
-          setState(() {
-            if (isBanner) {
-              _bannerImageUrl = imageResponse['NOME_IMAGEM'];
-              _bannerID = imageResponse['ID_IMAGEM'];
-            } else {
-              _avatarImageUrl = imageResponse['NOME_IMAGEM'];
-              _avatarID = imageResponse['ID_IMAGEM'];
-            }
-          });
+          print("Nenhuma imagem selecionada.");
         }
       } else {
-        print("Nenhuma imagem selecionada.");
+        print(
+            'Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
       }
-    } else {
-      print('Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
+    } catch (e) {
+      print("Erro ao pegar imagem: $e");
     }
-  } catch (e) {
-    print("Erro ao pegar imagem: $e");
   }
-}
-
-
 
   void _showImageSourceDialog(bool isBanner) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(isBanner ? 'Alterar Foto de Capa' : 'Alterar Foto de Perfil'),
+          title: Text(
+              isBanner ? 'Alterar Foto de Capa' : 'Alterar Foto de Perfil'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -218,7 +228,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
             icon: Icon(Icons.save),
             onPressed: () async {
               await _updateUserProfile(); // Atualiza o perfil do usuário no servidor
-              widget.onSave(_bannerImageUrl, _avatarImageUrl, _nameController.text, _descriptionController.text);
+              widget.onSave(_bannerImageUrl, _avatarImageUrl,
+                  _nameController.text, _descriptionController.text);
               Navigator.of(context).pop();
             },
           ),
@@ -256,7 +267,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       backgroundColor: Colors.grey[200],
                       backgroundImage: _avatarImageUrl.isNotEmpty
                           ? NetworkImage(_avatarImageUrl)
-                          : AssetImage('assets/images/placeholder_image.png') as ImageProvider,
+                          : AssetImage('assets/images/placeholder_image.png')
+                              as ImageProvider,
                       child: _avatarImageUrl.isEmpty
                           ? Icon(
                               Icons.camera_alt,

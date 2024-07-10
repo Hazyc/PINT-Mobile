@@ -44,7 +44,8 @@ class _HomePageState extends State<HomePage> {
     try {
       // Fetch user data
       final userResponse = await http.get(
-        Uri.parse('http://localhost:7000/utilizadores/getbytoken'),
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -79,9 +80,9 @@ class _HomePageState extends State<HomePage> {
     final List<dynamic> data = jsonDecode(response.body)['data'];
     if (response.statusCode == 200) {
       setState(() {
-        eventos = data.map((json) => Evento.fromJson(json)).toList();;
+        eventos = data.map((json) => Evento.fromJson(json)).toList();
+        ;
       });
-      
     } else {
       throw Exception('Failed to load events');
     }
@@ -94,10 +95,12 @@ class _HomePageState extends State<HomePage> {
       print('Token não encontrado');
       return;
     }
-    final String url = 'http://localhost:7000/areas/listarareasativas';
+    final String url =
+        'https://backendpint-5wnf.onrender.com/areas/listarareasativas';
 
     try {
-      final response = await http.get(Uri.parse(url),
+      final response = await http.get(
+        Uri.parse(url),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -215,14 +218,13 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Builder(
                         builder: (context) => IconButton(
-                          icon: Icon(Icons.menu,
-                              size: 30, color: Colors.white),
-                          onPressed: () =>
-                              Scaffold.of(context).openDrawer(),
+                          icon: Icon(Icons.menu, size: 30, color: Colors.white),
+                          onPressed: () => Scaffold.of(context).openDrawer(),
                         ),
                       ),
                       IconButton(
-                        icon: Icon(Icons.notifications, size: 30, color: Colors.white),
+                        icon: Icon(Icons.notifications,
+                            size: 30, color: Colors.white),
                         onPressed: () => _navigateToNotifications(context),
                       ),
                     ],
@@ -299,16 +301,18 @@ class _HomePageState extends State<HomePage> {
                 itemBuilder: (context, index) {
                   var categoria = categorias[index];
                   return Padding(
-                    padding: EdgeInsets.only(left: index == 0 ? 16.0 : 5.0, right: 5.0),
+                    padding: EdgeInsets.only(
+                        left: index == 0 ? 16.0 : 5.0, right: 5.0),
                     child: HomeCard(
                       imageAsset: categoria['IMAGEM'],
                       title: categoria['NOME_AREA'],
-                      onTap: () => _navigateToListaGenerica(context, categoria['NOME_AREA']),
+                      onTap: () => _navigateToListaGenerica(
+                          context, categoria['NOME_AREA']),
                     ),
                   );
                 },
               ),
-                  ),
+            ),
             const SizedBox(height: 20.0),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0),

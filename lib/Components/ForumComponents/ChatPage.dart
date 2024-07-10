@@ -16,9 +16,11 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   TokenHandler tokenHandler = TokenHandler();
-  Map<String, List<dynamic>> messages = {}; // Mapa para armazenar as mensagens da API
+  Map<String, List<dynamic>> messages =
+      {}; // Mapa para armazenar as mensagens da API
   final TextEditingController _controller = TextEditingController();
-  String currentUser = ''; // Nome do usuário atual (será obtido na inicialização)
+  String currentUser =
+      ''; // Nome do usuário atual (será obtido na inicialização)
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -29,7 +31,8 @@ class _ChatPageState extends State<ChatPage> {
 
   // Função para buscar as mensagens da API
   Future<void> fetchMessages() async {
-    final String? token = await tokenHandler.getToken(); // Obtenha o token de autenticação
+    final String? token =
+        await tokenHandler.getToken(); // Obtenha o token de autenticação
 
     if (token == null) {
       // Trate o caso em que o token não está disponível
@@ -38,7 +41,9 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     // Obtenha o usuário atual usando o token
-    final userResponse = await http.get(Uri.parse('http://localhost:7000/utilizadores/getbytoken'),
+    final userResponse = await http.get(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
         headers: {
           'Authorization': 'Bearer $token',
         });
@@ -53,14 +58,16 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     // Obtenha as mensagens visíveis usando o token
-    final messagesResponse = await http.get(Uri.parse('http://localhost:7000/mensagens/listarvisiveis'),
+    final messagesResponse = await http.get(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/mensagens/listarvisiveis'),
         headers: {
           'Authorization': 'Bearer $token',
         });
 
     if (messagesResponse.statusCode == 200) {
       final messagesData = json.decode(messagesResponse.body)['data'];
-      
+
       // Organize as mensagens por título de fórum
       Map<String, List<dynamic>> groupedMessages = {};
 
@@ -89,7 +96,8 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _sendMessage(String text) async {
-    final String? token = await tokenHandler.getToken(); // Obtenha o token de autenticação
+    final String? token =
+        await tokenHandler.getToken(); // Obtenha o token de autenticação
 
     if (token == null) {
       // Trate o caso em que o token não está disponível
@@ -98,7 +106,7 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     final response = await http.post(
-      Uri.parse('http://localhost:7000/mensagens/create'),
+      Uri.parse('https://backendpint-5wnf.onrender.com/mensagens/create'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -131,7 +139,8 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildMessage(Map<String, dynamic> message) {
     final isCurrentUser = message['Criador']['NOME_UTILIZADOR'] == currentUser;
-    final alignment = isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final alignment =
+        isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start;
     final color = isCurrentUser ? Colors.blue[100] : Colors.grey[200];
     final avatarRadius = 20.0;
 
@@ -139,11 +148,13 @@ class _ChatPageState extends State<ChatPage> {
       crossAxisAlignment: alignment,
       children: [
         Row(
-          mainAxisAlignment: isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+          mainAxisAlignment:
+              isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
           children: [
             if (!isCurrentUser)
               CircleAvatar(
-                backgroundImage: NetworkImage(message['Criador']['Perfil']['NOME_IMAGEM']),
+                backgroundImage:
+                    NetworkImage(message['Criador']['Perfil']['NOME_IMAGEM']),
                 radius: avatarRadius,
               ),
             SizedBox(width: 10),
@@ -178,7 +189,8 @@ class _ChatPageState extends State<ChatPage> {
             SizedBox(width: 10),
             if (isCurrentUser)
               CircleAvatar(
-                backgroundImage: NetworkImage(message['Criador']['Perfil']['NOME_IMAGEM']),
+                backgroundImage:
+                    NetworkImage(message['Criador']['Perfil']['NOME_IMAGEM']),
                 radius: avatarRadius,
               ),
           ],
@@ -204,7 +216,9 @@ class _ChatPageState extends State<ChatPage> {
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
-              itemCount: messages.containsKey(widget.title) ? messages[widget.title]!.length : 0,
+              itemCount: messages.containsKey(widget.title)
+                  ? messages[widget.title]!.length
+                  : 0,
               itemBuilder: (context, index) {
                 final message = messages[widget.title]![index];
                 return _buildMessage(message);

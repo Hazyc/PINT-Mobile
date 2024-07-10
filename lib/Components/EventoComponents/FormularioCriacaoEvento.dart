@@ -42,7 +42,8 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
     }
 
     final response = await http.get(
-      Uri.parse('http://localhost:7000/areas/listarareasativas'),
+      Uri.parse(
+          'https://backendpint-5wnf.onrender.com/areas/listarareasativas'),
       headers: {
         'Authorization': 'Bearer $token',
       },
@@ -53,7 +54,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
       for (var area in areas) {
         final subResponse = await http.get(
           Uri.parse(
-              'http://localhost:7000/subareas/listarPorAreaAtivos/${area['ID_AREA']}'),
+              'https://backendpint-5wnf.onrender.com/subareas/listarPorAreaAtivos/${area['ID_AREA']}'),
           headers: {
             'Authorization': 'Bearer $token',
           },
@@ -120,98 +121,100 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   }
 
   Future<void> _saveForm() async {
-  TokenHandler tokenHandler = TokenHandler();
-  final String? token =
-      await tokenHandler.getToken(); // Obtenha o token de autenticação
+    TokenHandler tokenHandler = TokenHandler();
+    final String? token =
+        await tokenHandler.getToken(); // Obtenha o token de autenticação
 
-  if (token == null) {
-    // Trate o caso em que o token não está disponível
-    print('Token não encontrado');
-    return;
-  }
+    if (token == null) {
+      // Trate o caso em que o token não está disponível
+      print('Token não encontrado');
+      return;
+    }
 
-  if (_formKey.currentState!.validate()) {
-    _formKey.currentState!.save();
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
 
-    try {
-      String? imageId;
-      
-      // Upload da imagem do banner
-      if (_image != null) {
-        var uploadRequest = http.MultipartRequest(
-          'POST',
-          Uri.parse('http://localhost:7000/imagens/upload'),
-        );
-        uploadRequest.headers['Authorization'] = 'Bearer $token';
+      try {
+        String? imageId;
 
-        var file = await http.MultipartFile.fromPath(
-          'imagem',
-          _image!.path,
-        );
-        uploadRequest.files.add(file);
+        // Upload da imagem do banner
+        if (_image != null) {
+          var uploadRequest = http.MultipartRequest(
+            'POST',
+            Uri.parse('https://backendpint-5wnf.onrender.com/imagens/upload'),
+          );
+          uploadRequest.headers['Authorization'] = 'Bearer $token';
 
-        var uploadResponse = await uploadRequest.send();
-        var uploadResponseString = await uploadResponse.stream.bytesToString();
+          var file = await http.MultipartFile.fromPath(
+            'imagem',
+            _image!.path,
+          );
+          uploadRequest.files.add(file);
 
-        if (uploadResponse.statusCode == 200) {
-          var jsonResponse = jsonDecode(uploadResponseString);
-          imageId = jsonResponse['data']['ID_IMAGEM'];
-        } else {
-          _showErrorDialog('Falha ao fazer upload da imagem. Por favor, tente novamente.');
-          return;
+          var uploadResponse = await uploadRequest.send();
+          var uploadResponseString =
+              await uploadResponse.stream.bytesToString();
+
+          if (uploadResponse.statusCode == 200) {
+            var jsonResponse = jsonDecode(uploadResponseString);
+            imageId = jsonResponse['data']['ID_IMAGEM'];
+          } else {
+            _showErrorDialog(
+                'Falha ao fazer upload da imagem. Por favor, tente novamente.');
+            return;
+          }
         }
+
+        // Montar o corpo da requisição para criar o evento
+        final response = await http.post(
+          Uri.parse('https://backendpint-5wnf.onrender.com/eventos/create'),
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode(<String, dynamic>{
+            'ID_IMAGEM': imageId,
+            'CIDADE': 'Viseu',
+            'NOME_SUBAREA': _subcategory ?? '',
+            'TITULO_EVENTO': _eventName,
+            'ALTITUDE_EVENTO': '',
+            'LONGITUDE_EVENTO': '',
+            'MORADA_EVENTO': _address,
+            'DESCRICAO_EVENTO': _description,
+            'HORA_INICIO': _dateTime!.toIso8601String(),
+            'HORA_FIM': '',
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Evento salvo com sucesso!'),
+              backgroundColor: Colors.blue,
+            ),
+          );
+          setState(() {
+            _subcategory = '';
+            _eventName = '';
+            _address = '';
+            _address = '';
+            _description = '';
+            _dateTime = null;
+            _image = null;
+          });
+
+          Navigator.pop(context);
+          //Navigator.of(context).pop();
+        } else {
+          _showErrorDialog(
+              'Falha ao criar evento. Por favor, tente novamente.');
+        }
+      } catch (error) {
+        print('Erro: $error');
+        _showErrorDialog('Ocorreu um erro. Por favor, tente novamente.');
       }
-
-      // Montar o corpo da requisição para criar o evento
-      final response = await http.post(
-        Uri.parse('http://localhost:7000/eventos/create'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(<String, dynamic>{
-          'ID_IMAGEM': imageId,
-          'CIDADE': 'Viseu',
-          'NOME_SUBAREA': _subcategory ?? '',
-          'TITULO_EVENTO': _eventName,
-          'ALTITUDE_EVENTO': '',
-          'LONGITUDE_EVENTO': '',
-          'MORADA_EVENTO': _address,
-          'DESCRICAO_EVENTO': _description,
-          'HORA_INICIO': _dateTime!.toIso8601String(),
-          'HORA_FIM': '',
-        }),
-      );
-
-
-      if (response.statusCode == 200) {
-         ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Evento salvo com sucesso!'),
-          backgroundColor: Colors.blue,
-        ),
-      );
-      setState(() {
-        _subcategory = '';
-        _eventName = '';
-        _address = '';
-        _address = '';
-        _description = '';
-        _dateTime = null;
-        _image = null;
-      });
-
-      Navigator.pop(context);
-        //Navigator.of(context).pop();
-      } else {
-        _showErrorDialog('Falha ao criar evento. Por favor, tente novamente.');
-      }
-    } catch (error) {
-      print('Erro: $error');
-      _showErrorDialog('Ocorreu um erro. Por favor, tente novamente.');
     }
   }
-}
 
   void _showErrorDialog(String message) {
     showDialog(

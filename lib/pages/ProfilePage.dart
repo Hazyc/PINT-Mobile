@@ -50,14 +50,17 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _fetchData() async {
     try {
-      final String? token = await tokenHandler.getToken(); // Obtenha o token de autenticação
+      final String? token =
+          await tokenHandler.getToken(); // Obtenha o token de autenticação
 
       if (token == null) {
         // Trate o caso em que o token não está disponível
         print('Token não encontrado');
         return;
       }
-      final tokenResponse = await http.get(Uri.parse('http://localhost:7000/utilizadores/getbytoken'),
+      final tokenResponse = await http.get(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -74,28 +77,37 @@ class _ProfilePageState extends State<ProfilePage> {
           userBannerUrl = userData['Banner']['NOME_IMAGEM'];
         });
       } else {
-        print('Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
+        print(
+            'Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
       }
 
-      final publicationsResponse = await http.get(Uri.parse('http://localhost:7000/recomendacoes//listarRecomendacoesUserVisiveis'),
+      final publicationsResponse = await http.get(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/recomendacoes//listarRecomendacoesUserVisiveis'),
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
-      final eventsResponse = await http.get(Uri.parse('http://localhost:7000/eventos/listarPorUserVisiveis'),
+      final eventsResponse = await http.get(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/eventos/listarPorUserVisiveis'),
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
 
-      if (publicationsResponse.statusCode == 200 && eventsResponse.statusCode == 200) {
+      if (publicationsResponse.statusCode == 200 &&
+          eventsResponse.statusCode == 200) {
         setState(() {
-          publications = List<Map<String, dynamic>>.from(json.decode(publicationsResponse.body)['data']);
-          events = List<Map<String, dynamic>>.from(json.decode(eventsResponse.body)['data']);
+          publications = List<Map<String, dynamic>>.from(
+              json.decode(publicationsResponse.body)['data']);
+          events = List<Map<String, dynamic>>.from(
+              json.decode(eventsResponse.body)['data']);
           _showPublications();
         });
       } else {
-        print('Falha ao carregar dados: ${publicationsResponse.statusCode}, ${eventsResponse.statusCode}');
+        print(
+            'Falha ao carregar dados: ${publicationsResponse.statusCode}, ${eventsResponse.statusCode}');
       }
     } catch (e) {
       print('Erro ao buscar dados: $e');
@@ -188,20 +200,22 @@ class _ProfilePageState extends State<ProfilePage> {
           IconButton(
             icon: Icon(Icons.edit, color: Colors.white),
             onPressed: () {
-              Navigator.of(context).push(MaterialPageRoute(builder: (context) => EditProfilePage(
-                bannerImageUrl: userBannerUrl,
-                avatarImageUrl: userAvatarUrl,
-                userName: userName,
-                userDescription: userDescription,
-                onSave: (newBanner, newAvatar, newName, newDescription) {
-                  setState(() {
-                    userBannerUrl = newBanner;
-                    userAvatarUrl = newAvatar;
-                    userName = newName;
-                    userDescription = newDescription;
-                  });
-                },
-              )));
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => EditProfilePage(
+                        bannerImageUrl: userBannerUrl,
+                        avatarImageUrl: userAvatarUrl,
+                        userName: userName,
+                        userDescription: userDescription,
+                        onSave:
+                            (newBanner, newAvatar, newName, newDescription) {
+                          setState(() {
+                            userBannerUrl = newBanner;
+                            userAvatarUrl = newAvatar;
+                            userName = newName;
+                            userDescription = newDescription;
+                          });
+                        },
+                      )));
             },
           ),
         ],
@@ -236,7 +250,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         ? FileImage(_avatarImage!)
                         : userAvatarUrl.isNotEmpty
                             ? NetworkImage(userAvatarUrl)
-                            : AssetImage('assets/images/placeholder_image.png') as ImageProvider,
+                            : AssetImage('assets/images/placeholder_image.png')
+                                as ImageProvider,
                   ),
                 ),
               ],
@@ -244,7 +259,10 @@ class _ProfilePageState extends State<ProfilePage> {
             SizedBox(height: 90.0),
             Text(
               userName,
-              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold, color: Colors.blue),
+              style: TextStyle(
+                  fontSize: 24.0,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue),
             ),
             SizedBox(height: 4.0),
             Text(
@@ -261,8 +279,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     'Publicações',
                     style: TextStyle(
                       fontSize: 16.0,
-                      fontWeight: isPublicationsSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isPublicationsSelected ? Colors.black : Colors.grey,
+                      fontWeight: isPublicationsSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color:
+                          isPublicationsSelected ? Colors.black : Colors.grey,
                     ),
                   ),
                 ),
@@ -273,8 +294,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     'Eventos',
                     style: TextStyle(
                       fontSize: 16.0,
-                      fontWeight: !isPublicationsSelected ? FontWeight.bold : FontWeight.normal,
-                      color: !isPublicationsSelected ? Colors.black : Colors.grey,
+                      fontWeight: !isPublicationsSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color:
+                          !isPublicationsSelected ? Colors.black : Colors.grey,
                     ),
                   ),
                 ),
@@ -287,7 +311,8 @@ class _ProfilePageState extends State<ProfilePage> {
               itemCount: items.length,
               itemBuilder: (context, index) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 8.0, horizontal: 16.0),
                   child: Container(
                     width: double.infinity,
                     decoration: BoxDecoration(

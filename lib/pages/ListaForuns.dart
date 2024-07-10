@@ -19,13 +19,15 @@ class ListaForuns extends StatelessWidget {
     try {
       // Fetch areas
       final areasResponse = await http.get(
-        Uri.parse('http://localhost:7000/areas/listarareasativas'),
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/areas/listarareasativas'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
       // Fetch topics
       final topicsResponse = await http.get(
-        Uri.parse('http://localhost:7000/topicos/listarvisiveiseativos'),
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/topicos/listarvisiveiseativos'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -40,16 +42,19 @@ class ListaForuns extends StatelessWidget {
         for (var item in areasData) {
           areas.add({
             'id': item['ID_AREA'],
-            'nome': item['NOME_AREA'].toString(), // Garantir que seja uma string
+            'nome':
+                item['NOME_AREA'].toString(), // Garantir que seja uma string
             'imagem': item['IMAGEM'],
             'cor': item['COR_AREA'],
           });
-          topicsByArea[item['ID_AREA'].toString()] = []; // Garantir que seja uma string
+          topicsByArea[item['ID_AREA'].toString()] =
+              []; // Garantir que seja uma string
         }
 
         // Process topics
         for (var item in topicsData) {
-          String areaId = item['SUBAREA']['AREA']['ID_AREA'].toString(); // Garantir que seja uma string
+          String areaId = item['SUBAREA']['AREA']['ID_AREA']
+              .toString(); // Garantir que seja uma string
           if (topicsByArea.containsKey(areaId)) {
             topicsByArea[areaId]!.add({
               'nome': item['TITULO_TOPICO'],
@@ -112,7 +117,8 @@ class ListaForuns extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => SubForumPage(
                           title: areas[index]['nome']!,
-                          subForuns: topicsByArea[areas[index]['id'].toString()]!,
+                          subForuns:
+                              topicsByArea[areas[index]['id'].toString()]!,
                         ),
                       ),
                     );

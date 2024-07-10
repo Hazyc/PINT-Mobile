@@ -22,7 +22,8 @@ class RecomendacaoView extends StatefulWidget {
 
 class _RecomendacaoViewState extends State<RecomendacaoView> {
   bool isFavorite = false;
-  List<String> additionalImages = []; // Adicionando imagens estáticas para teste visual
+  List<String> additionalImages =
+      []; // Adicionando imagens estáticas para teste visual
   List<String> avaliacaoParametros = [];
   double cleanlinessRating = 0;
   double serviceRating = 0;
@@ -36,48 +37,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
     fetchAreaParameters();
   }
 
-
-Future<void> _loadAdditionalImages() async {
-  TokenHandler tokenHandler = TokenHandler();
-  final String? token = await tokenHandler.getToken();
-
-  if (token == null) {
-    print('Token não encontrado');
-    return;
-  }
-
-  try {
-    final Uri uri = Uri.parse('http://localhost:7000/imagens/listarfotosalbumvisivel')
-      .replace(queryParameters: {
-        'ID_ALBUM': widget.recomendacao.idAlbum.toString(),
-      });
-
-    final imagensResponse = await http.get(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
-
-    if (imagensResponse.statusCode == 200) {
-      final List<dynamic> imagensData = jsonDecode(imagensResponse.body)['data'];
-      setState(() {
-        additionalImages = imagensData
-          .where((imagem) => imagem['NOME_IMAGEM'] != widget.recomendacao.bannerImage)
-          .map((imagem) => imagem['NOME_IMAGEM'] as String)
-    .toList();
-});
-    } else {
-      throw Exception('Failed to load images');
-    }
-  } catch (error) {
-    print('Erro ao carregar imagens: $error');
-    // Tratar erro conforme necessário
-  }
-}
-
-Future<void> fetchAreaParameters() async {
+  Future<void> _loadAdditionalImages() async {
     TokenHandler tokenHandler = TokenHandler();
     final String? token = await tokenHandler.getToken();
 
@@ -87,10 +47,54 @@ Future<void> fetchAreaParameters() async {
     }
 
     try {
-      final Uri uri = Uri.parse('http://localhost:7000/areas/listarPorNomeOuID')
+      final Uri uri = Uri.parse(
+              'https://backendpint-5wnf.onrender.com/imagens/listarfotosalbumvisivel')
           .replace(queryParameters: {
-            'NOME_AREA': widget.recomendacao.categoria,
-          });
+        'ID_ALBUM': widget.recomendacao.idAlbum.toString(),
+      });
+
+      final imagensResponse = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (imagensResponse.statusCode == 200) {
+        final List<dynamic> imagensData =
+            jsonDecode(imagensResponse.body)['data'];
+        setState(() {
+          additionalImages = imagensData
+              .where((imagem) =>
+                  imagem['NOME_IMAGEM'] != widget.recomendacao.bannerImage)
+              .map((imagem) => imagem['NOME_IMAGEM'] as String)
+              .toList();
+        });
+      } else {
+        throw Exception('Failed to load images');
+      }
+    } catch (error) {
+      print('Erro ao carregar imagens: $error');
+      // Tratar erro conforme necessário
+    }
+  }
+
+  Future<void> fetchAreaParameters() async {
+    TokenHandler tokenHandler = TokenHandler();
+    final String? token = await tokenHandler.getToken();
+
+    if (token == null) {
+      print('Token não encontrado');
+      return;
+    }
+
+    try {
+      final Uri uri = Uri.parse(
+              'https://backendpint-5wnf.onrender.com/areas/listarPorNomeOuID')
+          .replace(queryParameters: {
+        'NOME_AREA': widget.recomendacao.categoria,
+      });
 
       final response = await http.get(
         uri,
@@ -124,49 +128,46 @@ Future<void> fetchAreaParameters() async {
   }
 
   Future<void> enviarAvaliacoesParaAPI() async {
-  TokenHandler tokenHandler = TokenHandler();
-  final String? token = await tokenHandler.getToken();
+    TokenHandler tokenHandler = TokenHandler();
+    final String? token = await tokenHandler.getToken();
 
-  if (token == null) {
-    print('Token não encontrado');
-    return;
-  }
-
-  try {
-    final response = await http.post(
-      Uri.parse('http://localhost:7000/avaliacoes/create'), // URL da sua API para enviar avaliações
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'AVALIACAO_PARAMETRO_1': cleanlinessRating,
-        'AVALIACAO_PARAMETRO_2': serviceRating,
-        'AVALIACAO_PARAMETRO_3': locationRating,
-        'ID_RECOMENDACAO': widget.recomendacao.idRecomendacao,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      print('Avaliações enviadas com sucesso');
-      // Aqui você pode lidar com a resposta da API conforme necessário
-    } else {
-      throw Exception('Falha ao enviar avaliações');
+    if (token == null) {
+      print('Token não encontrado');
+      return;
     }
-  } catch (error) {
-    print('Erro ao enviar avaliações: $error');
-    // Tratar o erro conforme necessário
+
+    try {
+      final response = await http.post(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/avaliacoes/create'), // URL da sua API para enviar avaliações
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'AVALIACAO_PARAMETRO_1': cleanlinessRating,
+          'AVALIACAO_PARAMETRO_2': serviceRating,
+          'AVALIACAO_PARAMETRO_3': locationRating,
+          'ID_RECOMENDACAO': widget.recomendacao.idRecomendacao,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print('Avaliações enviadas com sucesso');
+        // Aqui você pode lidar com a resposta da API conforme necessário
+      } else {
+        throw Exception('Falha ao enviar avaliações');
+      }
+    } catch (error) {
+      print('Erro ao enviar avaliações: $error');
+      // Tratar o erro conforme necessário
+    }
   }
-}
-
-
 
   void _showRatingDialog() {
     showDialog(
       context: context,
       builder: (context) {
-
-
         return AlertDialog(
           title: Text('Deixar a sua avaliação'),
           content: Column(
@@ -303,8 +304,6 @@ Future<void> fetchAreaParameters() async {
       ),
     );
   }
-
-  
 
   @override
   Widget build(BuildContext context) {
@@ -446,7 +445,7 @@ Future<void> fetchAreaParameters() async {
                       ),
                       SizedBox(width: 8),
                       RatingBar.builder(
-                        initialRating: widget.recomendacao.avaliacaoGeral ,
+                        initialRating: widget.recomendacao.avaliacaoGeral,
                         minRating: 0,
                         direction: Axis.horizontal,
                         allowHalfRating: true,
@@ -548,8 +547,9 @@ Future<void> fetchAreaParameters() async {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => ComentariosPageRecomendacao(
-                                      recomendacao: widget.recomendacao),
+                                  builder: (context) =>
+                                      ComentariosPageRecomendacao(
+                                          recomendacao: widget.recomendacao),
                                 ),
                               );
                             },
