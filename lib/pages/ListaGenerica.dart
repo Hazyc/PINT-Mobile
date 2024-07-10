@@ -1,8 +1,7 @@
-import 'package:app_mobile/Components/HomePageComponents/FormularioCriacaoRecomendacao.dart';
+import 'package:app_mobile/Components/RecomendacaoComponents/FormularioCriacaoRecomendacao.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
 import 'package:app_mobile/Components/RecomendacaoComponents/RecomendacaoCard.dart';
 import 'package:app_mobile/Components/EventoComponents/EventoCard.dart';
 import 'package:app_mobile/models/Recomendacao.dart';

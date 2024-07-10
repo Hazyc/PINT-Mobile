@@ -352,6 +352,23 @@ class _ReviewPageState extends State<ReviewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Color(0xFF0DCAF0),
+        centerTitle: true,
+        title: Text(
+          'Criação da Recomendação',
+          style: TextStyle(
+            fontSize: 24,
+            color: Colors.white, // Define a cor do título como branco
+          ),
+        ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, size: 30, color: Colors.white),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
       body: Stack(
         children: [
           Positioned(
@@ -366,38 +383,6 @@ class _ReviewPageState extends State<ReviewPage> {
           ),
           Column(
             children: [
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.only(
-                    top: 32.0, bottom: 8.0, left: 16.0, right: 16.0),
-                decoration: BoxDecoration(
-                  color: Colors.blue,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(10),
-                    bottomRight: Radius.circular(10),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    IconButton(
-                      icon:
-                          Icon(Icons.arrow_back, size: 30, color: Colors.white),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                    Text(
-                      'Criação da Recomendação',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -517,7 +502,7 @@ class _ReviewPageState extends State<ReviewPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25.0),
       child: GestureDetector(
-        onTap: () => _pickImage(ImageSource.gallery),
+        onTap: () => _pickBannerImage(ImageSource.gallery),
         child: Container(
           height: 150,
           decoration: BoxDecoration(

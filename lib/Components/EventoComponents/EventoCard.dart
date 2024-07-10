@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../models/Evento.dart';
 import '../../pages/EventoView.dart'; // Certifique-se de criar este widget para visualizar os detalhes do evento
+
+
+String formatarDataHora(String dateTime) {
+  DateTime parsedDateTime = DateTime.parse(dateTime);
+  DateFormat formatter = DateFormat('yyyy-MM-dd HH:mm');
+  return formatter.format(parsedDateTime);
+}
 
 class EventoCard extends StatelessWidget {
   final Evento evento;
 
   EventoCard({required this.evento});
+
+  
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +97,7 @@ class EventoCard extends StatelessWidget {
                         ),
                         SizedBox(width: 8),
                         Text(
-                          evento.dateTime,
+                          formatarDataHora(evento.dateTime),
                           style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                       ],

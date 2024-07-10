@@ -9,8 +9,7 @@ import '../../handlers/TokenHandler.dart';
 
 class FormularioCriacaoEvento extends StatefulWidget {
   @override
-  _FormularioCriacaoEventoState createState() =>
-      _FormularioCriacaoEventoState();
+  _FormularioCriacaoEventoState createState() => _FormularioCriacaoEventoState();
 }
 
 class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
@@ -20,6 +19,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   String _description = '';
   File? _image;
   String _address = '';
+  String _city = 'Viseu'; // exemplo de cidade fixa
   String? _category;
   String? _subcategory;
 
@@ -42,8 +42,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
     }
 
     final response = await http.get(
-      Uri.parse(
-          'https://backendpint-5wnf.onrender.com/areas/listarareasativas'),
+      Uri.parse('https://backendpint-5wnf.onrender.com/areas/listarareasativas'),
       headers: {
         'Authorization': 'Bearer $token',
       },
@@ -53,8 +52,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
       List<dynamic> areas = json.decode(response.body)['data'];
       for (var area in areas) {
         final subResponse = await http.get(
-          Uri.parse(
-              'https://backendpint-5wnf.onrender.com/subareas/listarPorAreaAtivos/${area['ID_AREA']}'),
+          Uri.parse('https://backendpint-5wnf.onrender.com/subareas/listarPorAreaAtivos/${area['ID_AREA']}'),
           headers: {
             'Authorization': 'Bearer $token',
           },
@@ -99,8 +97,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
         builder: (BuildContext context, Widget? child) {
           return Localizations.override(
             context: context,
-            locale: Locale(
-                'pt', 'BR'), // Configurar o seletor de hora para português
+            locale: Locale('pt', 'BR'), // Configurar o seletor de hora para português
             child: child!,
           );
         },
@@ -122,8 +119,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
 
   Future<void> _saveForm() async {
     TokenHandler tokenHandler = TokenHandler();
-    final String? token =
-        await tokenHandler.getToken(); // Obtenha o token de autenticação
+    final String? token = await tokenHandler.getToken(); // Obtenha o token de autenticação
 
     if (token == null) {
       // Trate o caso em que o token não está disponível
@@ -152,15 +148,13 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           uploadRequest.files.add(file);
 
           var uploadResponse = await uploadRequest.send();
-          var uploadResponseString =
-              await uploadResponse.stream.bytesToString();
+          var uploadResponseString = await uploadResponse.stream.bytesToString();
 
           if (uploadResponse.statusCode == 200) {
             var jsonResponse = jsonDecode(uploadResponseString);
-            imageId = jsonResponse['data']['ID_IMAGEM'];
+            imageId = jsonResponse['data']['ID_IMAGEM'].toString(); // Convertendo ID_IMAGEM para String
           } else {
-            _showErrorDialog(
-                'Falha ao fazer upload da imagem. Por favor, tente novamente.');
+            _showErrorDialog('Falha ao fazer upload da imagem. Por favor, tente novamente.');
             return;
           }
         }
@@ -174,15 +168,13 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           },
           body: jsonEncode(<String, dynamic>{
             'ID_IMAGEM': imageId,
-            'CIDADE': 'Viseu',
+            'CIDADE': _city,
             'NOME_SUBAREA': _subcategory ?? '',
             'TITULO_EVENTO': _eventName,
-            'ALTITUDE_EVENTO': '',
-            'LONGITUDE_EVENTO': '',
             'MORADA_EVENTO': _address,
             'DESCRICAO_EVENTO': _description,
             'HORA_INICIO': _dateTime!.toIso8601String(),
-            'HORA_FIM': '',
+            'HORA_FIM': null, // Adicione a lógica para pegar a hora de fim se necessário
           }),
         );
 
@@ -197,17 +189,14 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
             _subcategory = '';
             _eventName = '';
             _address = '';
-            _address = '';
             _description = '';
             _dateTime = null;
             _image = null;
           });
 
           Navigator.pop(context);
-          //Navigator.of(context).pop();
         } else {
-          _showErrorDialog(
-              'Falha ao criar evento. Por favor, tente novamente.');
+          _showErrorDialog('Falha ao criar evento. Por favor, tente novamente.');
         }
       } catch (error) {
         print('Erro: $error');
@@ -237,6 +226,23 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Color(0xFF0DCAF0),
+        centerTitle: true,
+        title: Text(
+          'Criação de Evento',
+          style: TextStyle(
+            fontSize: 24,
+            color: Colors.white, // Define a cor do título como branco
+          ),
+        ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, size: 30, color: Colors.white),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
       body: Stack(
         children: [
           Positioned(
@@ -251,38 +257,6 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           ),
           Column(
             children: [
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.only(
-                    top: 32.0, bottom: 8.0, left: 16.0, right: 16.0),
-                decoration: BoxDecoration(
-                  color: Colors.blue,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(10),
-                    bottomRight: Radius.circular(10),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    IconButton(
-                      icon:
-                          Icon(Icons.arrow_back, size: 30, color: Colors.white),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                    Text(
-                      'Criação de Evento',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -355,8 +329,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.create,
-                                      size: 20, color: Colors.white),
+                                  Icon(Icons.create, size: 20, color: Colors.white),
                                   SizedBox(width: 8),
                                   Text(
                                     'Criar Evento',
@@ -437,8 +410,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
                 ? Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.add_a_photo,
-                          size: 30, color: Colors.grey[600]),
+                      Icon(Icons.add_a_photo, size: 30, color: Colors.grey[600]),
                       SizedBox(height: 8),
                       Text(label),
                     ],
@@ -528,8 +500,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
         child: DropdownButton<String>(
           hint: Text('Selecione uma subcategoria'),
           value: _subcategory,
-          items:
-              (categoriesWithSubcategories[_category] ?? []).map((subcategory) {
+          items: (categoriesWithSubcategories[_category] ?? []).map((subcategory) {
             return DropdownMenuItem<String>(
               value: subcategory,
               child: Text(subcategory),
