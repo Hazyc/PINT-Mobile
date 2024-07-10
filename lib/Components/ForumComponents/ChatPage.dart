@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:app_mobile/handlers/TokenHandler.dart';
+import 'package:intl/intl.dart';
 
 class ChatPage extends StatefulWidget {
   final String title;
@@ -11,44 +15,110 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
-  final Map<String, List<Map<String, dynamic>>> subForumChats = {
-    'Alojamento-Procura-se casa para alugar!': [
-      {
-        'avatar': 'https://via.placeholder.com/150',
-        'username': 'Usuario1',
-        'message': 'Olá, alguém conhece algum T1 para alugar?',
-        'timestamp': DateTime.now().subtract(Duration(minutes: 5)),
-      },
-      {
-        'avatar': 'https://via.placeholder.com/150',
-        'username': 'Usuario2',
-        'message': 'Eu conheço um perto do centro, posso passar o contato!',
-        'timestamp': DateTime.now().subtract(Duration(minutes: 3)),
-      },
-      {
-        'avatar': 'https://via.placeholder.com/150',
-        'username': 'Usuario3',
-        'message': 'Estou procurando algo também, de preferência com garagem.',
-        'timestamp': DateTime.now().subtract(Duration(minutes: 1)),
-      },
-    ],
-  };
+  TokenHandler tokenHandler = TokenHandler();
+  Map<String, List<dynamic>> messages = {}; // Mapa para armazenar as mensagens da API
   final TextEditingController _controller = TextEditingController();
-  final String currentUser = 'UsuárioAtual'; // Nome do usuário atual (pode ser obtido de uma autenticação)
+  String currentUser = ''; // Nome do usuário atual (será obtido na inicialização)
   final ScrollController _scrollController = ScrollController();
 
-  void _sendMessage(String text) {
-    final message = {
-      'avatar': 'https://via.placeholder.com/150',
-      'username': currentUser,
-      'message': text,
-      'timestamp': DateTime.now(),
-    };
-    setState(() {
-      subForumChats[widget.subForumId]?.add(message);
-    });
-    _controller.clear();
-    _scrollToBottom();
+  @override
+  void initState() {
+    super.initState();
+    fetchMessages();
+  }
+
+  // Função para buscar as mensagens da API
+  Future<void> fetchMessages() async {
+    final String? token = await tokenHandler.getToken(); // Obtenha o token de autenticação
+
+    if (token == null) {
+      // Trate o caso em que o token não está disponível
+      print('Token não encontrado');
+      return;
+    }
+
+    // Obtenha o usuário atual usando o token
+    final userResponse = await http.get(Uri.parse('http://localhost:7000/utilizadores/getbytoken'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        });
+
+    if (userResponse.statusCode == 200) {
+      final userData = json.decode(userResponse.body)['data'];
+      setState(() {
+        currentUser = userData['NOME_UTILIZADOR'];
+      });
+    } else {
+      throw Exception('Failed to load user data');
+    }
+
+    // Obtenha as mensagens visíveis usando o token
+    final messagesResponse = await http.get(Uri.parse('http://localhost:7000/mensagens/listarvisiveis'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        });
+
+    if (messagesResponse.statusCode == 200) {
+      final messagesData = json.decode(messagesResponse.body)['data'];
+      
+      // Organize as mensagens por título de fórum
+      Map<String, List<dynamic>> groupedMessages = {};
+
+      // Itera sobre as mensagens e as agrupa pelo título do fórum
+      messagesData.forEach((message) {
+        String forumTitle = message['TOPICO']['TITULO_TOPICO'];
+        if (!groupedMessages.containsKey(forumTitle)) {
+          groupedMessages[forumTitle] = [];
+        }
+        groupedMessages[forumTitle]!.add(message);
+      });
+
+      setState(() {
+        messages = groupedMessages;
+      });
+      _scrollToBottom();
+    } else {
+      throw Exception('Failed to load messages');
+    }
+  }
+
+  String _formatDate(String dateStr) {
+    final dateTime = DateTime.parse(dateStr);
+    final formatter = DateFormat('dd-MM-yyyy HH:mm');
+    return formatter.format(dateTime);
+  }
+
+  Future<void> _sendMessage(String text) async {
+    final String? token = await tokenHandler.getToken(); // Obtenha o token de autenticação
+
+    if (token == null) {
+      // Trate o caso em que o token não está disponível
+      print('Token não encontrado');
+      return;
+    }
+
+    final response = await http.post(
+      Uri.parse('http://localhost:7000/mensagens/create'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: json.encode({
+        'ID_TOPICO': widget.subForumId,
+        'CONTEUDO_MENSAGEM': text,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final messageData = json.decode(response.body)['data'];
+      setState(() {
+        messages.putIfAbsent(widget.title, () => []).add(messageData);
+      });
+      _controller.clear();
+      _scrollToBottom();
+    } else {
+      print('Failed to send message');
+    }
   }
 
   void _scrollToBottom() {
@@ -60,7 +130,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildMessage(Map<String, dynamic> message) {
-    final isCurrentUser = message['username'] == currentUser;
+    final isCurrentUser = message['Criador']['NOME_UTILIZADOR'] == currentUser;
     final alignment = isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start;
     final color = isCurrentUser ? Colors.blue[100] : Colors.grey[200];
     final avatarRadius = 20.0;
@@ -73,7 +143,7 @@ class _ChatPageState extends State<ChatPage> {
           children: [
             if (!isCurrentUser)
               CircleAvatar(
-                backgroundImage: NetworkImage(message['avatar']),
+                backgroundImage: NetworkImage(message['Criador']['Perfil']['NOME_IMAGEM']),
                 radius: avatarRadius,
               ),
             SizedBox(width: 10),
@@ -89,17 +159,17 @@ class _ChatPageState extends State<ChatPage> {
                 crossAxisAlignment: alignment,
                 children: [
                   Text(
-                    message['username'],
+                    message['Criador']['NOME_UTILIZADOR'],
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
                   ),
                   SizedBox(height: 5),
-                  Text(message['message']),
+                  Text(message['CONTEUDO_MENSAGEM']),
                   SizedBox(height: 5),
                   Text(
-                    message['timestamp'].toString(),
+                    _formatDate(message['DATA_HORA_MENSAGEM']),
                     style: TextStyle(fontSize: 10, color: Colors.grey),
                   ),
                 ],
@@ -108,21 +178,13 @@ class _ChatPageState extends State<ChatPage> {
             SizedBox(width: 10),
             if (isCurrentUser)
               CircleAvatar(
-                backgroundImage: NetworkImage(message['avatar']),
+                backgroundImage: NetworkImage(message['Criador']['Perfil']['NOME_IMAGEM']),
                 radius: avatarRadius,
               ),
           ],
         ),
       ],
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToBottom();
-    });
   }
 
   @override
@@ -142,9 +204,9 @@ class _ChatPageState extends State<ChatPage> {
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
-              itemCount: subForumChats[widget.subForumId]?.length ?? 0,
+              itemCount: messages.containsKey(widget.title) ? messages[widget.title]!.length : 0,
               itemBuilder: (context, index) {
-                final message = subForumChats[widget.subForumId]![index];
+                final message = messages[widget.title]![index];
                 return _buildMessage(message);
               },
             ),

@@ -6,6 +6,9 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import '../models/Recomendacao.dart';
 import '../pages/MapPage.dart';
 import '../Components/ComentariosPageRecomendacao.dart';
+import 'package:app_mobile/handlers/TokenHandler.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class RecomendacaoView extends StatefulWidget {
   final Recomendacao recomendacao;
@@ -19,27 +22,157 @@ class RecomendacaoView extends StatefulWidget {
 
 class _RecomendacaoViewState extends State<RecomendacaoView> {
   bool isFavorite = false;
-  List<String> additionalImages = [
-    'assets/desporto.jpg',
-    'assets/saúde.jpg',
-    'assets/transportes.jpg',
-    'assets/gastronomia.jpg',
-  ]; // Adicionando imagens estáticas para teste visual
+  List<String> additionalImages = []; // Adicionando imagens estáticas para teste visual
+  List<String> avaliacaoParametros = [];
+  double cleanlinessRating = 0;
+  double serviceRating = 0;
+  double locationRating = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _requestPermission(Permission.storage);
+    _loadAdditionalImages();
+    fetchAreaParameters();
+  }
+
+
+Future<void> _loadAdditionalImages() async {
+  TokenHandler tokenHandler = TokenHandler();
+  final String? token = await tokenHandler.getToken();
+
+  if (token == null) {
+    print('Token não encontrado');
+    return;
+  }
+
+  try {
+    final Uri uri = Uri.parse('http://localhost:7000/imagens/listarfotosalbumvisivel')
+      .replace(queryParameters: {
+        'ID_ALBUM': widget.recomendacao.idAlbum.toString(),
+      });
+
+    final imagensResponse = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (imagensResponse.statusCode == 200) {
+      final List<dynamic> imagensData = jsonDecode(imagensResponse.body)['data'];
+      setState(() {
+        additionalImages = imagensData
+          .where((imagem) => imagem['NOME_IMAGEM'] != widget.recomendacao.bannerImage)
+          .map((imagem) => imagem['NOME_IMAGEM'] as String)
+    .toList();
+});
+    } else {
+      throw Exception('Failed to load images');
+    }
+  } catch (error) {
+    print('Erro ao carregar imagens: $error');
+    // Tratar erro conforme necessário
+  }
+}
+
+Future<void> fetchAreaParameters() async {
+    TokenHandler tokenHandler = TokenHandler();
+    final String? token = await tokenHandler.getToken();
+
+    if (token == null) {
+      print('Token não encontrado');
+      return;
+    }
+
+    try {
+      final Uri uri = Uri.parse('http://localhost:7000/areas/listarPorNomeOuID')
+          .replace(queryParameters: {
+            'NOME_AREA': widget.recomendacao.categoria,
+          });
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> areasData = jsonDecode(response.body)['data'];
+
+        if (areasData.isNotEmpty) {
+          setState(() {
+            avaliacaoParametros = [
+              areasData[0]['PARAMETRO_AVALIACAO_1'],
+              areasData[0]['PARAMETRO_AVALIACAO_2'],
+              areasData[0]['PARAMETRO_AVALIACAO_3']
+            ];
+          });
+        } else {
+          throw Exception('No data available for evaluation parameters');
+        }
+      } else {
+        throw Exception('Failed to fetch evaluation parameters');
+      }
+    } catch (error) {
+      print('Erro ao buscar parâmetros de avaliação das áreas: $error');
+      // Tratar erro conforme necessário
+    }
+  }
+
+  Future<void> enviarAvaliacoesParaAPI() async {
+  TokenHandler tokenHandler = TokenHandler();
+  final String? token = await tokenHandler.getToken();
+
+  if (token == null) {
+    print('Token não encontrado');
+    return;
+  }
+
+  try {
+    final response = await http.post(
+      Uri.parse('http://localhost:7000/avaliacoes/create'), // URL da sua API para enviar avaliações
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'AVALIACAO_PARAMETRO_1': cleanlinessRating,
+        'AVALIACAO_PARAMETRO_2': serviceRating,
+        'AVALIACAO_PARAMETRO_3': locationRating,
+        'ID_RECOMENDACAO': widget.recomendacao.idRecomendacao,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      print('Avaliações enviadas com sucesso');
+      // Aqui você pode lidar com a resposta da API conforme necessário
+    } else {
+      throw Exception('Falha ao enviar avaliações');
+    }
+  } catch (error) {
+    print('Erro ao enviar avaliações: $error');
+    // Tratar o erro conforme necessário
+  }
+}
+
+
 
   void _showRatingDialog() {
     showDialog(
       context: context,
       builder: (context) {
-        double cleanlinessRating = 0;
-        double serviceRating = 0;
-        double locationRating = 0;
+
 
         return AlertDialog(
           title: Text('Deixar a sua avaliação'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Limpeza'),
+              Text(avaliacaoParametros[0]),
               RatingBar.builder(
                 initialRating: 0,
                 minRating: 0,
@@ -56,7 +189,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                 },
               ),
               SizedBox(height: 8),
-              Text('Serviço'),
+              Text(avaliacaoParametros[1]),
               RatingBar.builder(
                 initialRating: 0,
                 minRating: 0,
@@ -73,7 +206,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                 },
               ),
               SizedBox(height: 8),
-              Text('Localização'),
+              Text(avaliacaoParametros[2]),
               RatingBar.builder(
                 initialRating: 0,
                 minRating: 0,
@@ -101,8 +234,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
             TextButton(
               onPressed: () {
                 // Aqui você pode enviar os ratings para a API
-                print(
-                    "Limpeza: $cleanlinessRating, Serviço: $serviceRating, Localização: $locationRating");
+                enviarAvaliacoesParaAPI();
                 Navigator.of(context).pop();
               },
               child: Text('Enviar'),
@@ -172,11 +304,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _requestPermission(Permission.storage);
-  }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -193,7 +321,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                     bottomLeft: Radius.circular(30),
                     bottomRight: Radius.circular(30),
                   ),
-                  child: Image.asset(
+                  child: Image.network(
                     widget.recomendacao.bannerImage,
                     height: 350,
                     width: double.infinity,
@@ -318,7 +446,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                       ),
                       SizedBox(width: 8),
                       RatingBar.builder(
-                        initialRating: widget.recomendacao.avaliacaoGeral,
+                        initialRating: widget.recomendacao.avaliacaoGeral ,
                         minRating: 0,
                         direction: Axis.horizontal,
                         allowHalfRating: true,
@@ -371,7 +499,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                                     borderRadius: BorderRadius.circular(15),
                                     image: DecorationImage(
                                       image:
-                                          AssetImage(additionalImages[index]),
+                                          NetworkImage(additionalImages[index]),
                                       fit: BoxFit.cover,
                                     ),
                                   ),

@@ -5,12 +5,115 @@ import '../Components/HomePageComponents/CardsCategorias.dart';
 import '../Components/NavigationBar.dart';
 import './NotificacoesPage.dart';
 import './ListaGenerica.dart';
-import '../models/Evento.dart'; // Certifique-se de importar o modelo Evento
+import 'package:app_mobile/handlers/TokenHandler.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../models/Evento.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   final void Function(int) onItemTapped;
 
   HomePage({required this.onItemTapped});
+
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  TokenHandler tokenHandler = TokenHandler();
+  List<Evento> eventos = [];
+  String nomeUser = ''; // Campo para armazenar o nome do usuário
+  List<dynamic> categorias = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchData();
+    fetchArea();
+    fetchEventos();
+  }
+
+  Future<void> fetchData() async {
+    final String? token = await tokenHandler.getToken();
+
+    if (token == null) {
+      print('Token não encontrado');
+      return;
+    }
+
+    try {
+      // Fetch user data
+      final userResponse = await http.get(
+        Uri.parse('http://localhost:7000/utilizadores/getbytoken'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (userResponse.statusCode == 200) {
+        final userData = json.decode(userResponse.body)['data'];
+        setState(() {
+          nomeUser = userData['NOME_UTILIZADOR'];
+        });
+      } else {
+        throw Exception('Falha ao carregar dados do usuário');
+      }
+    } catch (e) {
+      print('Erro ao carregar dados: $e');
+      // Trate o erro conforme necessário
+    }
+  }
+
+  Future<void> fetchEventos() async {
+    final String? token = await tokenHandler.getToken();
+
+    if (token == null) {
+      print('Token não encontrado');
+      return;
+    }
+    final String baseUrl = 'http://localhost:7000';
+    final response = await http.get(
+      Uri.parse('$baseUrl/eventos/listarTodosVisiveis'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+    final List<dynamic> data = jsonDecode(response.body)['data'];
+    if (response.statusCode == 200) {
+      setState(() {
+        eventos = data.map((json) => Evento.fromJson(json)).toList();;
+      });
+      
+    } else {
+      throw Exception('Failed to load events');
+    }
+  }
+
+  Future<void> fetchArea() async {
+    final String? token = await tokenHandler.getToken();
+
+    if (token == null) {
+      print('Token não encontrado');
+      return;
+    }
+    final String url = 'http://localhost:7000/areas/listarareasativas';
+
+    try {
+      final response = await http.get(Uri.parse(url),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          categorias = data['data'];
+        });
+      } else {
+        throw Exception('Failed to load categories');
+      }
+    } catch (e) {
+      print('Erro ao carregar categorias: $e');
+      // Trate o erro conforme necessário
+    }
+  }
 
   void _navigateToListaGenerica(BuildContext context, String area) {
     Navigator.push(
@@ -34,11 +137,11 @@ class HomePage extends StatelessWidget {
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour >= 6 && hour < 12) {
-      return 'Bom Dia, Eduardo!';
+      return 'Bom Dia, $nomeUser!';
     } else if (hour >= 12 && hour < 19) {
-      return 'Boa Tarde, Eduardo!';
+      return 'Boa Tarde, $nomeUser!';
     } else {
-      return 'Boa Noite, Eduardo!';
+      return 'Boa Noite, $nomeUser!';
     }
   }
 
@@ -95,7 +198,8 @@ class HomePage extends StatelessWidget {
           children: [
             Container(
               width: double.infinity,
-              padding: EdgeInsets.only(top: 32.0, left: 16.0, right: 16.0, bottom: 16.0),
+              padding: EdgeInsets.only(
+                  top: 32.0, left: 16.0, right: 16.0, bottom: 16.0),
               decoration: BoxDecoration(
                 color: const Color(0xFF0DCAF0),
                 borderRadius: BorderRadius.only(
@@ -111,8 +215,10 @@ class HomePage extends StatelessWidget {
                     children: [
                       Builder(
                         builder: (context) => IconButton(
-                          icon: Icon(Icons.menu, size: 30, color: Colors.white),
-                          onPressed: () => Scaffold.of(context).openDrawer(),
+                          icon: Icon(Icons.menu,
+                              size: 30, color: Colors.white),
+                          onPressed: () =>
+                              Scaffold.of(context).openDrawer(),
                         ),
                       ),
                       IconButton(
@@ -171,7 +277,7 @@ class HomePage extends StatelessWidget {
                   ),
                   TextButton(
                     onPressed: () {
-                      onItemTapped(2);
+                      widget.onItemTapped(2);
                     },
                     child: Text(
                       'Ver Todas',
@@ -187,53 +293,22 @@ class HomePage extends StatelessWidget {
             SizedBox(height: 10.0),
             Container(
               height: 200,
-              child: ListView(
+              child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                children: [
-                  HomeCard(
-                    imageAsset: 'assets/alojamento.jpg',
-                    title: 'Alojamento',
-                    onTap: () => _navigateToListaGenerica(context, 'Alojamento'),
-                  ),
-                  SizedBox(width: 5),
-                  HomeCard(
-                    imageAsset: 'assets/desporto.jpg',
-                    title: 'Desporto',
-                    onTap: () => _navigateToListaGenerica(context, 'Desporto'),
-                  ),
-                  SizedBox(width: 5),
-                  HomeCard(
-                    imageAsset: 'assets/formação.jpg',
-                    title: 'Formação',
-                    onTap: () => _navigateToListaGenerica(context, 'Formação'),
-                  ),
-                  SizedBox(width: 5),
-                  HomeCard(
-                    imageAsset: 'assets/gastronomia.jpg',
-                    title: 'Gastronomia',
-                    onTap: () => _navigateToListaGenerica(context, 'Gastronomia'),
-                  ),
-                  SizedBox(width: 5),
-                  HomeCard(
-                    imageAsset: 'assets/lazer.webp',
-                    title: 'Lazer',
-                    onTap: () => _navigateToListaGenerica(context, 'Lazer'),
-                  ),
-                  SizedBox(width: 5),
-                  HomeCard(
-                    imageAsset: 'assets/saúde.jpg',
-                    title: 'Saúde',
-                    onTap: () => _navigateToListaGenerica(context, 'Saúde'),
-                  ),
-                  SizedBox(width: 5),
-                  HomeCard(
-                    imageAsset: 'assets/transportes.jpg',
-                    title: 'Transportes',
-                    onTap: () => _navigateToListaGenerica(context, 'Transportes'),
-                  ),
-                ],
+                itemCount: categorias.length,
+                itemBuilder: (context, index) {
+                  var categoria = categorias[index];
+                  return Padding(
+                    padding: EdgeInsets.only(left: index == 0 ? 16.0 : 5.0, right: 5.0),
+                    child: HomeCard(
+                      imageAsset: categoria['IMAGEM'],
+                      title: categoria['NOME_AREA'],
+                      onTap: () => _navigateToListaGenerica(context, categoria['NOME_AREA']),
+                    ),
+                  );
+                },
               ),
-            ),
+                  ),
             const SizedBox(height: 20.0),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0),

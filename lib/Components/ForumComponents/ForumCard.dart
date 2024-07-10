@@ -16,7 +16,7 @@ class ForumCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Image.asset(
+          Image.network(
             imagem,
             height: 80,
             fit: BoxFit.cover,

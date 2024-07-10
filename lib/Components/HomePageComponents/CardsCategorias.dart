@@ -21,7 +21,7 @@ class HomeCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(15),
-                child: Image.asset(
+                child: Image.network(
                   imageAsset,
                   height: 200,
                   width: double.infinity,

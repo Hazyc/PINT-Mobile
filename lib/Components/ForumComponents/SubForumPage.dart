@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'ChatPage.dart'; // Certifique-se de ajustar o caminho conforme necessário
 import 'FormularioCriacaoSubForum.dart';
+import 'package:intl/intl.dart';
 
 class SubForumPage extends StatefulWidget {
   final String title;
@@ -19,6 +20,12 @@ class _SubForumPageState extends State<SubForumPage> {
   void initState() {
     super.initState();
     subForuns = widget.subForuns;
+  }
+
+  String _formatDate(String dateStr) {
+    final dateTime = DateTime.parse(dateStr);
+    final formatter = DateFormat('dd-MM-yyyy HH:mm');
+    return formatter.format(dateTime);
   }
 
   void _addSubForum(Map<String, dynamic> newSubForum) {
@@ -48,7 +55,7 @@ class _SubForumPageState extends State<SubForumPage> {
             ),
             elevation: 5,
             child: ListTile(
-              leading: Image.asset(
+              leading: Image.network(
                 subForuns[index]['imagem']!,
                 width: 50,
                 height: 50,
@@ -62,7 +69,7 @@ class _SubForumPageState extends State<SubForumPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Sub-área: ${subForuns[index]['subarea']}'),
-                  Text('Criado em: ${subForuns[index]['dataCriacao']}'),
+                  Text('Criado em: ${_formatDate(subForuns[index]['dataCriacao'])}'),
                 ],
               ),
               onTap: () {

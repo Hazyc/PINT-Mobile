@@ -1,9 +1,15 @@
+import 'package:app_mobile/Components/HomePageComponents/FormularioCriacaoRecomendacao.dart';
 import 'package:flutter/material.dart';
-import '../Components/RecomendacaoComponents/RecomendacaoCard.dart';
-import '../Components/EventoComponents/EventoCard.dart';
-import '../models/Recomendacao.dart';
-import '../models/Evento.dart';
-import '../Components/EventoComponents/FormularioCriacaoEvento.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+import 'package:app_mobile/Components/RecomendacaoComponents/RecomendacaoCard.dart';
+import 'package:app_mobile/Components/EventoComponents/EventoCard.dart';
+import 'package:app_mobile/models/Recomendacao.dart';
+import 'package:app_mobile/models/Evento.dart';
+import 'package:app_mobile/Components/EventoComponents/FormularioCriacaoEvento.dart';
+import 'package:app_mobile/Components/HomePageComponents/CriacaoRecomendacao.dart';
+import 'package:app_mobile/handlers/TokenHandler.dart';
 
 class ListaGenerica extends StatefulWidget {
   final String initialSelectedArea;
@@ -15,96 +21,151 @@ class ListaGenerica extends StatefulWidget {
 }
 
 class _ListaGenericaState extends State<ListaGenerica> {
-  List<String> areas = [
-    'Todos',
-    'Alojamento',
-    'Desporto',
-    'Formação',
-    'Gastronomia',
-    'Lazer',
-    'Saúde',
-    'Transportes'
-  ];
+  List<String> areas = [];
 
   String? selectedArea;
 
-  List<Recomendacao> recomendacoes = [
-    Recomendacao(
-      bannerImage: 'assets/alojamento.jpg',
-      nomeLocal: 'St. Regis Bora Bora',
-      endereco: 'Rua das Eiras, nº 28 3525-515',
-      avaliacaoGeral: 4.5,
-      descricao: 'Bora Bora is an island...',
-      categoria: 'Alojamento',
-      subcategoria: 'Hotel',
-    ),
-    Recomendacao(
-      bannerImage: 'assets/desporto.jpg',
-      nomeLocal: 'Complexo Desportivo',
-      endereco: 'Avenida Principal, nº 100',
-      avaliacaoGeral: 4.0,
-      descricao: 'Um ótimo lugar para esportes...',
-      categoria: 'Desporto',
-      subcategoria: 'Ginásio',
-    ),
-    // Adicione mais recomendações estáticas aqui
-  ];
-
-  List<Evento> eventos = [
-  Evento(
-    bannerImage: 'assets/night.jpg',
-    eventName: 'Evento Esportivo',
-    dateTime: '2024-07-14 18:00', // Certifique-se de que a data esteja no formato yyyy-MM-dd
-    address: 'Avenida Principal, nº 100',
-    category: 'Desporto',
-    subcategory: 'Futebol',
-    lastThreeAttendees: [
-      'assets/user-1.png',
-      'assets/user-2.png',
-      'assets/user-3.png',
-    ],
-    description: 'Um evento esportivo para toda a família...',
-  ),
-  Evento(
-    bannerImage: 'assets/day.jpg',
-    eventName: 'Gastronomia Expo',
-    dateTime: '2024-08-05 10:00', // Certifique-se de que a data esteja no formato yyyy-MM-dd
-    address: 'Rua das Eiras, nº 28',
-    category: 'Gastronomia',
-    subcategory: 'Comida',
-    lastThreeAttendees: [
-      'assets/user-1.png',
-      'assets/user-2.png',
-      'assets/user-3.png',
-    ],
-    description: 'Uma exposição de gastronomia com os melhores chefs...',
-  ),
-  // Adicione mais eventos estáticos aqui
-];
-
+  List<Recomendacao> recomendacoes = [];
+  List<Evento> eventos = [];
 
   bool showRecommendations = true;
   bool showEvents = true;
+
+  TokenHandler tokenHandler = TokenHandler();
 
   @override
   void initState() {
     super.initState();
     selectedArea = widget.initialSelectedArea;
+    // Carregar dados iniciais ao iniciar a tela
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    try {
+      final String? token = await tokenHandler.getToken(); // Obtenha o token de autenticação
+
+      if (token == null) {
+        // Trate o caso em que o token não está disponível
+        print('Token não encontrado');
+        return;
+      }
+
+      List<Recomendacao> fetchedRecomendacoes = await fetchRecomendacoes(token);
+      List<Evento> fetchedEventos = await fetchEventos(token);
+      List<String> fetchedAreas = await fetchAreas(token);
+
+      setState(() {
+        recomendacoes = fetchedRecomendacoes;
+        eventos = fetchedEventos;
+        areas = fetchedAreas;
+      });
+    } catch (e) {
+      // Trate os erros de carregamento de dados, se necessário
+      print('Erro ao carregar dados: $e');
+    }
+  }
+
+  Future<List<Recomendacao>> fetchRecomendacoes(String token) async {
+  final String baseUrl = 'http://localhost:7000';
+  final response = await http.get(
+    Uri.parse('$baseUrl/recomendacoes/listarRecomendacoesVisiveis'),
+    headers: {
+      'Authorization': 'Bearer $token',
+    },
+  );
+
+  if (response.statusCode == 200) {
+    final List<dynamic> data = jsonDecode(response.body)['data'];
+    List<Recomendacao> recomendacoes = [];
+
+    // Iterar sobre os dados e buscar a média de avaliação para cada recomendação
+    for (var json in data) {
+      Recomendacao recomendacao = Recomendacao.fromJson(json);
+      try {
+        final mediaResponse = await http.get(
+          Uri.parse('$baseUrl/avaliacoes/mediaAvaliacaoporRecomendacao/${recomendacao.idRecomendacao}'),
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        );
+
+        if (mediaResponse.statusCode == 200) {
+          final mediaData = jsonDecode(mediaResponse.body)['data'];
+          double media1 = mediaData['media1'];
+          double media2 = mediaData['media2'];
+          double media3 = mediaData['media3'];
+          
+          // Calcular a média geral
+          double avaliacaoGeral = (media1 + media2 + media3) / 3;
+          avaliacaoGeral = double.parse(avaliacaoGeral.toStringAsFixed(1));
+          
+          // Atualizar o objeto Recomendacao
+          recomendacao.avaliacaoGeral = avaliacaoGeral;
+        } else {
+          throw Exception('Failed to fetch average rating');
+        }
+      } catch (error) {
+        print('Erro ao buscar média de avaliação para recomendação ${recomendacao.idRecomendacao}: $error');
+        // Tratar erro adequadamente (exibir snackbar, mensagem de erro, etc.)
+      }
+
+      recomendacoes.add(recomendacao);
+    }
+
+    return recomendacoes;
+  } else {
+    throw Exception('Failed to load recommendations');
+  }
+}
+
+
+  Future<List<Evento>> fetchEventos(String token) async {
+    final String baseUrl = 'http://localhost:7000';
+    final response = await http.get(
+      Uri.parse('$baseUrl/eventos/listarTodosVisiveis'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body)['data'];
+      return data.map((json) => Evento.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load events');
+    }
+  }
+
+  Future<List<String>> fetchAreas(String token) async {
+    final String baseUrl = 'http://localhost:7000';
+    final response = await http.get(
+      Uri.parse('$baseUrl/areas/listarareasativas'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body)['data'];
+      return ['Todos', ...data.map((area) => area['NOME_AREA'] as String).toList()];
+    } else {
+      throw Exception('Failed to load areas');
+    }
   }
 
   List<dynamic> get filteredItems {
     List<dynamic> filteredList = [];
-    
+
     if (showRecommendations) {
       filteredList.addAll(recomendacoes.where((item) =>
           selectedArea == 'Todos' || item.categoria == selectedArea));
     }
-    
+
     if (showEvents) {
       filteredList.addAll(eventos.where((item) =>
           selectedArea == 'Todos' || item.category == selectedArea));
     }
-
     return filteredList;
   }
 
@@ -176,7 +237,7 @@ class _ListaGenericaState extends State<ListaGenerica> {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => FormularioCriacaoEvento()),
+                  MaterialPageRoute(builder: (context) => ReviewPage()),
                 );
               },
             ),

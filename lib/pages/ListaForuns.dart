@@ -1,59 +1,80 @@
 import 'package:flutter/material.dart';
-import '../Components/ForumComponents/ForumCard.dart'; // Certifique-se de ajustar o caminho conforme necessário
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../Components/ForumComponents/ForumCard.dart';
 import '../Components/ForumComponents/SubForumPage.dart';
+import 'package:app_mobile/handlers/TokenHandler.dart';
 
 class ListaForuns extends StatelessWidget {
-  // Estrutura de dados para armazenar sub-fóruns exclusivos por área
-  final Map<String, List<Map<String, dynamic>>> subForunsPorArea = {
-    'Alojamento': [
-      {
-        'nome': 'Procura-se casa para alugar!',
-        'imagem': 'assets/AlojamentoForum.png',
-        'subarea': 'Casas',
-        'dataCriacao': '01/07/2024 14:30',
-      },
-      {
-        'nome': 'Oferece-se T2 perto do centro',
-        'imagem': 'assets/AlojamentoForum.png',
-        'subarea': 'Apartamentos',
-        'dataCriacao': '02/07/2024 10:15',
-      },
-      {
-        'nome': 'Dicas para encontrar uma casa barata',
-        'imagem': 'assets/AlojamentoForum.png',
-        'subarea': 'Dicas',
-        'dataCriacao': '03/07/2024 09:45',
-      },
-    ],
-    'Desporto': [
-      {
-        'nome': 'Melhores academias da cidade',
-        'imagem': 'assets/DesportoForum.png',
-        'subarea': 'Ginásios',
-        'dataCriacao': '05/07/2024 16:00',
-      },
-      {
-        'nome': 'Jogos de futebol amador',
-        'imagem': 'assets/DesportoForum.png',
-        'subarea': 'Campos',
-        'dataCriacao': '06/07/2024 17:30',
-      },
-    ],
-    // Adicione sub-fóruns para outras áreas conforme necessário
-  };
+  TokenHandler tokenHandler = TokenHandler();
+
+  Future<Map<String, dynamic>> fetchData() async {
+    final String? token = await tokenHandler.getToken();
+
+    if (token == null) {
+      print('Token não encontrado');
+      return {};
+    }
+
+    try {
+      // Fetch areas
+      final areasResponse = await http.get(
+        Uri.parse('http://localhost:7000/areas/listarareasativas'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      // Fetch topics
+      final topicsResponse = await http.get(
+        Uri.parse('http://localhost:7000/topicos/listarvisiveiseativos'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (areasResponse.statusCode == 200 && topicsResponse.statusCode == 200) {
+        final areasData = json.decode(areasResponse.body)['data'];
+        final topicsData = json.decode(topicsResponse.body)['data'];
+
+        List<Map<String, dynamic>> areas = [];
+        Map<String, List<Map<String, dynamic>>> topicsByArea = {};
+
+        // Process areas
+        for (var item in areasData) {
+          areas.add({
+            'id': item['ID_AREA'],
+            'nome': item['NOME_AREA'].toString(), // Garantir que seja uma string
+            'imagem': item['IMAGEM'],
+            'cor': item['COR_AREA'],
+          });
+          topicsByArea[item['ID_AREA'].toString()] = []; // Garantir que seja uma string
+        }
+
+        // Process topics
+        for (var item in topicsData) {
+          String areaId = item['SUBAREA']['AREA']['ID_AREA'].toString(); // Garantir que seja uma string
+          if (topicsByArea.containsKey(areaId)) {
+            topicsByArea[areaId]!.add({
+              'nome': item['TITULO_TOPICO'],
+              'imagem': item['IMAGEM'],
+              'subarea': item['SUBAREA']['NOME_SUBAREA'],
+              'dataCriacao': item['DATA_CRIACAO_TOPICO'],
+            });
+          }
+        }
+
+        return {
+          'areas': areas,
+          'topicsByArea': topicsByArea,
+        };
+      } else {
+        throw Exception('Failed to load data');
+      }
+    } catch (e) {
+      print('Erro ao carregar dados: $e');
+      throw e; // Rethrow para o FutureBuilder lidar com o erro
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final foruns = [
-      {'nome': 'Alojamento', 'imagem': 'assets/AlojamentoForum.png'},
-      {'nome': 'Desporto', 'imagem': 'assets/DesportoForum.png'},
-      {'nome': 'Formação', 'imagem': 'assets/FormacaoForum.png'},
-      {'nome': 'Gastronomia', 'imagem': 'assets/GastronomiaForum.png'},
-      {'nome': 'Lazer', 'imagem': 'assets/LazerForum.png'},
-      {'nome': 'Saúde', 'imagem': 'assets/SaudeForum.png'},
-      {'nome': 'Transportes', 'imagem': 'assets/TransportesForum.png'},
-    ];
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -64,33 +85,46 @@ class ListaForuns extends StatelessWidget {
         centerTitle: true,
         iconTheme: IconThemeData(color: Colors.white),
       ),
-      body: GridView.builder(
-        padding: EdgeInsets.all(10.0),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 10.0,
-          mainAxisSpacing: 10.0,
-        ),
-        itemCount: foruns.length,
-        itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: () {
-              // Navegar para a página de sub-fóruns
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SubForumPage(
-                    title: foruns[index]['nome']!,
-                    subForuns: subForunsPorArea[foruns[index]['nome']!] ?? [],
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: fetchData(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Failed to load forums'));
+          } else {
+            final areas = snapshot.data!['areas'];
+            final topicsByArea = snapshot.data!['topicsByArea'];
+
+            return GridView.builder(
+              padding: EdgeInsets.all(10.0),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10.0,
+                mainAxisSpacing: 10.0,
+              ),
+              itemCount: areas.length,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SubForumPage(
+                          title: areas[index]['nome']!,
+                          subForuns: topicsByArea[areas[index]['id'].toString()]!,
+                        ),
+                      ),
+                    );
+                  },
+                  child: ForumCard(
+                    nome: areas[index]['nome']!,
+                    imagem: areas[index]['imagem']!,
                   ),
-                ),
-              );
-            },
-            child: ForumCard(
-              nome: foruns[index]['nome']!,
-              imagem: foruns[index]['imagem']!,
-            ),
-          );
+                );
+              },
+            );
+          }
         },
       ),
     );

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'EditarProfilePage.dart';
+import 'dart:convert';
+import 'package:app_mobile/handlers/TokenHandler.dart';
+import 'EditProfilePage.dart';
 
 void main() => runApp(MyApp());
 
@@ -26,41 +28,103 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   List<Map<String, String>> items = [];
-  List<Map<String, String>> publications = [
-    {'title': 'Publicação 1', 'description': 'Descrição da Publicação 1'},
-    {'title': 'Publicação 2', 'description': 'Descrição da Publicação 2'},
-    {'title': 'Publicação 3', 'description': 'Descrição da Publicação 3'}
-  ];
-  List<Map<String, String>> events = [
-    {'title': 'Evento 1', 'description': 'Descrição do Evento 1'},
-    {'title': 'Evento 2', 'description': 'Descrição do Evento 2'},
-    {'title': 'Evento 3', 'description': 'Descrição do Evento 3'}
-  ];
+  List<Map<String, dynamic>> publications = [];
+  List<Map<String, dynamic>> events = [];
   bool isPublicationsSelected = true;
   File? _bannerImage;
   File? _avatarImage;
-  String userName = 'José';
-  String userDescription = 'Louco por futebol e natação';
+  String userName = '';
+  String userDescription = '';
+  String userEmail = '';
+  String userContact = '';
+  String userCity = '';
+  String userAvatarUrl = '';
+  String userBannerUrl = '';
+  TokenHandler tokenHandler = TokenHandler();
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration.zero, () {
-      _showPublications();
-    });
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    try {
+      final String? token = await tokenHandler.getToken(); // Obtenha o token de autenticação
+
+      if (token == null) {
+        // Trate o caso em que o token não está disponível
+        print('Token não encontrado');
+        return;
+      }
+      final tokenResponse = await http.get(Uri.parse('http://localhost:7000/utilizadores/getbytoken'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (tokenResponse.statusCode == 200) {
+        final userData = json.decode(tokenResponse.body)['data'];
+        setState(() {
+          userName = userData['NOME_UTILIZADOR'];
+          userDescription = userData['DESCRICAO_UTILIZADOR'];
+          userEmail = userData['EMAIL_UTILIZADOR'];
+          userContact = userData['CONTACTO_UTILIZADOR'];
+          userCity = userData['CIDADE']['NOME_CIDADE'];
+          userAvatarUrl = userData['Perfil']['NOME_IMAGEM'];
+          userBannerUrl = userData['Banner']['NOME_IMAGEM'];
+        });
+      } else {
+        print('Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
+      }
+
+      final publicationsResponse = await http.get(Uri.parse('http://localhost:7000/recomendacoes//listarRecomendacoesUserVisiveis'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+      final eventsResponse = await http.get(Uri.parse('http://localhost:7000/eventos/listarPorUserVisiveis'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (publicationsResponse.statusCode == 200 && eventsResponse.statusCode == 200) {
+        setState(() {
+          publications = List<Map<String, dynamic>>.from(json.decode(publicationsResponse.body)['data']);
+          events = List<Map<String, dynamic>>.from(json.decode(eventsResponse.body)['data']);
+          _showPublications();
+        });
+      } else {
+        print('Falha ao carregar dados: ${publicationsResponse.statusCode}, ${eventsResponse.statusCode}');
+      }
+    } catch (e) {
+      print('Erro ao buscar dados: $e');
+    }
   }
 
   void _showPublications() {
     setState(() {
       isPublicationsSelected = true;
-      items = publications;
+      items.clear();
+      for (var publication in publications) {
+        items.add({
+          'title': publication['TITULO_RECOMENDACAO'].toString(),
+          'description': publication['DESCRICAO_RECOMENDACAO'].toString(),
+        });
+      }
     });
   }
 
   void _showEvents() {
     setState(() {
       isPublicationsSelected = false;
-      items = events;
+      items.clear();
+      for (var event in events) {
+        items.add({
+          'title': event['TITULO_EVENTO'].toString(),
+          'description': event['DESCRICAO_EVENTO'].toString(),
+        });
+      }
     });
   }
 
@@ -125,14 +189,14 @@ class _ProfilePageState extends State<ProfilePage> {
             icon: Icon(Icons.edit, color: Colors.white),
             onPressed: () {
               Navigator.of(context).push(MaterialPageRoute(builder: (context) => EditProfilePage(
-                bannerImage: _bannerImage,
-                avatarImage: _avatarImage,
+                bannerImageUrl: userBannerUrl,
+                avatarImageUrl: userAvatarUrl,
                 userName: userName,
                 userDescription: userDescription,
                 onSave: (newBanner, newAvatar, newName, newDescription) {
                   setState(() {
-                    _bannerImage = newBanner;
-                    _avatarImage = newAvatar;
+                    userBannerUrl = newBanner;
+                    userAvatarUrl = newAvatar;
                     userName = newName;
                     userDescription = newDescription;
                   });
@@ -156,7 +220,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         fit: BoxFit.cover,
                       )
                     : Image.network(
-                        'https://static.todamateria.com.br/upload/pa/is/paisagem-natural-og.jpg',
+                        userBannerUrl.isNotEmpty
+                            ? userBannerUrl
+                            : 'https://static.todamateria.com.br/upload/pa/is/paisagem-natural-og.jpg',
                         width: double.infinity,
                         height: 150.0,
                         fit: BoxFit.cover,
@@ -168,7 +234,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     radius: 80.0,
                     backgroundImage: _avatarImage != null
                         ? FileImage(_avatarImage!)
-                        : AssetImage('assets/images/placeholder_image.png') as ImageProvider,
+                        : userAvatarUrl.isNotEmpty
+                            ? NetworkImage(userAvatarUrl)
+                            : AssetImage('assets/images/placeholder_image.png') as ImageProvider,
                   ),
                 ),
               ],
@@ -180,12 +248,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             SizedBox(height: 4.0),
             Text(
-              'Viseu | Programador',
-              style: TextStyle(fontSize: 16.0, color: Colors.grey),
-            ),
-            SizedBox(height: 4.0),
-            Text(
-              userDescription,
+              '$userCity | $userDescription',
               style: TextStyle(fontSize: 16.0, color: Colors.grey),
             ),
             SizedBox(height: 20.0),

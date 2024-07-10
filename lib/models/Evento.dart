@@ -18,4 +18,17 @@ class Evento {
     required this.lastThreeAttendees,
     required this.description,
   });
+
+  factory Evento.fromJson(Map<String, dynamic> json) {
+    return Evento(
+      bannerImage: json['IMAGEM']['NOME_IMAGEM'] ?? '',
+      eventName: json['TITULO_EVENTO'] ?? '',
+      dateTime: json['DATA_HORA_INICIO_EVENTO'] ?? '',
+      address: json['MORADA_EVENTO'] ?? '',
+      category: json['SUBAREA']['AREA']['NOME_AREA'] ?? '',
+      subcategory: json['SUBAREA']['NOME_SUBAREA'] ?? '',
+      lastThreeAttendees: List<String>.from(json['lastThreeAttendees'] ?? []),
+      description: json['DESCRICAO_EVENTO'] ?? '',
+    );
+  }
 }

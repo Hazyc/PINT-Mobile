@@ -4,6 +4,9 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
 import '../LoginPageComponents/Botao.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../../handlers/TokenHandler.dart';
 
 class ReviewPage extends StatefulWidget {
   @override
@@ -13,6 +16,7 @@ class ReviewPage extends StatefulWidget {
 class _ReviewPageState extends State<ReviewPage> {
   final TextEditingController _commentController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
+  Map<String, List<String>> areaParameters = {};
   double _serviceRating = 0;
   double _cleanlinessRating = 0;
   double _valueRating = 0;
@@ -22,15 +26,65 @@ class _ReviewPageState extends State<ReviewPage> {
   String? _selectedTag;
   String? _selectedSubarea;
 
-  final Map<String, List<String>> subareas = {
-    'Alojamento': ['Hotel', 'Apartamento', 'Hostel'],
-    'Desporto': ['Ginásio', 'Campo de Futebol', 'Piscina'],
-    'Formação': ['Curso', 'Workshop', 'Palestra'],
-    'Gastronomia': ['Restaurante', 'Café', 'Bar'],
-    'Lazer': ['Parque', 'Cinema', 'Museu'],
-    'Saúde': ['Hospital', 'Clínica', 'Veterinário'],
-    'Transportes': ['Ônibus', 'Táxi', 'Metrô'],
-  };
+  Map<String, List<String>> subareas = {};
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchAreasAndSubareas();
+  }
+
+  Future<void> fetchAreasAndSubareas() async {
+    TokenHandler tokenHandler = TokenHandler();
+    final String? token = await tokenHandler.getToken();
+
+    if (token == null) {
+      // Trate o caso em que o token não está disponível
+      print('Token não encontrado');
+      return;
+    }
+    final areasResponse = await http.get(Uri.parse('http://localhost:7000/areas/listarareasativas'),
+    headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+    if (areasResponse.statusCode == 200) {
+      final List<dynamic> areasData = jsonDecode(areasResponse.body)['data'];
+      Map<String, List<String>> tempAreaParameters = {};
+      for (var area in areasData) {
+        final areaName = area['NOME_AREA'];
+        final areaId = area['ID_AREA'];
+        List<String> parameters = [
+          area['PARAMETRO_AVALIACAO_1'],
+          area['PARAMETRO_AVALIACAO_2'],
+          area['PARAMETRO_AVALIACAO_3']
+        ];
+        tempAreaParameters[areaName] = parameters;
+
+        final subareasResponse = await http.get(Uri.parse('http://localhost:7000/subareas/listarPorAreaAtivos/$areaId'),
+        headers: {
+            'Authorization': 'Bearer $token',
+          },
+        );
+        if (subareasResponse.statusCode == 200) {
+          final List<dynamic> subareasData = jsonDecode(subareasResponse.body)['data'];
+          List<String> subareaNames = subareasData.map((subarea) => subarea['NOME_SUBAREA'].toString()).toList();
+
+          setState(() {
+            areaParameters = tempAreaParameters;
+            subareas[areaName] = subareaNames;
+          });
+        }
+      }
+    } else {
+      throw Exception('Failed to load areas');
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     setState(() {
@@ -97,56 +151,186 @@ class _ReviewPageState extends State<ReviewPage> {
     );
   }
 
-  void _saveReview() {
-    if (_locationController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Por favor, adicione o nome do local.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (_commentController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Por favor, adicione um comentário.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (_serviceRating == 0 || _cleanlinessRating == 0 || _valueRating == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Por favor, adicione uma avaliação para todos os aspectos.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
+ void _saveReview() async {
+  if (_locationController.text.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Recomendação salva com sucesso!'),
-        backgroundColor: Colors.blue,
+        content: Text('Por favor, adicione o nome do local.'),
+        backgroundColor: Colors.red,
       ),
     );
-
-    setState(() {
-      _serviceRating = 0;
-      _cleanlinessRating = 0;
-      _valueRating = 0;
-      _commentController.clear();
-      _images.clear();
-      _locationController.clear();
-      _bannerImage = null;
-    });
-
-    Navigator.pop(context);
+    return;
   }
+
+  if (_commentController.text.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Por favor, adicione um comentário.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  if (_serviceRating == 0 || _cleanlinessRating == 0 || _valueRating == 0) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Por favor, adicione uma avaliação para todos os aspectos.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+   setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    TokenHandler tokenHandler = TokenHandler();
+  final String? token = await tokenHandler.getToken();
+
+  if (token == null) {
+    print('Token não encontrado');
+    setState(() {
+      _isLoading = false;
+    });
+    return;
+  }
+
+  String? imageId;
+
+  // Upload do banner se existir
+  if (_bannerImage != null) {
+    var uploadRequest = http.MultipartRequest(
+      'POST',
+      Uri.parse('http://localhost:7000/imagens/upload'),
+    );
+    uploadRequest.headers['Authorization'] = 'Bearer $token';
+
+    uploadRequest.files.add(await http.MultipartFile.fromPath(
+      'imagem',
+      _bannerImage!.path,
+    ));
+
+    final uploadResponse = await uploadRequest.send();
+
+    if (uploadResponse.statusCode == 200) {
+      var uploadResponseBody = await uploadResponse.stream.bytesToString();
+      var uploadData = jsonDecode(uploadResponseBody)['data'];
+      imageId = uploadData['ID_IMAGEM'];
+    } else {
+      throw Exception('Failed to upload image');
+    }
+  }
+
+final response = await http.post(
+  Uri.parse('http://localhost:7000/recomendacoes/create'),
+  headers: <String, String>{
+    'Content-Type': 'application/json; charset=UTF-8',
+    'Authorization': 'Bearer $token',
+  },
+  body: jsonEncode(<String, dynamic>{
+    'ID_IMAGEM': imageId,
+    'CIDADE': 'Viseu',
+    'NOME_SUBAREA': _selectedSubarea ?? '',
+    'TITULO_RECOMENDACAO': _locationController.text, // Corrigido para TITULO_RECOMENDACAO
+    'DESCRICAO_RECOMENDACAO': _commentController.text, // Corrigido para DESCRICAO_RECOMENDACAO
+  }),
+);
+
+if (response.statusCode == 200) {
+  var recomendacaoData = jsonDecode(response.body)['data'];
+  var idRecomendacao = recomendacaoData['ID_RECOMENDACAO'];
+
+    // 2. Criar a avaliação
+    final avaliacaoResponse = await http.post(
+      Uri.parse('http://localhost:7000/avaliacoes/create'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'ID_RECOMENDACAO': idRecomendacao,
+        'AVALIACAO_PARAMETRO_1': _serviceRating,
+        'AVALIACAO_PARAMETRO_2': _cleanlinessRating,
+        'AVALIACAO_PARAMETRO_3': _valueRating,
+      }),
+    );
+
+    if (avaliacaoResponse.statusCode != 200) {
+      throw Exception('Failed to create evaluation');
+    }
+
+      
+
+      // Envio das outras imagens para /imagens/create
+      /*for (int i = 0; i < _images.length; i++) {
+        File imageFile = File(_images[i]);
+        if (imageFile.existsSync()) {
+          var requestImage = http.MultipartRequest(
+            'POST',
+            Uri.parse('http://localhost:7000/imagens/create'),
+          );
+          requestImage.headers['Authorization'] = 'Bearer $token';
+          requestImage.fields['ID_ALBUM'] = idAlbum.toString();
+          requestImage.fields['ID_CIDADE'] = idCidade.toString();
+          requestImage.files.add(await http.MultipartFile.fromPath(
+            'images',
+            _images[i],
+          ));
+
+          final responseImage = await requestImage.send();
+
+          if (responseImage.statusCode != 200) {
+            throw Exception('Failed to upload image $i');
+          }
+        } else {
+          print('File does not exist: ${_images[i]}');
+        }
+      }*/
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Recomendação salva com sucesso!'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+      setState(() {
+        _serviceRating = 0;
+        _cleanlinessRating = 0;
+        _valueRating = 0;
+        _commentController.clear();
+        _images.clear();
+        _locationController.clear();
+        _bannerImage = null;
+        _isLoading = false;
+      });
+
+      Navigator.pop(context);
+
+    } else {
+      throw Exception('Failed to create recommendation');
+    }
+
+  } catch (error) {
+    print('Erro ao salvar recomendação: $error');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Erro ao salvar recomendação.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } finally {
+    setState(() {
+      _isLoading = false;
+    });
+  }
+}
+
+
+
+
 
   void _selectTag(String tag) {
     setState(() {
@@ -255,12 +439,12 @@ class _ReviewPageState extends State<ReviewPage> {
                             SizedBox(height: 8.0),
                             _buildRatingBarSection(),
                           ],
-                          SizedBox(height: 16.0),
+                          /*SizedBox(height: 16.0),
                           _buildTitle('Adicionar Fotos'),
                           SizedBox(height: 8.0),
                           _buildPhotoButtons(),
                           SizedBox(height: 20),
-                          _buildImageGrid(),
+                          _buildImageGrid(),*/
                           SizedBox(height: 30),
                           Container(
                             margin: EdgeInsets.only(bottom: 20.0),
@@ -382,9 +566,11 @@ class _ReviewPageState extends State<ReviewPage> {
   }
 
   Widget _buildTagSelector() {
-    final tags = [
-      'Alojamento', 'Desporto', 'Formação', 'Gastronomia', 'Lazer', 'Saúde', 'Transportes'
-    ];
+    if (isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+
+    final tags = areaParameters.keys.toList();
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25.0),
@@ -441,39 +627,37 @@ class _ReviewPageState extends State<ReviewPage> {
   }
 
   Widget _buildRatingBarSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (_selectedTag == 'Alojamento' || _selectedTag == 'Desporto') ...[
-          _buildTitleRatings('Serviço'),
-          SizedBox(height: 8.0),
-          _buildRatingBar('Serviço', (rating) {
-            setState(() {
-              _serviceRating = rating;
-            });
-          }),
-          SizedBox(height: 15),
-        ],
-        if (_selectedTag == 'Alojamento' || _selectedTag == 'Desporto' || _selectedTag == 'Formação') ...[
-          _buildTitleRatings('Limpeza'),
-          SizedBox(height: 8.0),
-          _buildRatingBar('Limpeza', (rating) {
-            setState(() {
-              _cleanlinessRating = rating;
-            });
-          }),
-          SizedBox(height: 15),
-        ],
-        _buildTitleRatings('Custo-benefício'),
+  if (isLoading) {
+    return Center(child: CircularProgressIndicator());
+  }
+
+  List<String> parameters = areaParameters[_selectedTag] ?? [];
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      for (String parameter in parameters) ...[
+        _buildTitleRatings(parameter),
         SizedBox(height: 8.0),
-        _buildRatingBar('Custo-benefício', (rating) {
+        _buildRatingBar(parameter, (rating) {
           setState(() {
-            _valueRating = rating;
+            if (parameter == parameters[0]) {
+              _serviceRating = rating;
+            } else if (parameter == parameters[1]) {
+              _cleanlinessRating = rating;
+            } else if (parameter == parameters[2]) {
+              _valueRating = rating;
+            }
           });
         }),
+        SizedBox(height: 15),
       ],
-    );
-  }
+    ],
+  );
+}
+
+
+
 
   Widget _buildTitleRatings(String title) {
     return Container(

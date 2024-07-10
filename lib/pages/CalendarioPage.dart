@@ -28,92 +28,101 @@ class _CalendarioPageState extends State<CalendarioPage> {
   }
 
   Map<DateTime, List<Evento>> _groupEventosPorDia(List<Evento> eventos) {
-    Map<DateTime, List<Evento>> dataMap = {};
-    for (var evento in eventos) {
-      try {
-        DateTime eventDate = DateFormat('MMMM d, yyyy - h:mm a').parse(evento.dateTime);
-        DateTime normalizedDate = DateTime(eventDate.year, eventDate.month, eventDate.day);
+  Map<DateTime, List<Evento>> dataMap = {};
+  for (var evento in eventos) {
+    try {
+      DateTime eventDate = DateTime.parse(evento.dateTime);
+      DateTime normalizedDate = DateTime(eventDate.year, eventDate.month, eventDate.day);
 
-        if (dataMap[normalizedDate] == null) {
-          dataMap[normalizedDate] = [];
-        }
-        dataMap[normalizedDate]!.add(evento);
-      } catch (e) {
-        print('Erro ao analisar a data do evento: ${evento.dateTime}');
+      if (dataMap[normalizedDate] == null) {
+        dataMap[normalizedDate] = [];
       }
+      dataMap[normalizedDate]!.add(evento);
+    } catch (e) {
+      print('Erro ao analisar a data do evento: ${evento.dateTime}');
     }
-    return dataMap;
   }
-
-  List<Evento> _getEventosParaDia(DateTime dia) {
-    DateTime normalizedDate = DateTime(dia.year, dia.month, dia.day);
-    return _eventosPorDia[normalizedDate] ?? [];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Calendário de Eventos'),
-        backgroundColor: const Color(0xFF0DCAF0),
-      ),
-      body: Column(
-        children: [
-          TableCalendar(
-            locale: 'pt_BR',
-            firstDay: DateTime.utc(2021, 1, 1),
-            lastDay: DateTime.utc(2030, 12, 31),
-            focusedDay: _focusedDay,
-            selectedDayPredicate: (day) {
-              return isSameDay(_selectedDay, day);
-            },
-            onDaySelected: (selectedDay, focusedDay) {
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-              });
-            },
-            calendarFormat: _calendarFormat,
-            onFormatChanged: (format) {
-              setState(() {
-                _calendarFormat = format;
-              });
-            },
-            eventLoader: _getEventosParaDia,
-          ),
-          const SizedBox(height: 8.0),
-          Expanded(
-            child: _getEventosParaDia(_selectedDay).isNotEmpty
-                ? ListView.builder(
-                    itemCount: _getEventosParaDia(_selectedDay).length,
-                    itemBuilder: (context, index) {
-                      final evento = _getEventosParaDia(_selectedDay)[index];
-                      return ListTile(
-                        title: Text(evento.eventName),
-                        subtitle: Text(evento.dateTime),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => EventoView(
-                                evento: evento,
-                                onLike: () {},
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  )
-                : Center(child: Text('Nenhum evento para este dia.')),
-          ),
-        ],
-      ),
-    );
-  }
+  return dataMap;
 }
 
-void main() {
+  List<Evento> _getEventosParaDia(DateTime dia) {
+  // Utilize a função _groupEventosPorDia para obter o mapa de eventos por dia
+  Map<DateTime, List<Evento>> eventosPorDia = _groupEventosPorDia(widget.eventos);
+  
+  // Normaliza a data selecionada para buscar eventos
+  DateTime normalizedDate = DateTime(dia.year, dia.month, dia.day);
+  
+  // Retorna os eventos para o dia selecionado, ou uma lista vazia se não houver eventos
+  return eventosPorDia[normalizedDate] ?? [];
+}
+
+
+  @override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: Text('Calendário de Eventos'),
+      backgroundColor: const Color(0xFF0DCAF0),
+    ),
+    body: Column(
+      children: [
+        TableCalendar(
+          locale: 'pt_BR',
+          firstDay: DateTime.utc(2021, 1, 1),
+          lastDay: DateTime.utc(2030, 12, 31),
+          focusedDay: _focusedDay,
+          selectedDayPredicate: (day) {
+            return isSameDay(_selectedDay, day);
+          },
+          onDaySelected: (selectedDay, focusedDay) {
+            setState(() {
+              _selectedDay = selectedDay;
+              _focusedDay = focusedDay;
+            });
+          },
+          calendarFormat: _calendarFormat,
+          onFormatChanged: (format) {
+            setState(() {
+              _calendarFormat = format;
+            });
+          },
+          eventLoader: _getEventosParaDia,
+        ),
+        const SizedBox(height: 8.0),
+        Expanded(
+          child: _getEventosParaDia(_selectedDay).isNotEmpty
+              ? ListView.builder(
+                  itemCount: _getEventosParaDia(_selectedDay).length,
+                  itemBuilder: (context, index) {
+                    final evento = _getEventosParaDia(_selectedDay)[index];
+                    DateTime dateTime = DateTime.parse(evento.dateTime ?? ''); // Convertendo a String para DateTime
+                    return ListTile(
+                      title: Text(evento.eventName),
+                      subtitle: Text(dateTime != null ? DateFormat('HH:mm').format(dateTime) : ''),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EventoView(
+                              evento: evento,
+                              onLike: () {},
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                )
+              : Center(child: Text('Nenhum evento para este dia.')),
+        ),
+      ],
+    ),
+  );
+}
+
+}
+
+/*void main() {
   runApp(
     MaterialApp(
       locale: Locale('pt', 'BR'),
@@ -127,37 +136,7 @@ void main() {
         GlobalCupertinoLocalizations.delegate,
       ],
       home: CalendarioPage(
-        eventos: [
-          Evento(
-            bannerImage: 'assets/night.jpg',
-            eventName: 'Evento Esportivo',
-            dateTime: 'July 14, 2024 - 6:00 PM',
-            address: 'Avenida Principal, nº 100',
-            category: 'Desporto',
-            subcategory: 'Futebol',
-            lastThreeAttendees: [
-              'assets/user-1.png',
-              'assets/user-2.png',
-              'assets/user-3.png',
-            ],
-            description: 'Um evento esportivo para toda a família...',
-          ),
-          Evento(
-            bannerImage: 'assets/concert.jpg',
-            eventName: 'Concerto de Rock',
-            dateTime: 'August 5, 2024 - 10:00 AM',
-            address: 'Rua das Flores, nº 200',
-            category: 'Música',
-            subcategory: 'Rock',
-            lastThreeAttendees: [
-              'assets/user-4.png',
-              'assets/user-5.png',
-              'assets/user-6.png',
-            ],
-            description: 'Um concerto de rock imperdível...',
-          ),
-        ],
       ),
     ),
   );
-}
+}*/

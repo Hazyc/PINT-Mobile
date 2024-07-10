@@ -1,8 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'package:intl/intl.dart';
-import '../../models/Evento.dart';
+import 'package:http/http.dart' as http;
+import '../../handlers/TokenHandler.dart';
 
 class FormularioCriacaoEvento extends StatefulWidget {
   @override
@@ -18,17 +21,57 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   File? _image;
   String _address = '';
   String? _category;
-  String? _subcategoria;
+  String? _subcategory;
 
-  final Map<String, List<String>> categoriesWithSubcategories = {
-    'Alojamento': ['Hotel', 'Apartamento', 'Hostel'],
-    'Desporto': ['Ginásio', 'Campo de Futebol', 'Piscina'],
-    'Formação': ['Curso', 'Workshop', 'Palestra'],
-    'Gastronomia': ['Restaurante', 'Café', 'Bar'],
-    'Lazer': ['Parque', 'Cinema', 'Museu'],
-    'Saúde': ['Hospital', 'Clínica', 'Veterinário'],
-    'Transportes': ['Ônibus', 'Táxi', 'Metrô'],
-  };
+  Map<String, List<String>> categoriesWithSubcategories = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    TokenHandler tokenHandler = TokenHandler();
+    final String? token = await tokenHandler.getToken();
+
+    if (token == null) {
+      // Trate o caso em que o token não está disponível
+      print('Token não encontrado');
+      return;
+    }
+
+    final response = await http.get(
+      Uri.parse('http://localhost:7000/areas/listarareasativas'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> areas = json.decode(response.body)['data'];
+      for (var area in areas) {
+        final subResponse = await http.get(
+          Uri.parse(
+              'http://localhost:7000/subareas/listarPorAreaAtivos/${area['ID_AREA']}'),
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        );
+        if (subResponse.statusCode == 200) {
+          List<dynamic> subareas = json.decode(subResponse.body)['data'];
+          List<String> subareaNames = subareas
+              .map((subarea) => subarea['NOME_SUBAREA'] as String)
+              .toList();
+          setState(() {
+            categoriesWithSubcategories[area['NOME_AREA']] = subareaNames;
+          });
+        }
+      }
+    } else {
+      print('Erro ao buscar categorias');
+    }
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
@@ -55,8 +98,9 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
         builder: (BuildContext context, Widget? child) {
           return Localizations.override(
             context: context,
-            locale: Locale('pt', 'BR'), // Configurar o seletor de hora para português
-            child: child,
+            locale: Locale(
+                'pt', 'BR'), // Configurar o seletor de hora para português
+            child: child!,
           );
         },
       );
@@ -75,23 +119,118 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
     }
   }
 
-  void _saveForm() {
+  Future<void> _saveForm() async {
+  TokenHandler tokenHandler = TokenHandler();
+  final String? token =
+      await tokenHandler.getToken(); // Obtenha o token de autenticação
+
+  if (token == null) {
+    // Trate o caso em que o token não está disponível
+    print('Token não encontrado');
+    return;
+  }
+
   if (_formKey.currentState!.validate()) {
     _formKey.currentState!.save();
-    final newEvent = Evento(
-      bannerImage: _image!.path,
-      eventName: _eventName,
-      dateTime: DateFormat('dd/MM/yyyy HH:mm').format(_dateTime!),
-      address: _address,
-      category: _category!,
-      subcategory: _subcategoria!,
-      lastThreeAttendees: [],
-      description: _description,
-    );
-    Navigator.of(context).pop(newEvent);
+
+    try {
+      String? imageId;
+      
+      // Upload da imagem do banner
+      if (_image != null) {
+        var uploadRequest = http.MultipartRequest(
+          'POST',
+          Uri.parse('http://localhost:7000/imagens/upload'),
+        );
+        uploadRequest.headers['Authorization'] = 'Bearer $token';
+
+        var file = await http.MultipartFile.fromPath(
+          'imagem',
+          _image!.path,
+        );
+        uploadRequest.files.add(file);
+
+        var uploadResponse = await uploadRequest.send();
+        var uploadResponseString = await uploadResponse.stream.bytesToString();
+
+        if (uploadResponse.statusCode == 200) {
+          var jsonResponse = jsonDecode(uploadResponseString);
+          imageId = jsonResponse['data']['ID_IMAGEM'];
+        } else {
+          _showErrorDialog('Falha ao fazer upload da imagem. Por favor, tente novamente.');
+          return;
+        }
+      }
+
+      // Montar o corpo da requisição para criar o evento
+      final response = await http.post(
+        Uri.parse('http://localhost:7000/eventos/create'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(<String, dynamic>{
+          'ID_IMAGEM': imageId,
+          'CIDADE': 'Viseu',
+          'NOME_SUBAREA': _subcategory ?? '',
+          'TITULO_EVENTO': _eventName,
+          'ALTITUDE_EVENTO': '',
+          'LONGITUDE_EVENTO': '',
+          'MORADA_EVENTO': _address,
+          'DESCRICAO_EVENTO': _description,
+          'HORA_INICIO': _dateTime!.toIso8601String(),
+          'HORA_FIM': '',
+        }),
+      );
+
+
+      if (response.statusCode == 200) {
+         ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Evento salvo com sucesso!'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+      setState(() {
+        _subcategory = '';
+        _eventName = '';
+        _address = '';
+        _address = '';
+        _description = '';
+        _dateTime = null;
+        _image = null;
+      });
+
+      Navigator.pop(context);
+        //Navigator.of(context).pop();
+      } else {
+        _showErrorDialog('Falha ao criar evento. Por favor, tente novamente.');
+      }
+    } catch (error) {
+      print('Erro: $error');
+      _showErrorDialog('Ocorreu um erro. Por favor, tente novamente.');
+    }
   }
 }
-  
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Erro'),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Ok'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+          )
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -366,7 +505,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           onChanged: (newValue) {
             setState(() {
               _category = newValue;
-              _subcategoria = null; // Reset subcategory when category changes
+              _subcategory = null; // Reset subcategory quando a categoria muda
             });
           },
         ),
@@ -385,16 +524,18 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           hint: Text('Selecione uma subcategoria'),
-          value: _subcategoria,
-          items: (categoriesWithSubcategories[_category] ?? []).map((subcategory) {
+          value: _subcategory,
+          items:
+              (categoriesWithSubcategories[_category] ?? []).map((subcategory) {
             return DropdownMenuItem<String>(
               value: subcategory,
               child: Text(subcategory),
             );
           }).toList(),
           onChanged: (newValue) {
+            print(newValue);
             setState(() {
-              _subcategoria = newValue;
+              _subcategory = newValue;
             });
           },
         ),

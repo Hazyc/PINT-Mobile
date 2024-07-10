@@ -145,7 +145,7 @@ class _EventoViewState extends State<EventoView> {
                     bottomLeft: Radius.circular(30),
                     bottomRight: Radius.circular(30),
                   ),
-                  child: Image.asset(
+                  child: Image.network(
                     widget.evento.bannerImage,
                     height: 350,
                     width: double.infinity,
@@ -255,6 +255,14 @@ class _EventoViewState extends State<EventoView> {
                   Text(
                     widget.evento.dateTime,
                     style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Subcategoria: ${widget.evento.subcategory}', // Adicionando subcategoria
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                    ),
                   ),
                   SizedBox(
                       height: 16), // Increased space for better readability
