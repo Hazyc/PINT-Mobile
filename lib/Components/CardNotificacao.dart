@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
+String formatarDataHora(String dateTime) {
+  DateTime parsedDateTime = DateTime.parse(dateTime);
+  DateFormat formatter = DateFormat('yyyy-MM-dd HH:mm');
+  return formatter.format(parsedDateTime);
+}
 
 class NotificationCard extends StatelessWidget {
   final String title;
-//  final String date;
-  
-
+  final String date;
 
   NotificationCard({
     required this.title,
- //   required this.date,
+    required this.date,
   
   });
 
@@ -36,8 +40,7 @@ class NotificationCard extends StatelessWidget {
                   ),
                   SizedBox(height: 5),
                   Text(
-                 //   date,
-                    'DATA_HORA_NOTIFICACAO',
+                   formatarDataHora(date),
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey,

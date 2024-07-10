@@ -5,10 +5,10 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import '../models/Recomendacao.dart';
 import '../pages/MapPage.dart';
-import '../Components/ComentariosPageRecomendacao.dart';
 import 'package:app_mobile/handlers/TokenHandler.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../Components/ComentariosPageRecomendacao.dart';
 
 class RecomendacaoView extends StatefulWidget {
   final Recomendacao recomendacao;
@@ -532,7 +532,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                           child: IconButton(
                             icon: Icon(Icons.forum, color: Colors.white),
                             onPressed: () {
-                              // Redirecionar para o fórum da recomendação
+                              print('Forum do evento');
                             },
                             iconSize: 22,
                           ),
@@ -548,8 +548,8 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      ComentariosPageRecomendacao(
-                                          recomendacao: widget.recomendacao),
+                                      ComentariosPage(
+                                          id: widget.recomendacao.idRecomendacao,),
                                 ),
                               );
                             },

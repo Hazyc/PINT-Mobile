@@ -1,5 +1,5 @@
 class Evento {
-  final int eventoId;
+  final int id;
   final String bannerImage;
   final String eventName;
   final String dateTime;
@@ -10,7 +10,7 @@ class Evento {
   final String description;
 
   Evento({
-    required this.eventoId,
+    required this.id,
     required this.bannerImage,
     required this.eventName,
     required this.dateTime,
@@ -23,7 +23,7 @@ class Evento {
 
   factory Evento.fromJson(Map<String, dynamic> json) {
     return Evento(
-      eventoId: json['ID_EVENTO'] ?? 0,
+      id: json['ID_EVENTO'] ?? 0,
       bannerImage: json['IMAGEM']['NOME_IMAGEM'] ?? '',
       eventName: json['TITULO_EVENTO'] ?? '',
       dateTime: json['DATA_HORA_INICIO_EVENTO'] ?? '',

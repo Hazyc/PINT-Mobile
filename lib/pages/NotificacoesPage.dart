@@ -6,7 +6,6 @@ import '../pages/EventoView.dart';
 import '../handlers/TokenHandler.dart';
 import '../Components/CardNotificacao.dart';
 
-
 class NotificationsPage extends StatefulWidget {
   @override
   _NotificationsPageState createState() => _NotificationsPageState();
@@ -23,77 +22,70 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   Future<void> fetchNotifications() async {
-  try {
-    final token = await TokenHandler().getToken();
-    print('token $token');
-    if (token == null) {
-      print('Token is null. Please log in again.');
-      return;
-    }
-
-    final response = await http.get(
-      Uri.parse('https://backendpint-5wnf.onrender.com/utilizadoresnotificacao/listarPorUser'),
-      headers: {'x-access-token': 'Bearer $token'},
-    );
-
-    print('Response status: ${response.statusCode}');
-    print('Response body: ${response.body}');
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      print('dataaaaaa $data');
-      if (data['data']['success']) {
-        print('aquiiiiii $data');
-        setState(() {
-          notifications = List<String>.from(data['data'].map((notificacao) => notificacao['ID_NOTIFICACAO']));
-        });
-      } else {
-        print('Failed to load areas of interest: ${data['message']}');
-      }
-    } else {
-      print('Failed to load areas of interest. Status code: ${response.statusCode}');
-    }
-  } catch (e) {
-    print(e);
-  }
-}
-
-
-  void deleteNotification(int id) async {
-    try{
-    final token = await TokenHandler().getToken();
-     if (token == null) {
+    try {
+      final token = await tokenHandler.getToken();
+      print('Token: $token');
+      if (token == null) {
         print('Token is null. Please log in again.');
         return;
       }
-    final response = await http.get(
-        Uri.parse('https://backendpint-5wnf.onrender.com/esconderNotificacao/:$id'),
+
+      final response = await http.get(
+        Uri.parse('https://backendpint-5wnf.onrender.com/utilizadoresnotificacao/listarPorUser'),
         headers: {'x-access-token': 'Bearer $token'},
-      );  
-       if (response.statusCode == 200) {
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['success']) {
-          print('Notificação apagada com sucesso');
+        if (data['data'] != null && data['success']) {
+          setState(() {
+            notifications = data['data'];
+          });
         } else {
-          print('Falha a apagar notificação: ${data['message']}');
+          print('Failed to load notifications: ${data['message']}');
         }
       } else {
-        print('Falha a apagar notificação. Status code: ${response.statusCode}');
+        print('Failed to load notifications. Status code: ${response.statusCode}');
       }
-  
-    }catch(e){
+    } catch (e) {
       print(e);
     }
-    
-    setState(() {
-      notifications.removeWhere((notification) => notification['ID_NOTIFICACAO'] == id);
-    });
   }
 
+  void deleteNotification(int id) async {
+    try {
+      final token = await tokenHandler.getToken();
+      if (token == null) {
+        print('Token is null. Please log in again.');
+        return;
+      }
 
-  //falta criar esta rota no backend
-  void deleteAllNotifications() {
-    print('Deleting all notifications...');
+      final response = await http.put(
+        Uri.parse('https://backendpint-5wnf.onrender.com/utilizadoresnotificacao/esconderNotificacao/$id'),
+        headers: {'x-access-token': 'Bearer $token'},
+      );
+        print('Response status: ${response.statusCode}');
+        print('Response body: ${response.body}');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print ('Response body: ${response.body}');
+        if (data['success']) {
+          setState(() {
+            notifications.removeWhere((notification) => notification['ID_NOTIFICACAO'] == id);
+          });
+          print('Notificação apagada com sucesso');
+        } else {
+          print('Falha ao apagar notificação: ${data['message']}');
+        }
+      } else {
+        print('Falha ao apagar notificação. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print(e);
+    }
   }
 
   void showDeleteConfirmationDialog(int id) {
@@ -123,22 +115,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
-//falta aqui a modificaçao para abrir a pagina de detalhes do evento ou recomendaçao
   void navigateToDetails(Map<String, dynamic> notification) {
     if (notification['ID_EVENTO'] != null) {
-      // Navigate to event details page
-    /*  Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => RecomendacaoView(eventId: notification['event_id'])),
-      );*/
+      // Navigator.push(
+      //   context,
+      //   MaterialPageRoute(builder: (context) => EventoView(eventId: notification['ID_EVENTO'])),
+      // );
     } else if (notification['ID_RECOMENDACAO'] != null) {
-      // Navigate to recommendation details page
-      /*Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => RecommendationDetailsPage(recommendationId: notification['recommendation_id'])),
-      );*/
-    } else {
-      print('Invalid notification data');
+      // Navigator.push(
+      //   context,
+      //   MaterialPageRoute(builder: (context) => RecomendacaoView(recommendationId: notification['ID_RECOMENDACAO'])),
+      // );
     }
   }
 
@@ -171,11 +158,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
             },
             child: NotificationCard(
               title: notification['NOTIFICACAO']['TITULO_NOTIFICACAO'],
-             // date: notification['DATA_NOTIFICACAO'],
+              date: (notification['NOTIFICACAO']['DATA_HORA_NOTIFICACAO']).toString(),
             ),
           );
         },
       ),
     );
-  }  
+  }
 }

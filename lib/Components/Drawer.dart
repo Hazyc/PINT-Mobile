@@ -24,7 +24,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
   String avatarUrl = ''; // User avatar URL
   String userName = ''; // User name
   String userEmail = ''; // User email
-  List<String> areasOfInterest = []; // Areas of interest fetched from API
+  List<Map<String, dynamic>> areasOfInterest = []; // Areas of interest fetched from API
 
   @override
   void initState() {
@@ -83,7 +83,10 @@ class _CustomDrawerState extends State<CustomDrawer> {
         final data = json.decode(response.body);
         if (data['success']) {
           setState(() {
-            areasOfInterest = List<String>.from(data['data'].map((area) => area['NOME_AREA']));
+            areasOfInterest = List<Map<String, dynamic>>.from(data['data'].map((area) => {
+              'NOME_AREA': area['NOME_AREA'],
+              'COR_AREA': area['COR_AREA']
+            }));
           });
         } else {
           _showError('Failed to load areas of interest: ${data['message']}');
@@ -127,6 +130,14 @@ class _CustomDrawerState extends State<CustomDrawer> {
         );
       },
     );
+  }
+
+  Color _parseColor(String hexColor) {
+    hexColor = hexColor.toUpperCase().replaceAll('#', '');
+    if (hexColor.length == 6) {
+      hexColor = 'FF' + hexColor; // Add alpha channel if not present
+    }
+    return Color(int.parse(hexColor, radix: 16));
   }
 
   @override
@@ -215,11 +226,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 } else {
                   return Column(
                     children: areasOfInterest.map((area) => ListTile(
-                      leading: Icon(Icons.star), // Suitable icon
-                      title: Text(area),
+                      leading: Icon(Icons.circle, color: _parseColor(area['COR_AREA'])),
+                      title: Text(area['NOME_AREA']),
                       onTap: () {
                         Navigator.pop(context); // Close the drawer
-                        widget.onAreaTap(area); // Call the callback function
+                        widget.onAreaTap(area['NOME_AREA']); // Call the callback function
                       },
                     )).toList(),
                   );

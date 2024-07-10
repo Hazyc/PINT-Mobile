@@ -4,7 +4,14 @@ import 'package:permission_handler/permission_handler.dart';
 import '../models/Evento.dart';
 import '../pages/MapPage.dart';
 import '../Components/geocoding_service.dart'; // Importa o serviço de geocodificação
-import '../Components/ComentariosPageEvento.dart';
+import 'package:intl/intl.dart';
+
+String formatarDataHora(String dateTime) {
+  DateTime parsedDateTime = DateTime.parse(dateTime);
+  DateFormat formatter = DateFormat('yyyy-MM-dd HH:mm');
+  return formatter.format(parsedDateTime);
+}
+
 
 class EventoView extends StatefulWidget {
   final Evento evento;
@@ -253,7 +260,7 @@ class _EventoViewState extends State<EventoView> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    widget.evento.dateTime,
+                    formatarDataHora(widget.evento.dateTime),
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                   SizedBox(height: 8),
@@ -325,23 +332,6 @@ class _EventoViewState extends State<EventoView> {
                           ),
                         ),
                         SizedBox(width: 16),
-                        CircleAvatar(
-                          backgroundColor: Color(0xFF0DCAF0),
-                          radius: 22,
-                          child: IconButton(
-                            icon: Icon(Icons.comment, color: Colors.white),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ComentariosPageEvento(
-                                      evento: widget.evento),
-                                ),
-                              );
-                            },
-                            iconSize: 22,
-                          ),
-                        ),
                       ],
                     ),
                   ),
