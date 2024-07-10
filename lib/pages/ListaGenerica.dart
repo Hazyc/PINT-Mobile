@@ -43,7 +43,8 @@ class _ListaGenericaState extends State<ListaGenerica> {
 
   Future<void> _fetchData() async {
     try {
-      final String? token = await tokenHandler.getToken(); // Obtenha o token de autenticação
+      final String? token =
+          await tokenHandler.getToken(); // Obtenha o token de autenticação
 
       if (token == null) {
         // Trate o caso em que o token não está disponível
@@ -67,61 +68,62 @@ class _ListaGenericaState extends State<ListaGenerica> {
   }
 
   Future<List<Recomendacao>> fetchRecomendacoes(String token) async {
-  final String baseUrl = 'http://localhost:7000';
-  final response = await http.get(
-    Uri.parse('$baseUrl/recomendacoes/listarRecomendacoesVisiveis'),
-    headers: {
-      'Authorization': 'Bearer $token',
-    },
-  );
+    final String baseUrl = 'https://backendpint-5wnf.onrender.com';
+    final response = await http.get(
+      Uri.parse('$baseUrl/recomendacoes/listarRecomendacoesVisiveis'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
-  if (response.statusCode == 200) {
-    final List<dynamic> data = jsonDecode(response.body)['data'];
-    List<Recomendacao> recomendacoes = [];
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body)['data'];
+      List<Recomendacao> recomendacoes = [];
 
-    // Iterar sobre os dados e buscar a média de avaliação para cada recomendação
-    for (var json in data) {
-      Recomendacao recomendacao = Recomendacao.fromJson(json);
-      try {
-        final mediaResponse = await http.get(
-          Uri.parse('$baseUrl/avaliacoes/mediaAvaliacaoporRecomendacao/${recomendacao.idRecomendacao}'),
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-        );
+      // Iterar sobre os dados e buscar a média de avaliação para cada recomendação
+      for (var json in data) {
+        Recomendacao recomendacao = Recomendacao.fromJson(json);
+        try {
+          final mediaResponse = await http.get(
+            Uri.parse(
+                '$baseUrl/avaliacoes/mediaAvaliacaoporRecomendacao/${recomendacao.idRecomendacao}'),
+            headers: {
+              'Authorization': 'Bearer $token',
+            },
+          );
 
-        if (mediaResponse.statusCode == 200) {
-          final mediaData = jsonDecode(mediaResponse.body)['data'];
-          double media1 = mediaData['media1'];
-          double media2 = mediaData['media2'];
-          double media3 = mediaData['media3'];
-          
-          // Calcular a média geral
-          double avaliacaoGeral = (media1 + media2 + media3) / 3;
-          avaliacaoGeral = double.parse(avaliacaoGeral.toStringAsFixed(1));
-          
-          // Atualizar o objeto Recomendacao
-          recomendacao.avaliacaoGeral = avaliacaoGeral;
-        } else {
-          throw Exception('Failed to fetch average rating');
+          if (mediaResponse.statusCode == 200) {
+            final mediaData = jsonDecode(mediaResponse.body)['data'];
+            double media1 = mediaData['media1'];
+            double media2 = mediaData['media2'];
+            double media3 = mediaData['media3'];
+
+            // Calcular a média geral
+            double avaliacaoGeral = (media1 + media2 + media3) / 3;
+            avaliacaoGeral = double.parse(avaliacaoGeral.toStringAsFixed(1));
+
+            // Atualizar o objeto Recomendacao
+            recomendacao.avaliacaoGeral = avaliacaoGeral;
+          } else {
+            throw Exception('Failed to fetch average rating');
+          }
+        } catch (error) {
+          print(
+              'Erro ao buscar média de avaliação para recomendação ${recomendacao.idRecomendacao}: $error');
+          // Tratar erro adequadamente (exibir snackbar, mensagem de erro, etc.)
         }
-      } catch (error) {
-        print('Erro ao buscar média de avaliação para recomendação ${recomendacao.idRecomendacao}: $error');
-        // Tratar erro adequadamente (exibir snackbar, mensagem de erro, etc.)
+
+        recomendacoes.add(recomendacao);
       }
 
-      recomendacoes.add(recomendacao);
+      return recomendacoes;
+    } else {
+      throw Exception('Failed to load recommendations');
     }
-
-    return recomendacoes;
-  } else {
-    throw Exception('Failed to load recommendations');
   }
-}
-
 
   Future<List<Evento>> fetchEventos(String token) async {
-    final String baseUrl = 'http://localhost:7000';
+    final String baseUrl = 'https://backendpint-5wnf.onrender.com';
     final response = await http.get(
       Uri.parse('$baseUrl/eventos/listarTodosVisiveis'),
       headers: {
@@ -138,7 +140,7 @@ class _ListaGenericaState extends State<ListaGenerica> {
   }
 
   Future<List<String>> fetchAreas(String token) async {
-    final String baseUrl = 'http://localhost:7000';
+    final String baseUrl = 'https://backendpint-5wnf.onrender.com';
     final response = await http.get(
       Uri.parse('$baseUrl/areas/listarareasativas'),
       headers: {
@@ -148,7 +150,10 @@ class _ListaGenericaState extends State<ListaGenerica> {
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body)['data'];
-      return ['Todos', ...data.map((area) => area['NOME_AREA'] as String).toList()];
+      return [
+        'Todos',
+        ...data.map((area) => area['NOME_AREA'] as String).toList()
+      ];
     } else {
       throw Exception('Failed to load areas');
     }
@@ -158,13 +163,13 @@ class _ListaGenericaState extends State<ListaGenerica> {
     List<dynamic> filteredList = [];
 
     if (showRecommendations) {
-      filteredList.addAll(recomendacoes.where((item) =>
-          selectedArea == 'Todos' || item.categoria == selectedArea));
+      filteredList.addAll(recomendacoes.where(
+          (item) => selectedArea == 'Todos' || item.categoria == selectedArea));
     }
 
     if (showEvents) {
-      filteredList.addAll(eventos.where((item) =>
-          selectedArea == 'Todos' || item.category == selectedArea));
+      filteredList.addAll(eventos.where(
+          (item) => selectedArea == 'Todos' || item.category == selectedArea));
     }
     return filteredList;
   }
@@ -226,7 +231,8 @@ class _ListaGenericaState extends State<ListaGenerica> {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => FormularioCriacaoEvento()),
+                  MaterialPageRoute(
+                      builder: (context) => FormularioCriacaoEvento()),
                 );
               },
             ),
@@ -280,10 +286,14 @@ class _ListaGenericaState extends State<ListaGenerica> {
                     });
                   },
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-                    margin: EdgeInsets.symmetric(horizontal: 5.0, vertical: 10.0),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                    margin:
+                        EdgeInsets.symmetric(horizontal: 5.0, vertical: 10.0),
                     decoration: BoxDecoration(
-                      color: selectedArea == areas[index] ? Color(0xFF0DCAF0) : Colors.white,
+                      color: selectedArea == areas[index]
+                          ? Color(0xFF0DCAF0)
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(20.0),
                       border: Border.all(color: Color(0xFF0DCAF0)),
                     ),
@@ -291,7 +301,9 @@ class _ListaGenericaState extends State<ListaGenerica> {
                       child: Text(
                         areas[index],
                         style: TextStyle(
-                          color: selectedArea == areas[index] ? Colors.white : Color(0xFF0DCAF0),
+                          color: selectedArea == areas[index]
+                              ? Colors.white
+                              : Color(0xFF0DCAF0),
                           fontSize: 18.0,
                         ),
                       ),
