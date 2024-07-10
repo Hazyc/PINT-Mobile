@@ -16,11 +16,10 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   TokenHandler tokenHandler = TokenHandler();
-  Map<String, List<dynamic>> messages =
-      {}; // Mapa para armazenar as mensagens da API
+  double ID_UTILIZADOR = 0;
+  Map<String, List<dynamic>> messages = {}; // Mapa para armazenar as mensagens da API
   final TextEditingController _controller = TextEditingController();
-  String currentUser =
-      ''; // Nome do usuário atual (será obtido na inicialização)
+  String currentUser = ''; // Nome do usuário atual (será obtido na inicialização)
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -52,6 +51,7 @@ class _ChatPageState extends State<ChatPage> {
       final userData = json.decode(userResponse.body)['data'];
       setState(() {
         currentUser = userData['NOME_UTILIZADOR'];
+        ID_UTILIZADOR = userData['ID_UTILIZADOR'].toDouble(); // Convertendo para double
       });
     } else {
       throw Exception('Failed to load user data');
@@ -83,7 +83,11 @@ class _ChatPageState extends State<ChatPage> {
       setState(() {
         messages = groupedMessages;
       });
-      _scrollToBottom();
+
+      // Após a construção do layout, rola para o final da lista
+      WidgetsBinding.instance?.addPostFrameCallback((_) {
+        _scrollToBottom();
+      });
     } else {
       throw Exception('Failed to load messages');
     }
@@ -112,7 +116,7 @@ class _ChatPageState extends State<ChatPage> {
         'Authorization': 'Bearer $token',
       },
       body: json.encode({
-        'ID_TOPICO': widget.subForumId,
+        'TOPICO': widget.title,
         'CONTEUDO_MENSAGEM': text,
       }),
     );
@@ -123,7 +127,9 @@ class _ChatPageState extends State<ChatPage> {
         messages.putIfAbsent(widget.title, () => []).add(messageData);
       });
       _controller.clear();
+      WidgetsBinding.instance?.addPostFrameCallback((_) {
       _scrollToBottom();
+    });
     } else {
       print('Failed to send message');
     }
