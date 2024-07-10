@@ -94,9 +94,9 @@ class _ListaGenericaState extends State<ListaGenerica> {
 
           if (mediaResponse.statusCode == 200) {
             final mediaData = jsonDecode(mediaResponse.body)['data'];
-            double media1 = mediaData['media1'];
-            double media2 = mediaData['media2'];
-            double media3 = mediaData['media3'];
+            double media1 = mediaData['media1'].toDouble();
+            double media2 = mediaData['media2'].toDouble();
+            double media3 = mediaData['media3'].toDouble();
 
             // Calcular a média geral
             double avaliacaoGeral = (media1 + media2 + media3) / 3;
@@ -112,10 +112,8 @@ class _ListaGenericaState extends State<ListaGenerica> {
               'Erro ao buscar média de avaliação para recomendação ${recomendacao.idRecomendacao}: $error');
           // Tratar erro adequadamente (exibir snackbar, mensagem de erro, etc.)
         }
-
         recomendacoes.add(recomendacao);
       }
-
       return recomendacoes;
     } else {
       throw Exception('Failed to load recommendations');

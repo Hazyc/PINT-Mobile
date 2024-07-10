@@ -8,6 +8,7 @@ import 'package:app_mobile/handlers/TokenHandler.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/Evento.dart';
+import './NotificacoesPage.dart';
 
 class HomePage extends StatefulWidget {
   final void Function(int) onItemTapped;
@@ -126,6 +127,16 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _navigateToNotifications(BuildContext context) {
+    // Implement the actual NotificationsPage navigation
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NotificationsPage(),
+      ),
+    );
+  }
+
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour >= 6 && hour < 12) {
@@ -176,6 +187,10 @@ class _HomePageState extends State<HomePage> {
                           icon: Icon(Icons.menu, size: 30, color: Colors.white),
                           onPressed: () => Scaffold.of(context).openDrawer(),
                         ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.notifications, size: 30, color: Colors.white),
+                        onPressed: () => _navigateToNotifications(context),
                       ),
                     ],
                   ),
