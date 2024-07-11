@@ -269,7 +269,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 TextButton(
                   onPressed: _showPublications,
                   child: Text(
-                    'Publicações',
+                    'Recomendações',
                     style: TextStyle(
                       fontSize: 16.0,
                       fontWeight: isPublicationsSelected
