@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:app_mobile/handlers/TokenHandler.dart';
@@ -21,11 +22,20 @@ class _ChatPageState extends State<ChatPage> {
   final TextEditingController _controller = TextEditingController();
   String currentUser = ''; // Nome do usuário atual (será obtido na inicialização)
   final ScrollController _scrollController = ScrollController();
+  Timer? _timer; // Timer para atualizar mensagens periodicamente
 
   @override
   void initState() {
     super.initState();
     fetchMessages();
+    // Inicializa o timer para atualizar mensagens a cada 3 segundos
+    _timer = Timer.periodic(Duration(seconds: 3), (Timer t) => fetchMessages());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // Cancela o timer ao sair da página
+    super.dispose();
   }
 
   // Função para buscar as mensagens da API
@@ -133,8 +143,8 @@ class _ChatPageState extends State<ChatPage> {
       });
       _controller.clear();
       WidgetsBinding.instance?.addPostFrameCallback((_) {
-      _scrollToBottom();
-    });
+        _scrollToBottom();
+      });
     } else {
       print('Failed to send message: ${response.body}');
     }

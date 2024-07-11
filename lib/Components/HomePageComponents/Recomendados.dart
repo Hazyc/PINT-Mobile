@@ -37,8 +37,14 @@ class _RecomendadosPageState extends State<RecomendadosPage> {
         return;
       }
 
-      List<Recomendacao> fetchedRecomendacoes = await fetchRecomendacoes(token);
-      List<Evento> fetchedEventos = await fetchEventos(token);
+      final userId = await _getUserId(token);
+      print('ID do utilizador: $userId'); // Depuração: verificar ID do utilizador
+
+      final areasDeInteresse = await fetchAreasDeInteresse(token, userId);
+      print('Áreas de interesse do utilizador: $areasDeInteresse'); // Depuração: verificar áreas de interesse
+
+      List<Recomendacao> fetchedRecomendacoes = await fetchRecomendacoes(token, areasDeInteresse);
+      List<Evento> fetchedEventos = await fetchEventos(token, areasDeInteresse);
       List<String> fetchedAreas = await fetchAreas(token);
 
       setState(() {
@@ -51,7 +57,39 @@ class _RecomendadosPageState extends State<RecomendadosPage> {
     }
   }
 
-  Future<List<Recomendacao>> fetchRecomendacoes(String token) async {
+  Future<String> _getUserId(String token) async {
+    final response = await http.get(
+      Uri.parse('https://backendpint-5wnf.onrender.com/utilizadores/getByToken'),
+      headers: {'x-access-token': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body)['data'];
+      print('Dados do utilizador obtidos pelo token: $data'); // Depuração: verificar dados do utilizador
+      return data['ID_UTILIZADOR'].toString();
+    } else {
+      print('Falha ao obter ID do utilizador');
+      throw Exception('Failed to get user ID');
+    }
+  }
+
+  Future<List<String>> fetchAreasDeInteresse(String token, String userId) async {
+    final String baseUrl = 'https://backendpint-5wnf.onrender.com';
+    final response = await http.get(
+      Uri.parse('$baseUrl/areasinteresse/listarPorUser/$userId'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body)['data'];
+      return data.map((area) => area['AREA']['NOME_AREA'] as String).toList();
+    } else {
+      print('Falha ao carregar áreas de interesse');
+      throw Exception('Failed to load user areas of interest');
+    }
+  }
+
+  Future<List<Recomendacao>> fetchRecomendacoes(String token, List<String> areasDeInteresse) async {
     final String baseUrl = 'https://backendpint-5wnf.onrender.com';
     final response = await http.get(
       Uri.parse('$baseUrl/recomendacoes/listarRecomendacoesVisiveis'),
@@ -64,38 +102,42 @@ class _RecomendadosPageState extends State<RecomendadosPage> {
 
       for (var json in data) {
         Recomendacao recomendacao = Recomendacao.fromJson(json);
-        try {
-          final mediaResponse = await http.get(
-            Uri.parse(
-                '$baseUrl/avaliacoes/mediaAvaliacaoporRecomendacao/${recomendacao.idRecomendacao}'),
-            headers: {'Authorization': 'Bearer $token'},
-          );
+        if (areasDeInteresse.contains(recomendacao.categoria)) {
+          try {
+            final mediaResponse = await http.get(
+              Uri.parse(
+                  '$baseUrl/avaliacoes/mediaAvaliacaoporRecomendacao/${recomendacao.idRecomendacao}'),
+              headers: {'Authorization': 'Bearer $token'},
+            );
 
-          if (mediaResponse.statusCode == 200) {
-            final mediaData = jsonDecode(mediaResponse.body)['data'];
-            double media1 = mediaData['media1'].toDouble();
-            double media2 = mediaData['media2'].toDouble();
-            double media3 = mediaData['media3'].toDouble();
+            if (mediaResponse.statusCode == 200) {
+              final mediaData = jsonDecode(mediaResponse.body)['data'];
+              double media1 = mediaData['media1'].toDouble();
+              double media2 = mediaData['media2'].toDouble();
+              double media3 = mediaData['media3'].toDouble();
 
-            double avaliacaoGeral = (media1 + media2 + media3) / 3;
-            avaliacaoGeral = double.parse(avaliacaoGeral.toStringAsFixed(1));
-            recomendacao.avaliacaoGeral = avaliacaoGeral;
-          } else {
-            throw Exception('Failed to fetch average rating');
+              double avaliacaoGeral = (media1 + media2 + media3) / 3;
+              avaliacaoGeral = double.parse(avaliacaoGeral.toStringAsFixed(1));
+              recomendacao.avaliacaoGeral = avaliacaoGeral;
+            } else {
+              throw Exception('Failed to fetch average rating');
+            }
+          } catch (error) {
+            print(
+                'Erro ao buscar média de avaliação para recomendação ${recomendacao.idRecomendacao}: $error');
           }
-        } catch (error) {
-          print(
-              'Erro ao buscar média de avaliação para recomendação ${recomendacao.idRecomendacao}: $error');
+          recomendacoes.add(recomendacao);
         }
-        recomendacoes.add(recomendacao);
       }
+      print('Recomendações filtradas: $recomendacoes'); // Depuração: verificar recomendações filtradas
       return recomendacoes;
     } else {
+      print('Falha ao carregar recomendações');
       throw Exception('Failed to load recommendations');
     }
   }
 
-  Future<List<Evento>> fetchEventos(String token) async {
+  Future<List<Evento>> fetchEventos(String token, List<String> areasDeInteresse) async {
     final String baseUrl = 'https://backendpint-5wnf.onrender.com';
     final response = await http.get(
       Uri.parse('$baseUrl/eventos/listarTodosVisiveis'),
@@ -104,8 +146,14 @@ class _RecomendadosPageState extends State<RecomendadosPage> {
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body)['data'];
-      return data.map((json) => Evento.fromJson(json)).toList();
+      List<Evento> eventos = data.map((json) => Evento.fromJson(json)).toList();
+      eventos = eventos.where((evento) {
+        return areasDeInteresse.contains(evento.category);
+      }).toList();
+      print('Eventos filtrados: $eventos'); // Depuração: verificar eventos filtrados
+      return eventos;
     } else {
+      print('Falha ao carregar eventos');
       throw Exception('Failed to load events');
     }
   }
@@ -124,6 +172,7 @@ class _RecomendadosPageState extends State<RecomendadosPage> {
         ...data.map((area) => area['NOME_AREA'] as String).toList()
       ];
     } else {
+      print('Falha ao carregar áreas');
       throw Exception('Failed to load areas');
     }
   }
