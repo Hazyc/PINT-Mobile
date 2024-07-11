@@ -1,52 +1,38 @@
-import 'package:app_mobile/Components/RecomendacaoComponents/FormularioCriacaoRecomendacao.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:app_mobile/Components/RecomendacaoComponents/RecomendacaoCard.dart';
-import 'package:app_mobile/Components/EventoComponents/EventoCard.dart';
-import 'package:app_mobile/models/Recomendacao.dart';
-import 'package:app_mobile/models/Evento.dart';
-import 'package:app_mobile/Components/EventoComponents/FormularioCriacaoEvento.dart';
-import 'package:app_mobile/Components/HomePageComponents/CriacaoRecomendacao.dart';
-import 'package:app_mobile/handlers/TokenHandler.dart';
+import '../../handlers/TokenHandler.dart';
+import '../../models/Evento.dart';
+import '../../models/Recomendacao.dart';
+import '../../Components/EventoComponents/EventoCard.dart';
+import '../../Components/RecomendacaoComponents/RecomendacaoCard.dart';
+import '../../pages/EventoView.dart'; // Import the event view page
 
-class ListaGenerica extends StatefulWidget {
-  final String initialSelectedArea;
-
-  ListaGenerica({this.initialSelectedArea = 'Todos'});
-
+class RecomendadosPage extends StatefulWidget {
   @override
-  _ListaGenericaState createState() => _ListaGenericaState();
+  _RecomendadosPageState createState() => _RecomendadosPageState();
 }
 
-class _ListaGenericaState extends State<ListaGenerica> {
-  List<String> areas = [];
-
-  String? selectedArea;
-
+class _RecomendadosPageState extends State<RecomendadosPage> {
+  TokenHandler tokenHandler = TokenHandler();
   List<Recomendacao> recomendacoes = [];
   List<Evento> eventos = [];
-
+  List<String> areas = [];
+  String? selectedArea;
   bool showRecommendations = true;
   bool showEvents = true;
-
-  TokenHandler tokenHandler = TokenHandler();
 
   @override
   void initState() {
     super.initState();
-    selectedArea = widget.initialSelectedArea;
-    // Carregar dados iniciais ao iniciar a tela
+    selectedArea = 'Todos';
     _fetchData();
   }
 
   Future<void> _fetchData() async {
     try {
-      final String? token =
-          await tokenHandler.getToken(); // Obtenha o token de autenticação
-
+      final String? token = await tokenHandler.getToken();
       if (token == null) {
-        // Trate o caso em que o token não está disponível
         print('Token não encontrado');
         return;
       }
@@ -61,7 +47,6 @@ class _ListaGenericaState extends State<ListaGenerica> {
         areas = fetchedAreas;
       });
     } catch (e) {
-      // Trate os erros de carregamento de dados, se necessário
       print('Erro ao carregar dados: $e');
     }
   }
@@ -70,25 +55,20 @@ class _ListaGenericaState extends State<ListaGenerica> {
     final String baseUrl = 'https://backendpint-5wnf.onrender.com';
     final response = await http.get(
       Uri.parse('$baseUrl/recomendacoes/listarRecomendacoesVisiveis'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Authorization': 'Bearer $token'},
     );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body)['data'];
       List<Recomendacao> recomendacoes = [];
 
-      // Iterar sobre os dados e buscar a média de avaliação para cada recomendação
       for (var json in data) {
         Recomendacao recomendacao = Recomendacao.fromJson(json);
         try {
           final mediaResponse = await http.get(
             Uri.parse(
                 '$baseUrl/avaliacoes/mediaAvaliacaoporRecomendacao/${recomendacao.idRecomendacao}'),
-            headers: {
-              'Authorization': 'Bearer $token',
-            },
+            headers: {'Authorization': 'Bearer $token'},
           );
 
           if (mediaResponse.statusCode == 200) {
@@ -97,11 +77,8 @@ class _ListaGenericaState extends State<ListaGenerica> {
             double media2 = mediaData['media2'].toDouble();
             double media3 = mediaData['media3'].toDouble();
 
-            // Calcular a média geral
             double avaliacaoGeral = (media1 + media2 + media3) / 3;
             avaliacaoGeral = double.parse(avaliacaoGeral.toStringAsFixed(1));
-
-            // Atualizar o objeto Recomendacao
             recomendacao.avaliacaoGeral = avaliacaoGeral;
           } else {
             throw Exception('Failed to fetch average rating');
@@ -109,7 +86,6 @@ class _ListaGenericaState extends State<ListaGenerica> {
         } catch (error) {
           print(
               'Erro ao buscar média de avaliação para recomendação ${recomendacao.idRecomendacao}: $error');
-          // Tratar erro adequadamente (exibir snackbar, mensagem de erro, etc.)
         }
         recomendacoes.add(recomendacao);
       }
@@ -123,9 +99,7 @@ class _ListaGenericaState extends State<ListaGenerica> {
     final String baseUrl = 'https://backendpint-5wnf.onrender.com';
     final response = await http.get(
       Uri.parse('$baseUrl/eventos/listarTodosVisiveis'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Authorization': 'Bearer $token'},
     );
 
     if (response.statusCode == 200) {
@@ -140,9 +114,7 @@ class _ListaGenericaState extends State<ListaGenerica> {
     final String baseUrl = 'https://backendpint-5wnf.onrender.com';
     final response = await http.get(
       Uri.parse('$baseUrl/areas/listarareasativas'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Authorization': 'Bearer $token'},
     );
 
     if (response.statusCode == 200) {
@@ -162,7 +134,6 @@ class _ListaGenericaState extends State<ListaGenerica> {
       filteredList.addAll(recomendacoes.where(
           (item) => selectedArea == 'Todos' || item.categoria == selectedArea));
     }
-
     if (showEvents) {
       filteredList.addAll(eventos.where(
           (item) => selectedArea == 'Todos' || item.category == selectedArea));
@@ -214,38 +185,10 @@ class _ListaGenericaState extends State<ListaGenerica> {
     );
   }
 
-  void _showCreateOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Wrap(
-          children: [
-            ListTile(
-              leading: Icon(Icons.event),
-              title: Text('Criar Evento'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => FormularioCriacaoEvento()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.recommend),
-              title: Text('Criar Recomendação'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ReviewPage()),
-                );
-              },
-            ),
-          ],
-        );
-      },
+  void _navigateToEventoView(BuildContext context, Evento evento) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => EventoView(evento: evento, onLike: () {})),
     );
   }
 
@@ -255,7 +198,7 @@ class _ListaGenericaState extends State<ListaGenerica> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
-          'Eventos/Recomendações',
+          'Poderá gostrar de...',
           style: TextStyle(color: Colors.white, fontSize: 24.0),
         ),
         backgroundColor: const Color(0xFF0DCAF0),
@@ -268,68 +211,20 @@ class _ListaGenericaState extends State<ListaGenerica> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Container(
-            height: 70,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: areas.length,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedArea = areas[index];
-                    });
-                  },
-                  child: Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-                    margin:
-                        EdgeInsets.symmetric(horizontal: 5.0, vertical: 10.0),
-                    decoration: BoxDecoration(
-                      color: selectedArea == areas[index]
-                          ? Color(0xFF0DCAF0)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(20.0),
-                      border: Border.all(color: Color(0xFF0DCAF0)),
-                    ),
-                    child: Center(
-                      child: Text(
-                        areas[index],
-                        style: TextStyle(
-                          color: selectedArea == areas[index]
-                              ? Colors.white
-                              : Color(0xFF0DCAF0),
-                          fontSize: 18.0,
-                        ),
-                      ),
-                    ),
+      body: ListView.builder(
+        itemCount: filteredItems.length,
+        itemBuilder: (context, index) {
+          final item = filteredItems[index];
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: item is Recomendacao
+                ? RecomendacaoCard(recomendacao: item)
+                : GestureDetector(
+                    onTap: () => _navigateToEventoView(context, item),
+                    child: EventoCard(evento: item),
                   ),
-                );
-              },
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: filteredItems.length,
-              itemBuilder: (context, index) {
-                final item = filteredItems[index];
-                return Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: item is Recomendacao
-                      ? RecomendacaoCard(recomendacao: item)
-                      : EventoCard(evento: item),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateOptions,
-        child: Icon(Icons.add),
-        backgroundColor: const Color(0xFF0DCAF0),
+          );
+        },
       ),
     );
   }

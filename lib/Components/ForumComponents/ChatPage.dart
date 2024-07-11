@@ -73,11 +73,16 @@ class _ChatPageState extends State<ChatPage> {
 
       // Itera sobre as mensagens e as agrupa pelo título do fórum
       messagesData.forEach((message) {
-        String forumTitle = message['TOPICO']['TITULO_TOPICO'];
-        if (!groupedMessages.containsKey(forumTitle)) {
-          groupedMessages[forumTitle] = [];
+        final topico = message['TOPICO'];
+        if (topico != null) {
+          String forumTitle = topico['TITULO_TOPICO'];
+          if (!groupedMessages.containsKey(forumTitle)) {
+            groupedMessages[forumTitle] = [];
+          }
+          groupedMessages[forumTitle]!.add(message);
+        } else {
+          print('Mensagem sem tópico: $message');
         }
-        groupedMessages[forumTitle]!.add(message);
       });
 
       setState(() {
@@ -131,7 +136,7 @@ class _ChatPageState extends State<ChatPage> {
       _scrollToBottom();
     });
     } else {
-      print('Failed to send message');
+      print('Failed to send message: ${response.body}');
     }
   }
 

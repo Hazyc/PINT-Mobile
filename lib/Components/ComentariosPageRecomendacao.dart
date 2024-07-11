@@ -40,10 +40,10 @@ class _ComentariosPageState extends State<ComentariosPage> {
       );
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
-      
+
       if (response.statusCode == 200) {
         setState(() {
-          userData = json.decode(response.body);
+          userData = json.decode(response.body)['data'];
         });
       } else {
         print('Failed to load user data. Status code: ${response.statusCode}');
@@ -105,9 +105,8 @@ class _ComentariosPageState extends State<ComentariosPage> {
             'x-access-token': 'Bearer $token',
           },
           body: json.encode({
-            'ID_RECOMENDACAO' : widget.id,
+            'ID_RECOMENDACAO': widget.id,
             'CONTEUDO_COMENTARIO': _commentController.text,
-            
           }),
         );
 
@@ -117,9 +116,11 @@ class _ComentariosPageState extends State<ComentariosPage> {
         if (response.statusCode == 200) {
           setState(() {
             comments.add({
-              'avatar': userData!['avatar'] ?? '', // Provide a default value
-              'username': userData!['UTILIZADOR']['NOME_UTILIZADOR'] ?? '', // Provide a default value
-              'comment': _commentController.text,
+              'UTILIZADOR': {
+                'Perfil': {'NOME_IMAGEM': userData!['Perfil']['NOME_IMAGEM'] ?? ''},
+                'NOME_UTILIZADOR': userData!['NOME_UTILIZADOR'] ?? ''
+              },
+              'COMENTARIO': {'CONTEUDO_COMENTARIO': _commentController.text},
             });
             _commentController.clear();
           });
@@ -187,10 +188,10 @@ class _ComentariosPageState extends State<ComentariosPage> {
                         },
                         child: ListTile(
                           leading: CircleAvatar(
-                            backgroundImage: NetworkImage(comment['avatar'] ?? ''), 
+                            backgroundImage: NetworkImage(comment['UTILIZADOR']?['Perfil']?['NOME_IMAGEM'] ?? ''),
                           ),
-                          title: Text(comment['UTILIZADOR']['NOME_UTILIZADOR'] ?? ''), 
-                          subtitle: Text(comment['COMENTARIO']['CONTEUDO_COMENTARIO'] ?? ''), 
+                          title: Text(comment['UTILIZADOR']?['NOME_UTILIZADOR'] ?? ''),
+                          subtitle: Text(comment['COMENTARIO']?['CONTEUDO_COMENTARIO'] ?? ''),
                         ),
                       );
                     },

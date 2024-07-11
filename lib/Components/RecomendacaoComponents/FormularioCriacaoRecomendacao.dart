@@ -16,6 +16,7 @@ class ReviewPage extends StatefulWidget {
 class _ReviewPageState extends State<ReviewPage> {
   final TextEditingController _commentController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController(); // Controlador para a morada
   Map<String, List<String>> areaParameters = {};
   double _serviceRating = 0;
   double _cleanlinessRating = 0;
@@ -40,20 +41,21 @@ class _ReviewPageState extends State<ReviewPage> {
     final String? token = await tokenHandler.getToken();
 
     if (token == null) {
-      // Trate o caso em que o token não está disponível
       print('Token não encontrado');
       return;
     }
+
     final areasResponse = await http.get(
-      Uri.parse(
-          'https://backendpint-5wnf.onrender.com/areas/listarareasativas'),
+      Uri.parse('https://backendpint-5wnf.onrender.com/areas/listarareasativas'),
       headers: {
         'Authorization': 'Bearer $token',
       },
     );
+
     if (areasResponse.statusCode == 200) {
       final List<dynamic> areasData = jsonDecode(areasResponse.body)['data'];
       Map<String, List<String>> tempAreaParameters = {};
+
       for (var area in areasData) {
         final areaName = area['NOME_AREA'];
         final areaId = area['ID_AREA'];
@@ -65,15 +67,14 @@ class _ReviewPageState extends State<ReviewPage> {
         tempAreaParameters[areaName] = parameters;
 
         final subareasResponse = await http.get(
-          Uri.parse(
-              'https://backendpint-5wnf.onrender.com/subareas/listarPorAreaAtivos/$areaId'),
+          Uri.parse('https://backendpint-5wnf.onrender.com/subareas/listarPorAreaAtivos/$areaId'),
           headers: {
             'Authorization': 'Bearer $token',
           },
         );
+
         if (subareasResponse.statusCode == 200) {
-          final List<dynamic> subareasData =
-              jsonDecode(subareasResponse.body)['data'];
+          final List<dynamic> subareasData = jsonDecode(subareasResponse.body)['data'];
           List<String> subareaNames = subareasData
               .map((subarea) => subarea['NOME_SUBAREA'].toString())
               .toList();
@@ -106,7 +107,6 @@ class _ReviewPageState extends State<ReviewPage> {
         _images = pickedFiles.map((pickedFile) => pickedFile.path).toList();
       });
 
-      // Log the image paths
       for (var path in _images) {
         print('Picked image: $path');
       }
@@ -133,8 +133,7 @@ class _ReviewPageState extends State<ReviewPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text('Confirmar remoção'),
           content: Text('Tem certeza de que deseja remover esta imagem?'),
           actions: [
@@ -170,6 +169,16 @@ class _ReviewPageState extends State<ReviewPage> {
       return;
     }
 
+    if (_addressController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Por favor, adicione a morada.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (_commentController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -183,8 +192,7 @@ class _ReviewPageState extends State<ReviewPage> {
     if (_serviceRating == 0 || _cleanlinessRating == 0 || _valueRating == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              Text('Por favor, adicione uma avaliação para todos os aspectos.'),
+          content: Text('Por favor, adicione uma avaliação para todos os aspectos.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -209,7 +217,6 @@ class _ReviewPageState extends State<ReviewPage> {
 
       String? imageId;
 
-      // Upload do banner se existir
       if (_bannerImage != null) {
         var uploadRequest = http.MultipartRequest(
           'POST',
@@ -243,10 +250,9 @@ class _ReviewPageState extends State<ReviewPage> {
           'ID_IMAGEM': imageId,
           'CIDADE': 'Viseu',
           'NOME_SUBAREA': _selectedSubarea ?? '',
-          'TITULO_RECOMENDACAO':
-              _locationController.text, // Corrigido para TITULO_RECOMENDACAO
-          'DESCRICAO_RECOMENDACAO':
-              _commentController.text, // Corrigido para DESCRICAO_RECOMENDACAO
+          'TITULO_RECOMENDACAO': _locationController.text,
+          'DESCRICAO_RECOMENDACAO': _commentController.text,
+          'MORADA_RECOMENDACAO': _addressController.text, // Adicionando a morada
         }),
       );
 
@@ -254,7 +260,6 @@ class _ReviewPageState extends State<ReviewPage> {
         var recomendacaoData = jsonDecode(response.body)['data'];
         var idRecomendacao = recomendacaoData['ID_RECOMENDACAO'];
 
-        // 2. Criar a avaliação
         final avaliacaoResponse = await http.post(
           Uri.parse('https://backendpint-5wnf.onrender.com/avaliacoes/create'),
           headers: {
@@ -272,32 +277,6 @@ class _ReviewPageState extends State<ReviewPage> {
         if (avaliacaoResponse.statusCode != 200) {
           throw Exception('Failed to create evaluation');
         }
-
-        // Envio das outras imagens para /imagens/create
-        /*for (int i = 0; i < _images.length; i++) {
-        File imageFile = File(_images[i]);
-        if (imageFile.existsSync()) {
-          var requestImage = http.MultipartRequest(
-            'POST',
-            Uri.parse('https://backendpint-5wnf.onrender.com/imagens/create'),
-          );
-          requestImage.headers['Authorization'] = 'Bearer $token';
-          requestImage.fields['ID_ALBUM'] = idAlbum.toString();
-          requestImage.fields['ID_CIDADE'] = idCidade.toString();
-          requestImage.files.add(await http.MultipartFile.fromPath(
-            'images',
-            _images[i],
-          ));
-
-          final responseImage = await requestImage.send();
-
-          if (responseImage.statusCode != 200) {
-            throw Exception('Failed to upload image $i');
-          }
-        } else {
-          print('File does not exist: ${_images[i]}');
-        }
-      }*/
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -346,6 +325,7 @@ class _ReviewPageState extends State<ReviewPage> {
   void dispose() {
     _commentController.dispose();
     _locationController.dispose();
+    _addressController.dispose(); // Dispose do controlador da morada
     super.dispose();
   }
 
@@ -359,7 +339,7 @@ class _ReviewPageState extends State<ReviewPage> {
           'Criação da Recomendação',
           style: TextStyle(
             fontSize: 24,
-            color: Colors.white, // Define a cor do título como branco
+            color: Colors.white,
           ),
         ),
         leading: IconButton(
@@ -414,6 +394,13 @@ class _ReviewPageState extends State<ReviewPage> {
                             maxLines: 5,
                           ),
                           SizedBox(height: 16.0),
+                          _buildTitle('Morada'), // Adicionando o campo de morada
+                          SizedBox(height: 8.0),
+                          _buildTextField(
+                            hintText: 'Digite a morada aqui...',
+                            controller: _addressController,
+                          ),
+                          SizedBox(height: 16.0),
                           _buildTitle('Área'),
                           SizedBox(height: 8.0),
                           _buildTagSelector(),
@@ -429,12 +416,6 @@ class _ReviewPageState extends State<ReviewPage> {
                             SizedBox(height: 8.0),
                             _buildRatingBarSection(),
                           ],
-                          /*SizedBox(height: 16.0),
-                          _buildTitle('Adicionar Fotos'),
-                          SizedBox(height: 8.0),
-                          _buildPhotoButtons(),
-                          SizedBox(height: 20),
-                          _buildImageGrid(),*/
                           SizedBox(height: 30),
                           Container(
                             margin: EdgeInsets.only(bottom: 20.0),
@@ -491,8 +472,7 @@ class _ReviewPageState extends State<ReviewPage> {
           ),
           filled: true,
           fillColor: Colors.grey[200],
-          contentPadding:
-              EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+          contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
         ),
       ),
     );
@@ -514,8 +494,7 @@ class _ReviewPageState extends State<ReviewPage> {
                 ? Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.add_a_photo,
-                          size: 30, color: Colors.grey[600]),
+                      Icon(Icons.add_a_photo, size: 30, color: Colors.grey[600]),
                       SizedBox(height: 8),
                       Text(label),
                     ],

@@ -145,7 +145,7 @@ class _EventoViewState extends State<EventoView> {
       MaterialPageRoute(
         builder: (context) => ChatPageEvento(
           title: widget.evento.eventName,
-          subForumId: widget.evento.id.toString(),
+          eventoId: widget.evento.id.toString(),
         ),
       ),
     );

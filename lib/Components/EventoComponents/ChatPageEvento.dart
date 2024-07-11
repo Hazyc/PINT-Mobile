@@ -6,9 +6,9 @@ import 'package:intl/intl.dart';
 
 class ChatPageEvento extends StatefulWidget {
   final String title;
-  final String subForumId;
+  final String eventoId;
 
-  ChatPageEvento({required this.title, required this.subForumId});
+  ChatPageEvento({required this.title, required this.eventoId});
 
   @override
   _ChatPageState createState() => _ChatPageState();
@@ -17,7 +17,7 @@ class ChatPageEvento extends StatefulWidget {
 class _ChatPageState extends State<ChatPageEvento> {
   TokenHandler tokenHandler = TokenHandler();
   double ID_UTILIZADOR = 0;
-  Map<String, List<dynamic>> messages = {}; // Mapa para armazenar as mensagens da API
+  List<dynamic> messages = []; // Lista para armazenar as mensagens da API
   final TextEditingController _controller = TextEditingController();
   String currentUser = ''; // Nome do usuário atual (será obtido na inicialização)
   final ScrollController _scrollController = ScrollController();
@@ -25,13 +25,14 @@ class _ChatPageState extends State<ChatPageEvento> {
   @override
   void initState() {
     super.initState();
+    // Imprimir o ID do evento recebido
+    print('ID do evento recebido: ${widget.eventoId}');
     fetchMessages();
   }
 
   // Função para buscar as mensagens da API
   Future<void> fetchMessages() async {
-    final String? token =
-        await tokenHandler.getToken(); // Obtenha o token de autenticação
+    final String? token = await tokenHandler.getToken(); // Obtenha o token de autenticação
 
     if (token == null) {
       // Trate o caso em que o token não está disponível
@@ -41,11 +42,10 @@ class _ChatPageState extends State<ChatPageEvento> {
 
     // Obtenha o usuário atual usando o token
     final userResponse = await http.get(
-        Uri.parse(
-            'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        });
+      Uri.parse('https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      });
 
     if (userResponse.statusCode == 200) {
       final userData = json.decode(userResponse.body)['data'];
@@ -59,29 +59,23 @@ class _ChatPageState extends State<ChatPageEvento> {
 
     // Obtenha as mensagens visíveis usando o token
     final messagesResponse = await http.get(
-        Uri.parse(
-            'https://backendpint-5wnf.onrender.com/mensagens/listarvisiveis'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        });
+      Uri.parse('https://backendpint-5wnf.onrender.com/mensagens/listarvisiveis?ID_EVENTO=${widget.eventoId}'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      });
 
     if (messagesResponse.statusCode == 200) {
       final messagesData = json.decode(messagesResponse.body)['data'];
+      print('Mensagens recebidas da API: $messagesData');
 
-      // Organize as mensagens por título de fórum
-      Map<String, List<dynamic>> groupedMessages = {};
+      // Filtrar mensagens pelo ID do evento
+      final filteredMessages = messagesData.where((message) => message['ID_EVENTO'] == int.parse(widget.eventoId)).toList();
 
-      // Itera sobre as mensagens e as agrupa pelo título do fórum
-      messagesData.forEach((message) {
-        String forumTitle = message['TOPICO']['TITULO_TOPICO'];
-        if (!groupedMessages.containsKey(forumTitle)) {
-          groupedMessages[forumTitle] = [];
-        }
-        groupedMessages[forumTitle]!.add(message);
-      });
+      print('Mensagens filtradas para o evento ${widget.eventoId}: $filteredMessages');
 
+      // Atualize o estado com as mensagens filtradas
       setState(() {
-        messages = groupedMessages;
+        messages = filteredMessages;
       });
 
       // Após a construção do layout, rola para o final da lista
@@ -100,8 +94,7 @@ class _ChatPageState extends State<ChatPageEvento> {
   }
 
   Future<void> _sendMessage(String text) async {
-    final String? token =
-        await tokenHandler.getToken(); // Obtenha o token de autenticação
+    final String? token = await tokenHandler.getToken(); // Obtenha o token de autenticação
 
     if (token == null) {
       // Trate o caso em que o token não está disponível
@@ -116,22 +109,25 @@ class _ChatPageState extends State<ChatPageEvento> {
         'Authorization': 'Bearer $token',
       },
       body: json.encode({
-        'TOPICO': widget.title,
         'CONTEUDO_MENSAGEM': text,
+        'ID_EVENTO': int.parse(widget.eventoId), // Adicionando o ID do evento ao envio da mensagem
       }),
     );
+
+    print('Status code da resposta: ${response.statusCode}');
+    print('Resposta da API: ${response.body}');
 
     if (response.statusCode == 200) {
       final messageData = json.decode(response.body)['data'];
       setState(() {
-        messages.putIfAbsent(widget.title, () => []).add(messageData);
+        messages.add(messageData);
       });
       _controller.clear();
       WidgetsBinding.instance?.addPostFrameCallback((_) {
-      _scrollToBottom();
-    });
+        _scrollToBottom();
+      });
     } else {
-      print('Failed to send message');
+      print('Failed to send message: ${response.body}');
     }
   }
 
@@ -145,8 +141,7 @@ class _ChatPageState extends State<ChatPageEvento> {
 
   Widget _buildMessage(Map<String, dynamic> message) {
     final isCurrentUser = message['Criador']['NOME_UTILIZADOR'] == currentUser;
-    final alignment =
-        isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final alignment = isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start;
     final color = isCurrentUser ? Colors.blue[100] : Colors.grey[200];
     final avatarRadius = 20.0;
 
@@ -154,13 +149,11 @@ class _ChatPageState extends State<ChatPageEvento> {
       crossAxisAlignment: alignment,
       children: [
         Row(
-          mainAxisAlignment:
-              isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+          mainAxisAlignment: isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
           children: [
             if (!isCurrentUser)
               CircleAvatar(
-                backgroundImage:
-                    NetworkImage(message['Criador']['Perfil']['NOME_IMAGEM']),
+                backgroundImage: NetworkImage(message['Criador']['Perfil']['NOME_IMAGEM']),
                 radius: avatarRadius,
               ),
             SizedBox(width: 10),
@@ -195,8 +188,7 @@ class _ChatPageState extends State<ChatPageEvento> {
             SizedBox(width: 10),
             if (isCurrentUser)
               CircleAvatar(
-                backgroundImage:
-                    NetworkImage(message['Criador']['Perfil']['NOME_IMAGEM']),
+                backgroundImage: NetworkImage(message['Criador']['Perfil']['NOME_IMAGEM']),
                 radius: avatarRadius,
               ),
           ],
@@ -222,11 +214,9 @@ class _ChatPageState extends State<ChatPageEvento> {
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
-              itemCount: messages.containsKey(widget.title)
-                  ? messages[widget.title]!.length
-                  : 0,
+              itemCount: messages.length,
               itemBuilder: (context, index) {
-                final message = messages[widget.title]![index];
+                final message = messages[index];
                 return _buildMessage(message);
               },
             ),

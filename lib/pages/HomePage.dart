@@ -9,6 +9,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/Evento.dart';
 import './NotificacoesPage.dart';
+import '../Components/HomePageComponents/Recomendados.dart';
+import './EventoView.dart'; // Import the event view page
 
 class HomePage extends StatefulWidget {
   final void Function(int) onItemTapped;
@@ -81,7 +83,6 @@ class _HomePageState extends State<HomePage> {
     if (response.statusCode == 200) {
       setState(() {
         eventos = data.map((json) => Evento.fromJson(json)).toList();
-        ;
       });
     } else {
       throw Exception('Failed to load events');
@@ -134,6 +135,22 @@ class _HomePageState extends State<HomePage> {
       MaterialPageRoute(
         builder: (context) => NotificationsPage(),
       ),
+    );
+  }
+
+  void _navigateToRecomendados(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RecomendadosPage(),
+      ),
+    );
+  }
+
+  void _navigateToEventoView(BuildContext context, Evento evento) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => EventoView(evento: evento, onLike: () {})),
     );
   }
 
@@ -279,91 +296,93 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 20.0),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                "Eventos Recomendados",
-                style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 10.0),
-            Container(
-              height: 150.0,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    Container(
-                      width: 100.0,
-                      color: Colors.red,
-                    ),
-                    Container(
-                      width: 100.0,
-                      color: Colors.blue,
-                    ),
-                    Container(
-                      width: 100.0,
-                      color: Colors.green,
-                    ),
-                    Container(
-                      width: 100.0,
-                      color: Colors.yellow,
-                    ),
-                    Container(
-                      width: 100.0,
-                      color: Colors.orange,
-                    ),
-                    Container(
-                      width: 100.0,
-                      color: Colors.purple,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 20.0),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                "Novos Locais",
-                style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Poderá gostar de...",
+                    style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      _navigateToRecomendados(context);
+                    },
+                    child: Text(
+                      'Ver Todos',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 10.0),
             Container(
               height: 150.0,
-              child: SingleChildScrollView(
+              child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    Container(
-                      width: 100.0,
-                      color: Colors.red,
+                itemCount: eventos.length,
+                itemBuilder: (context, index) {
+                  var evento = eventos[index];
+                  return Padding(
+                    padding: EdgeInsets.only(
+                        left: index == 0 ? 16.0 : 8.0, right: 8.0),
+                    child: GestureDetector(
+                      onTap: () => _navigateToEventoView(context, evento),
+                      child: Container(
+                        width: 200.0,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10.0),
+                          gradient: LinearGradient(
+                            colors: [Colors.white, Colors.grey.shade200],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          border: Border.all(
+                            color: Colors.grey.shade300,
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(10.0),
+                                topRight: Radius.circular(10.0),
+                              ),
+                              child: Image.network(
+                                evento.bannerImage,
+                                height: 100.0,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                evento.eventName,
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    Container(
-                      width: 100.0,
-                      color: Colors.blue,
-                    ),
-                    Container(
-                      width: 100.0,
-                      color: Colors.green,
-                    ),
-                    Container(
-                      width: 100.0,
-                      color: Colors.yellow,
-                    ),
-                    Container(
-                      width: 100.0,
-                      color: Colors.orange,
-                    ),
-                    Container(
-                      width: 100.0,
-                      color: Colors.purple,
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
+            const SizedBox(height: 30.0),
           ],
         ),
       ),

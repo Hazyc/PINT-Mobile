@@ -60,9 +60,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
         },
       );
 
+
       if (tokenResponse.statusCode == 200) {
         final userData = json.decode(tokenResponse.body)['data'];
         int userId = userData['ID_UTILIZADOR'];
+        if(_bannerID == 0)
+        {
+          _bannerID = userData['ID_IMAGEM_BANNER'].toDouble();
+          }
+          if(_avatarID == 0)
+          {
+            _avatarID = userData['ID_IMAGEM_PERFIL'].toDouble();
+            }
 
         final response = await http.put(
           Uri.parse(
@@ -94,90 +103,101 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<Map<String, dynamic>> _uploadImage(
-      double idImagem, String filePath, String type) async {
-    try {
-      final url = idImagem != 0
-          ? Uri.parse(
-              'https://backendpint-5wnf.onrender.com/imagem/update/$idImagem')
-          : Uri.parse('https://backendpint-5wnf.onrender.com/imagem/upload');
-
-      var request = http.MultipartRequest('POST', url)
-        ..files.add(await http.MultipartFile.fromPath('file', filePath));
-
-      var response = await request.send();
-
-      if (response.statusCode == 200) {
-        var responseData = await http.Response.fromStream(response);
-        var jsonResponse = json.decode(responseData.body);
-        return jsonResponse['data'];
-      } else {
-        print('Falha ao fazer upload da imagem: ${response.statusCode}');
-        return {};
-      }
-    } catch (e) {
-      print('Erro ao fazer upload da imagem: $e');
+  double idImagem, String filePath, String type) async {
+  try {
+    final String? token = await tokenHandler.getToken();
+    if (token == null) {
+      print('Token não encontrado');
       return {};
     }
+
+    // Construção da URL baseada no valor de idImagem
+    final url = idImagem != 0
+        ? 'https://backendpint-5wnf.onrender.com/imagens/update/$idImagem'
+        : 'https://backendpint-5wnf.onrender.com/imagens/upload';
+
+    var request = http.MultipartRequest('POST', Uri.parse(url));
+    request.headers['Authorization'] = 'Bearer $token'; // Adiciona o cabeçalho de autorização
+
+    // Adiciona o arquivo ao request
+    request.files.add(await http.MultipartFile.fromPath('imagem', filePath));
+
+    // Envia a requisição
+    var response = await request.send();
+
+    if (response.statusCode == 200) {
+      var responseData = await http.Response.fromStream(response);
+      var jsonResponse = json.decode(responseData.body);
+      return jsonResponse['data'];
+    } else {
+      print('Falha ao fazer upload da imagem: ${response.statusCode}');
+      return {};
+    }
+  } catch (e) {
+    print('Erro ao fazer upload da imagem: $e');
+    return {};
   }
+}
+
 
   Future<void> _pickImage(ImageSource source, bool isBanner) async {
-    try {
-      final String? token = await tokenHandler.getToken();
-      if (token == null) {
-        print('Token não encontrado');
-        return;
-      }
+  try {
+    final String? token = await tokenHandler.getToken();
+    if (token == null) {
+      print('Token não encontrado');
+      return;
+    }
 
-      final tokenResponse = await http.get(
-        Uri.parse(
-            'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
+    final tokenResponse = await http.get(
+      Uri.parse(
+          'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
 
-      if (tokenResponse.statusCode == 200) {
-        final userData = json.decode(tokenResponse.body)['data'];
-        double idImagem = isBanner
-            ? userData['ID_IMAGEM_BANNER'] ?? 0
-            : userData['ID_IMAGEM_PERFIL'] ?? 0;
-        final pickedFile = await ImagePicker().pickImage(source: source);
+    if (tokenResponse.statusCode == 200) {
+      final userData = json.decode(tokenResponse.body)['data'];
+      int idImagem = isBanner
+          ? userData['ID_IMAGEM_BANNER'] ?? 0
+          : userData['ID_IMAGEM_PERFIL'] ?? 0;
+      final pickedFile = await ImagePicker().pickImage(source: source);
+      if (pickedFile != null) {
+        Map<String, dynamic> imageResponse = {};
 
-        if (pickedFile != null) {
-          Map<String, dynamic> imageResponse = {};
-
-          if (idImagem == 0) {
-            // Não existe ID de imagem, faz upload
-            imageResponse = await _uploadImage(
-                0, pickedFile.path, isBanner ? 'banner' : 'perfil');
-          } else {
-            // Existe ID de imagem, faz update
-            imageResponse = await _uploadImage(
-                idImagem, pickedFile.path, isBanner ? 'banner' : 'perfil');
-          }
-
-          if (imageResponse.isNotEmpty) {
-            setState(() {
-              if (isBanner) {
-                _bannerImageUrl = imageResponse['NOME_IMAGEM'];
-                _bannerID = imageResponse['ID_IMAGEM'];
-              } else {
-                _avatarImageUrl = imageResponse['NOME_IMAGEM'];
-                _avatarID = imageResponse['ID_IMAGEM'];
-              }
-            });
-          }
+        if (idImagem == 0 || idImagem == 8 || idImagem == 9) {
+          // Não existe ID de imagem, faz upload
+          imageResponse = await _uploadImage(
+              0, pickedFile.path, isBanner ? 'banner' : 'perfil');
         } else {
-          print("Nenhuma imagem selecionada.");
+          // Existe ID de imagem, faz update
+          imageResponse = await _uploadImage(
+              idImagem.toDouble(), pickedFile.path, isBanner ? 'banner' : 'perfil');
+        }
+
+        if (imageResponse.isNotEmpty) {
+          setState(() {
+            if (isBanner) {
+              _bannerImageUrl = imageResponse['NOME_IMAGEM'];
+              _bannerID = imageResponse['ID_IMAGEM'].toDouble();
+            } else {
+              _avatarImageUrl = imageResponse['NOME_IMAGEM'];
+              _avatarID = imageResponse['ID_IMAGEM'].toDouble();
+            }
+          });
         }
       } else {
-        print(
-            'Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
+        print("Nenhuma imagem selecionada.");
       }
-    } catch (e) {
-      print("Erro ao pegar imagem: $e");
+    } else {
+      print(
+          'Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
     }
+  } catch (e) {
+    print("Erro ao pegar imagem: $e");
   }
+}
+
 
   void _showImageSourceDialog(bool isBanner) {
     showDialog(
