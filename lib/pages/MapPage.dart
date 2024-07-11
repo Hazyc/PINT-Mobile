@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class MapPage extends StatefulWidget {
   final LatLng? targetLocation;
@@ -15,24 +17,24 @@ class _MapPageState extends State<MapPage> {
   GoogleMapController? _controller;
   Position? _currentPosition;
   LatLng? _initialPosition;
+  List<Marker> _markers = [];
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
+    _fetchLocations();
   }
 
   void _getCurrentLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // Verifica se os serviços de localização estão habilitados
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       return Future.error('Os serviços de localização estão desativados.');
     }
 
-    // Verifica se a permissão de localização foi concedida
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -42,28 +44,60 @@ class _MapPageState extends State<MapPage> {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      return Future.error(
-          'Permissão de localização foi negada permanentemente.');
+      return Future.error('Permissão de localização foi negada permanentemente.');
     }
 
-    // Obtém a posição atual do dispositivo
     _currentPosition = await Geolocator.getCurrentPosition();
 
     setState(() {
-      // Atualiza a posição inicial para a localização atual
-      _initialPosition =
-          LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
+      _initialPosition = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
     });
+  }
 
-    if (widget.targetLocation != null) {
-      _moveToLocation(widget.targetLocation!);
+  Future<void> _fetchLocations() async {
+    try {
+      final recomendacaoResponse = await http.get(Uri.parse('https://backendpint-5wnf.onrender.com/recomendacoes/moradas'));
+      final eventoResponse = await http.get(Uri.parse('https://backendpint-5wnf.onrender.com/eventos/moradas'));
+
+      if (recomendacaoResponse.statusCode == 200 && eventoResponse.statusCode == 200) {
+        List<dynamic> recomendacaoData = json.decode(recomendacaoResponse.body)['data'];
+        List<dynamic> eventoData = json.decode(eventoResponse.body)['data'];
+
+        setState(() {
+          _markers = [
+            ...recomendacaoData.map((location) {
+              return Marker(
+                markerId: MarkerId('recomendacao_${location['id']}'),
+                position: LatLng(location['latitude'], location['longitude']),
+                infoWindow: InfoWindow(
+                  title: location['title'],
+                  onTap: () => _openMapsApp(location['latitude'], location['longitude']),
+                ),
+              );
+            }).toList(),
+            ...eventoData.map((location) {
+              return Marker(
+                markerId: MarkerId('evento_${location['id']}'),
+                position: LatLng(location['latitude'], location['longitude']),
+                infoWindow: InfoWindow(
+                  title: location['title'],
+                  onTap: () => _openMapsApp(location['latitude'], location['longitude']),
+                ),
+              );
+            }).toList(),
+          ];
+        });
+      } else {
+        print('Failed to load locations');
+      }
+    } catch (e) {
+      print('Error fetching locations: $e');
     }
   }
 
-  void _moveToLocation(LatLng location) {
-    _controller?.animateCamera(
-      CameraUpdate.newLatLng(location),
-    );
+  void _openMapsApp(double latitude, double longitude) {
+    final url = 'https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude';
+    // Use a library like url_launcher to open this URL
   }
 
   @override
@@ -85,16 +119,15 @@ class _MapPageState extends State<MapPage> {
                 target: widget.targetLocation ?? _initialPosition!,
                 zoom: 14.0,
               ),
+              markers: Set<Marker>.of(_markers),
               myLocationEnabled: true,
               myLocationButtonEnabled: true,
               onMapCreated: (controller) {
                 _controller = controller;
-                // Move a câmera para a localização atual assim que o mapa for criado
                 if (_currentPosition != null && widget.targetLocation == null) {
                   _controller?.animateCamera(
                     CameraUpdate.newLatLng(
-                      LatLng(_currentPosition!.latitude,
-                          _currentPosition!.longitude),
+                      LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
                     ),
                   );
                 }

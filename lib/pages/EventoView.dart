@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../models/Evento.dart';
 import '../pages/MapPage.dart';
 import '../Components/geocoding_service.dart'; // Importa o serviço de geocodificação
 import 'package:intl/intl.dart';
 import '../Components/EventoComponents/ChatPageEvento.dart';
+import '../handlers/TokenHandler.dart';
 
 String formatarDataHora(String dateTime) {
   DateTime parsedDateTime = DateTime.parse(dateTime);
   DateFormat formatter = DateFormat('yyyy-MM-dd HH:mm');
   return formatter.format(parsedDateTime);
 }
-
 
 class EventoView extends StatefulWidget {
   final Evento evento;
@@ -27,6 +29,94 @@ class EventoView extends StatefulWidget {
 class _EventoViewState extends State<EventoView> {
   bool isRegistered = false;
   bool isFavorite = false; // Estado para controlar a cor do ícone de favorito
+  late bool canRegister;
+
+  @override
+  void initState() {
+    super.initState();
+    _requestPermission(Permission.storage);
+    DateTime eventDateTime = DateTime.parse(widget.evento.dateTime);
+    canRegister = eventDateTime.isAfter(DateTime.now());
+    _checkRegistrationStatus();
+  }
+
+  Future<void> _checkRegistrationStatus() async {
+    final token = await TokenHandler().getToken();
+    final response = await http.get(
+      Uri.parse('https://backendpint-5wnf.onrender.com/listaparticipantes/checkinscricao/${widget.evento.id}'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    print(response.body);
+    print(response.statusCode);
+    if (response.statusCode == 200) {
+      final body = json.decode(response.body);
+      if (body['success']) {
+        setState(() {
+          isRegistered = body['isRegistered'];
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Falha ao verificar inscrição')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro na comunicação com o servidor')),
+      );
+    }
+  }
+
+  Future<void> _registerForEvent() async {
+    final token = await TokenHandler().getToken();
+    final response = await http.post(
+      Uri.parse('https://backendpint-5wnf.onrender.com/listaparticipantes/entrarEvento/${widget.evento.id}'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    print(response.body);
+    print(response.statusCode);
+    if (response.statusCode == 200) {
+      final body = json.decode(response.body);
+      if (body['success']) {
+        setState(() {
+          isRegistered = true;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(body['message'])),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro na comunicação com o servidor')),
+      );
+    }
+  }
+
+  Future<void> _unregisterFromEvent() async {
+    final token = await TokenHandler().getToken();
+    final response = await http.delete(
+      Uri.parse('https://backendpint-5wnf.onrender.com/listaparticipantes/sairEvento/${widget.evento.id}'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+     print(response.body);
+     print(response.statusCode);
+    if (response.statusCode == 200) {
+      final body = json.decode(response.body);
+      if (body['success']) {
+        setState(() {
+          isRegistered = false;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(body['message'])),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro na comunicação com o servidor')),
+      );
+    }
+  }
 
   void _handleRegistration() {
     if (isRegistered) {
@@ -43,10 +133,8 @@ class _EventoViewState extends State<EventoView> {
               child: Text('Cancelar'),
             ),
             TextButton(
-              onPressed: () {
-                setState(() {
-                  isRegistered = false;
-                });
+              onPressed: () async {
+                await _unregisterFromEvent();
                 Navigator.of(context).pop();
               },
               child: Text('Desinscrever'),
@@ -68,10 +156,8 @@ class _EventoViewState extends State<EventoView> {
               child: Text('Cancelar'),
             ),
             TextButton(
-              onPressed: () {
-                setState(() {
-                  isRegistered = true;
-                });
+              onPressed: () async {
+                await _registerForEvent();
                 Navigator.of(context).pop();
               },
               child: Text('Inscrever'),
@@ -131,12 +217,6 @@ class _EventoViewState extends State<EventoView> {
       var result = await permission.request();
       return result == PermissionStatus.granted;
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _requestPermission(Permission.storage);
   }
 
   void _navigateToChatPage() {
@@ -321,7 +401,7 @@ class _EventoViewState extends State<EventoView> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         ElevatedButton(
-                          onPressed: _handleRegistration,
+                          onPressed: canRegister ? _handleRegistration : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isRegistered
                                 ? Colors.green
@@ -337,10 +417,10 @@ class _EventoViewState extends State<EventoView> {
                           backgroundColor: Color(0xFF0DCAF0),
                           radius: 22,
                           child: IconButton(
-                              icon: Icon(Icons.forum, color: Colors.white),
+                            icon: Icon(Icons.forum, color: Colors.white),
                             onPressed: _navigateToChatPage,
-                          iconSize: 22,
-                    ),
+                            iconSize: 22,
+                          ),
                         ),
                         SizedBox(width: 16),
                       ],
