@@ -5,6 +5,7 @@ import '../models/Evento.dart';
 import '../pages/MapPage.dart';
 import '../Components/geocoding_service.dart'; // Importa o serviço de geocodificação
 import 'package:intl/intl.dart';
+import '../Components/EventoComponents/ChatPageEvento.dart';
 
 String formatarDataHora(String dateTime) {
   DateTime parsedDateTime = DateTime.parse(dateTime);
@@ -136,6 +137,18 @@ class _EventoViewState extends State<EventoView> {
   void initState() {
     super.initState();
     _requestPermission(Permission.storage);
+  }
+
+  void _navigateToChatPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatPageEvento(
+          title: widget.evento.eventName,
+          subForumId: widget.evento.id.toString(),
+        ),
+      ),
+    );
   }
 
   @override
@@ -324,12 +337,10 @@ class _EventoViewState extends State<EventoView> {
                           backgroundColor: Color(0xFF0DCAF0),
                           radius: 22,
                           child: IconButton(
-                            icon: Icon(Icons.forum, color: Colors.white),
-                            onPressed: () {
-                              // Redirecionar para o fórum da recomendação
-                            },
-                            iconSize: 22,
-                          ),
+                              icon: Icon(Icons.forum, color: Colors.white),
+                            onPressed: _navigateToChatPage,
+                          iconSize: 22,
+                    ),
                         ),
                         SizedBox(width: 16),
                       ],

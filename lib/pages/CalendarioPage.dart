@@ -61,8 +61,9 @@ class _CalendarioPageState extends State<CalendarioPage> {
 Widget build(BuildContext context) {
   return Scaffold(
     appBar: AppBar(
-      title: Text('Calendário de Eventos'),
+      title: Text('Calendário de Eventos', style: TextStyle(color: Colors.white, fontSize: 24.0)),
       backgroundColor: const Color(0xFF0DCAF0),
+      iconTheme: IconThemeData(color: Colors.white),
     ),
     body: Column(
       children: [

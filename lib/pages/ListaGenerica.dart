@@ -261,6 +261,7 @@ class _ListaGenericaState extends State<ListaGenerica> {
         ),
         backgroundColor: const Color(0xFF0DCAF0),
         centerTitle: true,
+        iconTheme: IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list),
