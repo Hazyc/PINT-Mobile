@@ -51,7 +51,7 @@ class _LoginPageState extends State<LoginPage> {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
 
-        if (responseData['token']) {
+        if (responseData['token'] != null) {
           TokenHandler().saveToken(responseData['token']);
           Navigator.pushReplacementNamed(context, '/home'); 
         } else {
@@ -70,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
         print('Erro na comunicaçao com o backend');
       }
     } catch (error) {
-      print(error);
+      print('Erro ao fazer login com Google: $error');
     }
   }
 
@@ -100,7 +100,7 @@ class _LoginPageState extends State<LoginPage> {
         if (response.statusCode == 200) {
           final responseData = jsonDecode(response.body);
 
-          if (responseData['token']) {
+          if (responseData['token'] != null) {
             TokenHandler().saveToken(responseData['token']);
             Navigator.pushReplacementNamed(context, '/home');
           } else {

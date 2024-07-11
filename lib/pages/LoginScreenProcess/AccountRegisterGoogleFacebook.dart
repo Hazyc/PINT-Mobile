@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:http/http.dart' as http;
 import '../LoginScreen.dart';
+import 'dart:convert';
 
 class AccountRegisterGoogleFacebook extends StatefulWidget {
   final String email;
@@ -20,6 +22,34 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
   File? _avatarImage;
   final ImagePicker _picker = ImagePicker();
   String? selectedCity;
+  List<String> cidades = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarCidades();
+  }
+
+  Future<void> _carregarCidades() async {
+    try {
+      const String url = 'https://backendpint-5wnf.onrender.com/cidades/list';
+
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body)['data'];
+        List<String> listaCidades = data.map((cidade) => cidade['NOME_CIDADE'].toString()).toList();
+
+        setState(() {
+          cidades = listaCidades;
+        });
+      } else {
+        throw Exception('Erro ao carregar cidades: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Erro ao carregar cidades: $e');
+    }
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final pickedFile = await _picker.pickImage(source: source);
@@ -47,7 +77,7 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
               ),
               ListTile(
                 leading: Icon(Icons.photo_camera),
-                title: Text('CÃ¢mera'),
+                title: Text('Câmera'),
                 onTap: () {
                   _pickImage(ImageSource.camera);
                   Navigator.of(context).pop();
@@ -131,11 +161,10 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
             selectedCity = newValue;
           });
         },
-        items: <String>['Cidade 1', 'Cidade 2', 'Cidade 3', 'Cidade 4']
-            .map<DropdownMenuItem<String>>((String value) {
+        items: cidades.map((cidade) {
           return DropdownMenuItem<String>(
-            value: value,
-            child: Text(value),
+            value: cidade,
+            child: Text(cidade),
           );
         }).toList(),
         decoration: InputDecoration(
@@ -149,6 +178,54 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
         ),
       ),
     );
+  }
+
+  Future<void> _atualizarUsuario() async {
+    final String nome = nameController.text.trim();
+    final String senha = passwordController.text.trim();
+    final String confirmarSenha = confirmPasswordController.text.trim();
+
+    if (senha != confirmarSenha) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('As senhas não coincidem.'),
+        backgroundColor: Colors.red,
+      ));
+      return;
+    }
+
+    try {
+      final String url = 'https://backendpint-5wnf.onrender.com/utilizadores/updatemobile';
+      final response = await http.put(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'NOME_UTILIZADOR': nome,
+          'EMAIL_UTILIZADOR': widget.email,
+          'CIDADE': selectedCity,
+          'PASSWORD_UTILIZADOR': senha,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        if (responseData['success']) {
+          _navigateToContaCriadaPage();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Erro: ${responseData['message']}'),
+            backgroundColor: Colors.red,
+          ));
+        }
+      } else {
+        throw Exception('Erro ao atualizar utilizador: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Erro ao atualizar utilizador: $e');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Erro ao atualizar utilizador. Tente novamente mais tarde.'),
+        backgroundColor: Colors.red,
+      ));
+    }
   }
 
   @override
@@ -250,7 +327,7 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
                   SizedBox(height: 32.0),
                   Center(
                     child: ElevatedButton(
-                      onPressed: _navigateToContaCriadaPage,
+                      onPressed: _atualizarUsuario,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),

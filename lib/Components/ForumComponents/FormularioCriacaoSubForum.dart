@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import '../../handlers/TokenHandler.dart';
+import 'dart:convert';
 
 class FormularioCriacaoSubForum extends StatefulWidget {
   final String category;
@@ -20,15 +23,55 @@ class _FormularioCriacaoSubForumState extends State<FormularioCriacaoSubForum> {
   File? _image;
   String? _subarea;
 
-  final Map<String, List<String>> categoriesWithSubareas = {
-    'Alojamento': ['Casas', 'Apartamentos', 'Hostel'],
-    'Desporto': ['Ginásio', 'Campo de Futebol', 'Piscina'],
-    'Formação': ['Curso', 'Workshop', 'Palestra'],
-    'Gastronomia': ['Restaurante', 'Café', 'Bar'],
-    'Lazer': ['Parque', 'Cinema', 'Museu'],
-    'Saúde': ['Hospital', 'Clínica', 'Veterinário'],
-    'Transportes': ['Ônibus', 'Táxi', 'Metrô'],
-  };
+  Map<String, List<String>> categoriesWithSubareas = {};
+  bool isLoadingSubareas = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategoriesAndSubareas();
+  }
+
+  Future<void> _fetchCategoriesAndSubareas() async {
+    TokenHandler tokenHandler = TokenHandler();
+    final String? token = await tokenHandler.getToken();
+
+    if (token == null) {
+      // Handle the case where the token is not available
+      print('Token não encontrado');
+      return;
+    }
+
+    final response = await http.get(
+      Uri.parse('https://backendpint-5wnf.onrender.com/areas/listarareasativas'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> areas = json.decode(response.body)['data'];
+      for (var area in areas) {
+        final subResponse = await http.get(
+          Uri.parse('https://backendpint-5wnf.onrender.com/subareas/listarPorAreaAtivos/${area['ID_AREA']}'),
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        );
+        if (subResponse.statusCode == 200) {
+          List<dynamic> subareas = json.decode(subResponse.body)['data'];
+          List<String> subareaNames = subareas
+              .map((subarea) => subarea['NOME_SUBAREA'] as String)
+              .toList();
+          setState(() {
+            categoriesWithSubareas[area['NOME_AREA']] = subareaNames;
+          });
+        }
+      }
+    } else {
+      print('Erro ao buscar categorias');
+    }
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
@@ -40,19 +83,141 @@ class _FormularioCriacaoSubForumState extends State<FormularioCriacaoSubForum> {
     }
   }
 
-  void _saveForm() {
+  Future<int?> _uploadImage(File imageFile) async {
+  TokenHandler tokenHandler = TokenHandler();
+  final String? token = await tokenHandler.getToken();
+
+  if (token == null) {
+    // Handle the case where the token is not available
+    print('Token não encontrado');
+    return null; // Retornando null em caso de falha na obtenção do token
+  }
+
+  try {
+    final url = Uri.parse('https://backendpint-5wnf.onrender.com/imagens/upload');
+    final request = http.MultipartRequest('POST', url);
+
+    request.files.add(await http.MultipartFile.fromPath('imagem', imageFile.path));
+    request.headers.addAll({
+      'Authorization': 'Bearer $token',
+    });
+
+    final response = await request.send();
+    if (response.statusCode == 200) {
+      final decodedResponse = json.decode(await response.stream.bytesToString());
+      return decodedResponse['data']['ID_IMAGEM']; // Assumindo que o ID_IMAGEM é retornado na resposta
+    } else {
+      print('Erro ao fazer upload da imagem: ${response.statusCode}');
+      print(await response.stream.bytesToString()); // Imprime o corpo da resposta para diagnóstico
+      return null;
+    }
+  } catch (e) {
+    print('Erro ao fazer upload da imagem: $e');
+    return null;
+  }
+}
+
+
+  void _saveForm() async {
+    TokenHandler tokenHandler = TokenHandler();
+    final String? token = await tokenHandler.getToken();
+
+    if (token == null) {
+      // Handle the case where the token is not available
+      print('Token não encontrado');
+      return;
+    }
+
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+      if (_subForumName.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Por favor, adicione o nome do tópico.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (_subarea == null || _subarea!.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Por favor, adicione uma subárea.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (_description.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Por favor, adicione uma descrição do tópico.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      int? imageId;
+      if (_image != null) {
+        imageId = await _uploadImage(_image!);
+        if (imageId == null) {
+          // Trate o erro de upload de imagem conforme necessário
+          return;
+        }
+      }
+
+      // Obter a data e hora atual
+      DateTime dataCriacao = DateTime.now();
+
       final newSubForum = {
-        'nome': _subForumName,
-        'imagem': _image != null ? _image!.path : 'assets/default_image.png',
-        'subarea': _subarea,
-        'dataCriacao': DateFormat('dd/MM/yyyy HH:mm').format(_dateTime!),
-        'descricao': _description,
+        'TITULO_TOPICO': _subForumName,
+        'ID_IMAGEM': imageId,
+        'SUBAREA': _subarea ?? '', // Usando um valor padrão se _subarea for nulo
+        'DESCRICAO_TOPICO': _description,
       };
-      Navigator.of(context).pop(newSubForum);
+
+      final response = await http.post(
+        Uri.parse('https://backendpint-5wnf.onrender.com/topicos/create'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token'
+        },
+        body: json.encode(newSubForum),
+      );
+
+    
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body)['data'];
+
+
+
+        // Montar o objeto responseSubForum com os dados da resposta
+        final responseSubForum = {
+          'TITULO_TOPICO': responseData['TITULO_TOPICO'] ?? '', // Adicione um valor padrão se 'TITULO_TOPICO' for nulo
+          'IMAGEM': responseData['IMAGEM']['NOME_IMAGEM'] ?? imageId, // Utilize imageId se 'ID_IMAGEM' não estiver presente na resposta
+          'SUBAREA': _subarea ?? '', // Usando um valor padrão se _subarea for nulo
+          'DESCRICAO_TOPICO': responseData['DESCRICAO_TOPICO'] ?? '', // Usando um valor padrão se _description for nulo
+          'DATA_CRIACAO_TOPICO': responseData['DATA_CRIACAO_TOPICO'] ?? DateTime.now(), // Usando DateTime.now() como valor padrão se dataCriacao for nulo
+        };
+
+        Navigator.of(context).pop(responseSubForum);
+      } else {
+        print('Erro ao criar o tópico: ${response.statusCode}');
+        // Trate o erro de criação do tópico conforme necessário
+      }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -128,6 +293,17 @@ class _FormularioCriacaoSubForumState extends State<FormularioCriacaoSubForum> {
                           _buildTitle('Sub-Área'),
                           SizedBox(height: 8.0),
                           _buildSubareaDropdown(widget.category),
+                          SizedBox(height: 16.0),
+                          _buildTitle('Descrição'),
+                          SizedBox(height: 8.0),
+                          _buildTextField(
+                            hintText: 'Insira a descrição do sub-fórum',
+                            onSaved: (value) => _description = value!,
+                            validator: (value) => value == null || value.isEmpty
+                                ? 'Por favor insira a descrição do sub-fórum.'
+                                : null,
+                            maxLines: 5,
+                          ),
                           SizedBox(height: 16.0),
                           Container(
                             margin: EdgeInsets.only(bottom: 20.0),
@@ -251,23 +427,25 @@ class _FormularioCriacaoSubForumState extends State<FormularioCriacaoSubForum> {
         color: Colors.grey[200],
         borderRadius: BorderRadius.circular(10),
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          hint: Text('Selecione uma sub-área'),
-          value: _subarea,
-          items: categoriesWithSubareas[category]!.map((subarea) {
-            return DropdownMenuItem<String>(
-              value: subarea,
-              child: Text(subarea),
-            );
-          }).toList(),
-          onChanged: (newValue) {
-            setState(() {
-              _subarea = newValue;
-            });
-          },
-        ),
-      ),
+      child: isLoadingSubareas
+          ? Center(child: CircularProgressIndicator())
+          : DropdownButtonHideUnderline(
+              child: DropdownButton<String?>(
+                hint: Text('Selecione uma sub-área'),
+                value: _subarea,
+                items: categoriesWithSubareas[category]?.map((subarea) {
+                  return DropdownMenuItem<String?>(
+                    value: subarea,
+                    child: Text(subarea),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    _subarea = newValue;
+                  });
+                },
+              ),
+            ),
     );
   }
 }

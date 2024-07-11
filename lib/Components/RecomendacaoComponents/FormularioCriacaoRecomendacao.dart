@@ -260,7 +260,6 @@ class _ReviewPageState extends State<ReviewPage> {
       },
       body: jsonEncode(<String, dynamic>{
         'ID_IMAGEM': imageId,
-        'CIDADE': 'Viseu',
         'NOME_SUBAREA': _selectedSubarea ?? '',
         'TITULO_RECOMENDACAO': _locationController.text,
         'DESCRICAO_RECOMENDACAO': _commentController.text,

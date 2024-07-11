@@ -66,14 +66,14 @@ class _ProfilePageState extends State<ProfilePage> {
       if (tokenResponse.statusCode == 200) {
         final userData = json.decode(tokenResponse.body)['data'];
         setState(() {
-          userName = userData['NOME_UTILIZADOR'];
-          userDescription = userData['DESCRICAO_UTILIZADOR'];
-          userEmail = userData['EMAIL_UTILIZADOR'];
-          userContact = userData['CONTACTO_UTILIZADOR'];
-          userCity = userData['CIDADE']['NOME_CIDADE'];
-          userAvatarUrl = userData['Perfil']['NOME_IMAGEM'];
-          userBannerUrl = userData['Banner']['NOME_IMAGEM'];
-        });
+        userName = userData['NOME_UTILIZADOR'] ?? ''; // Usando ?? para lidar com null
+        userDescription = userData['DESCRICAO_UTILIZADOR'] ?? ''; // Usando ?? para lidar com null
+        userEmail = userData['EMAIL_UTILIZADOR'] ?? ''; // Usando ?? para lidar com null
+        userContact = userData['CONTACTO_UTILIZADOR'] ?? ''; // Usando ?? para lidar com null
+        userCity = userData['CIDADE']?['NOME_CIDADE'] ?? ''; // Verificando se 'CIDADE' não é null antes de acessar 'NOME_CIDADE'
+        userAvatarUrl = userData['Perfil']?['NOME_IMAGEM'] ?? ''; // Verificando se 'Perfil' não é null antes de acessar 'NOME_IMAGEM'
+        userBannerUrl = userData['Banner']?['NOME_IMAGEM'] ?? ''; // Verificando se 'Banner' não é null antes de acessar 'NOME_IMAGEM'
+      });
       } else {
         print('Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
       }
