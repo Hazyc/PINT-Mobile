@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
 import 'dart:io';
 import '../LoginScreen.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 
 class AccountRegister extends StatefulWidget {
   @override
@@ -13,9 +15,35 @@ class _AccountRegister extends State<AccountRegister> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController cargoController = TextEditingController();
+  final TextEditingController moradaController = TextEditingController();
   File? _avatarImage;
   final ImagePicker _picker = ImagePicker();
-  String? selectedCity;
+  Map<String, String>? selectedCity;
+  List<Map<String, String>> cities = [];
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCities();
+  }
+
+  Future<void> _fetchCities() async {
+    final response = await http.get(Uri.parse('https://backendpint-5wnf.onrender.com/cidades/list'));
+    if (response.statusCode == 200) {
+      final List<dynamic> cityList = json.decode(response.body)['data'];
+      setState(() {
+        cities = cityList.map((data) => {
+          'ID_CIDADE': data['ID_CIDADE'].toString(),
+          'NOME_CIDADE': data['NOME_CIDADE'].toString(),
+        }).toList();
+      });
+    } else {
+      // Handle error
+      print('Falha ao buscar cidades');
+    }
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final pickedFile = await _picker.pickImage(source: source);
@@ -54,6 +82,79 @@ class _AccountRegister extends State<AccountRegister> {
         );
       },
     );
+  }
+
+  void _registerUser() async {
+    final String? cidadeNome = selectedCity?['NOME_CIDADE'];
+    final String nome = nameController.text;
+    final String email = emailController.text;
+    final String password = passwordController.text;
+    final String confirmPassword = confirmPasswordController.text;
+    final String cargo = cargoController.text;
+    final String morada = moradaController.text;
+
+    if (_avatarImage == null) {
+      setState(() {
+        errorMessage = "Por favor, selecione uma imagem.";
+      });
+      return;
+    }
+
+    if (cidadeNome == null || cidadeNome.isEmpty) {
+      setState(() {
+        errorMessage = "Por favor, selecione uma cidade.";
+      });
+      return;
+    }
+
+    if (password != confirmPassword) {
+      setState(() {
+        errorMessage = "As senhas não coincidem";
+      });
+      return;
+    }
+
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://backendpint-5wnf.onrender.com/utilizadores/register'),
+      );
+      request.fields['NOME_UTILIZADOR'] = nome;
+      request.fields['EMAIL_UTILIZADOR'] = email;
+      request.fields['PASSWORD_UTILIZADOR'] = password;
+      request.fields['CARGO_UTILIZADOR'] = cargo;
+      request.fields['MORADA_UTILIZADOR'] = morada;
+      request.fields['CIDADE'] = cidadeNome;
+
+      if (_avatarImage != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath('IMAGEM_PERFIL', _avatarImage!.path),
+        );
+      }
+
+      var response = await request.send();
+
+      if (response.statusCode == 201) {
+        final responseData = await response.stream.bytesToString();
+        final jsonResponse = json.decode(responseData);
+
+        if (jsonResponse['success'] == true) {
+          _navigateToContaCriadaPage();
+        } else {
+          setState(() {
+            errorMessage = "Erro ao registrar usuário: ${jsonResponse['message']}";
+          });
+        }
+      } else {
+        setState(() {
+          errorMessage = "Erro ao registrar usuário: ${response.reasonPhrase}";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = "Erro ao registrar usuário: $e";
+      });
+    }
   }
 
   void _navigateToContaCriadaPage() {
@@ -119,19 +220,18 @@ class _AccountRegister extends State<AccountRegister> {
   Widget _buildCityDropdown() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25.0),
-      child: DropdownButtonFormField<String>(
+      child: DropdownButtonFormField<Map<String, String>>(
         value: selectedCity,
         hint: Text('Escolha a sua cidade'),
-        onChanged: (String? newValue) {
+        onChanged: (Map<String, String>? newValue) {
           setState(() {
             selectedCity = newValue;
           });
         },
-        items: <String>['Cidade 1', 'Cidade 2', 'Cidade 3', 'Cidade 4']
-            .map<DropdownMenuItem<String>>((String value) {
-          return DropdownMenuItem<String>(
-            value: value,
-            child: Text(value),
+        items: cities.map<DropdownMenuItem<Map<String, String>>>((Map<String, String> city) {
+          return DropdownMenuItem<Map<String, String>>(
+            value: city,
+            child: Text(city['NOME_CIDADE']!),
           );
         }).toList(),
         decoration: InputDecoration(
@@ -243,13 +343,36 @@ class _AccountRegister extends State<AccountRegister> {
                     obscureText: true,
                   ),
                   SizedBox(height: 16.0),
+                  _buildTitle('Cargo'),
+                  SizedBox(height: 8.0),
+                  _buildTextField(
+                    hintText: 'Insira o seu cargo',
+                    controller: cargoController,
+                  ),
+                  SizedBox(height: 16.0),
+                  _buildTitle('Morada'),
+                  SizedBox(height: 8.0),
+                  _buildTextField(
+                    hintText: 'Insira a sua morada',
+                    controller: moradaController,
+                  ),
+                  SizedBox(height: 16.0),
                   _buildTitle('Cidade'),
                   SizedBox(height: 8.0),
                   _buildCityDropdown(),
+                  if (errorMessage != null)
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10.0),
+                      child: Chip(
+                        label: Text(errorMessage!),
+                        backgroundColor: Colors.redAccent,
+                        labelStyle: TextStyle(color: Colors.white),
+                      ),
+                    ),
                   SizedBox(height: 32.0),
                   Center(
                     child: ElevatedButton(
-                      onPressed: _navigateToContaCriadaPage,
+                      onPressed: _registerUser,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),

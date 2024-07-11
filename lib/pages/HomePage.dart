@@ -11,6 +11,8 @@ import '../models/Evento.dart';
 import './NotificacoesPage.dart';
 import '../Components/HomePageComponents/Recomendados.dart';
 import './EventoView.dart'; // Import the event view page
+import './RecomendacaoView.dart';
+import '../models/Recomendacao.dart';
 
 class HomePage extends StatefulWidget {
   final void Function(int) onItemTapped;
@@ -24,6 +26,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   TokenHandler tokenHandler = TokenHandler();
   List<Evento> eventos = [];
+  List<Evento> eventos2 = [];
+  List<Recomendacao> recomendacoes = [];
   String nomeUser = ''; // Campo para armazenar o nome do usuário
   List<dynamic> categorias = [];
 
@@ -32,7 +36,33 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     fetchData();
     fetchArea();
-    fetchEventos();
+    fetchEventos();  
+    fetchEventosAreaInteresse();
+    fetchRecomendacoesAreaInteresse();
+  }
+
+  Future<void> fetchEventos() async {
+    final String? token = await tokenHandler.getToken();
+
+    if (token == null) {
+      print('Token não encontrado');
+      return;
+    }
+    final String baseUrl = 'https://backendpint-5wnf.onrender.com';
+    final response = await http.get(
+      Uri.parse('$baseUrl/eventos/listarTodosVisiveis'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+    final List<dynamic> data = jsonDecode(response.body)['data'];
+    if (response.statusCode == 200) {
+      setState(() {
+        eventos2 = data.map((json) => Evento.fromJson(json)).toList();
+      });
+    } else {
+      throw Exception('Failed to load events');
+    }
   }
 
   Future<void> fetchData() async {
@@ -65,13 +95,71 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> fetchEventos() async {
+  Future<String> _getUserId(String token) async {
+    final response = await http.get(
+      Uri.parse(
+          'https://backendpint-5wnf.onrender.com/utilizadores/getByToken'),
+      headers: {'x-access-token': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body)['data'];
+      return data['ID_UTILIZADOR'].toString();
+    } else {
+      throw Exception('Failed to get user ID');
+    }
+  }
+
+  Future<void> fetchRecomendacoesAreaInteresse() async {
     final String? token = await tokenHandler.getToken();
 
     if (token == null) {
       print('Token não encontrado');
       return;
     }
+
+    final String userId = await _getUserId(token);
+    final List<String> areasDeInteresse =
+        await fetchAreasDeInteresse(token, userId);
+
+    final String baseUrl = 'https://backendpint-5wnf.onrender.com';
+    final response = await http.get(
+      Uri.parse('$baseUrl/recomendacoes/listarRecomendacoesVisiveis'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body)['data'];
+      print(
+          'Dados recebidos: $data'); // Adicione este print para verificar os dados recebidos
+      setState(() {
+        recomendacoes = data
+            .map((json) => Recomendacao.fromJson(json))
+            .where((recomendacao) {
+          return areasDeInteresse.contains(recomendacao.categoria);
+        }).toList();
+      });
+      print(
+          'Recomendações processadas: $recomendacoes'); // Adicione este print para verificar as recomendações processadas
+    } else {
+      throw Exception('Failed to load recommendations');
+    }
+  }
+
+  Future<void> fetchEventosAreaInteresse() async {
+    final String? token = await tokenHandler.getToken();
+
+    if (token == null) {
+      print('Token não encontrado');
+      return;
+    }
+
+    final String userId = await _getUserId(token);
+    final List<String> areasDeInteresse =
+        await fetchAreasDeInteresse(token, userId);
+
     final String baseUrl = 'https://backendpint-5wnf.onrender.com';
     final response = await http.get(
       Uri.parse('$baseUrl/eventos/listarTodosVisiveis'),
@@ -79,13 +167,32 @@ class _HomePageState extends State<HomePage> {
         'Authorization': 'Bearer $token',
       },
     );
-    final List<dynamic> data = jsonDecode(response.body)['data'];
+
     if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body)['data'];
       setState(() {
-        eventos = data.map((json) => Evento.fromJson(json)).toList();
+        eventos = data.map((json) => Evento.fromJson(json)).where((evento) {
+          return areasDeInteresse.contains(evento.category);
+        }).toList();
       });
     } else {
       throw Exception('Failed to load events');
+    }
+  }
+
+  Future<List<String>> fetchAreasDeInteresse(
+      String token, String userId) async {
+    final String baseUrl = 'https://backendpint-5wnf.onrender.com';
+    final response = await http.get(
+      Uri.parse('$baseUrl/areasinteresse/listarPorUser/$userId'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body)['data'];
+      return data.map((area) => area['AREA']['NOME_AREA'] as String).toList();
+    } else {
+      throw Exception('Failed to load user areas of interest');
     }
   }
 
@@ -119,6 +226,14 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  List<dynamic> _combineLists(
+      List<Evento> eventos, List<Recomendacao> recomendacoes) {
+    List<dynamic> combinedList = [];
+    combinedList.addAll(eventos);
+    combinedList.addAll(recomendacoes);
+    return combinedList;
+  }
+
   void _navigateToListaGenerica(BuildContext context, String area) {
     Navigator.push(
       context,
@@ -150,7 +265,18 @@ class _HomePageState extends State<HomePage> {
   void _navigateToEventoView(BuildContext context, Evento evento) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => EventoView(evento: evento, onLike: () {})),
+      MaterialPageRoute(
+          builder: (context) => EventoView(evento: evento, onLike: () {})),
+    );
+  }
+
+  void _navigateToRecomendacaoView(
+      BuildContext context, Recomendacao recomendacao) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) =>
+              RecomendacaoView(recomendacao: recomendacao, onLike: () {})),
     );
   }
 
@@ -168,6 +294,9 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final greeting = _getGreeting();
+    final combinedList = _combineLists(
+        eventos, recomendacoes); // Combine eventos e recomendações
+
     return Scaffold(
       drawer: Container(
         width: 300,
@@ -175,7 +304,7 @@ class _HomePageState extends State<HomePage> {
           onAreaTap: (area) {
             _navigateToListaGenerica(context, area);
           },
-          eventos: eventos,
+          eventos: eventos2,
         ),
       ),
       body: SingleChildScrollView(
@@ -206,7 +335,8 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       IconButton(
-                        icon: Icon(Icons.notifications, size: 30, color: Colors.white),
+                        icon: Icon(Icons.notifications,
+                            size: 30, color: Colors.white),
                         onPressed: () => _navigateToNotifications(context),
                       ),
                     ],
@@ -303,7 +433,8 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Text(
                     "Poderá gostar de...",
-                    style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                    style:
+                        TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
                   ),
                   TextButton(
                     onPressed: () {
@@ -325,60 +456,116 @@ class _HomePageState extends State<HomePage> {
               height: 150.0,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: eventos.length,
+                itemCount: combinedList.length,
                 itemBuilder: (context, index) {
-                  var evento = eventos[index];
-                  return Padding(
-                    padding: EdgeInsets.only(
-                        left: index == 0 ? 16.0 : 8.0, right: 8.0),
-                    child: GestureDetector(
-                      onTap: () => _navigateToEventoView(context, evento),
-                      child: Container(
-                        width: 200.0,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10.0),
-                          gradient: LinearGradient(
-                            colors: [Colors.white, Colors.grey.shade200],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 1.0,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(10.0),
-                                topRight: Radius.circular(10.0),
-                              ),
-                              child: Image.network(
-                                evento.bannerImage,
-                                height: 100.0,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
+                  var item = combinedList[index];
+
+                  if (item is Evento) {
+                    return Padding(
+                      padding: EdgeInsets.only(
+                          left: index == 0 ? 16.0 : 8.0, right: 8.0),
+                      child: GestureDetector(
+                        onTap: () => _navigateToEventoView(context, item),
+                        child: Container(
+                          width: 200.0,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10.0),
+                            gradient: LinearGradient(
+                              colors: [Colors.white, Colors.grey.shade200],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Text(
-                                evento.eventName,
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                  fontWeight: FontWeight.bold,
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1.0,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(10.0),
+                                  topRight: Radius.circular(10.0),
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
+                                child: Image.network(
+                                  item.bannerImage,
+                                  height: 100.0,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
-                            ),
-                          ],
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  item.eventName,
+                                  style: TextStyle(
+                                    fontSize: 16.0,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  );
+                    );
+                  } else if (item is Recomendacao) {
+                    return Padding(
+                      padding: EdgeInsets.only(
+                          left: index == 0 ? 16.0 : 8.0, right: 8.0),
+                      child: GestureDetector(
+                        onTap: () => _navigateToRecomendacaoView(context, item),
+                        child: Container(
+                          width: 200.0,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10.0),
+                            gradient: LinearGradient(
+                              colors: [Colors.white, Colors.grey.shade200],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1.0,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(10.0),
+                                  topRight: Radius.circular(10.0),
+                                ),
+                                child: Image.network(
+                                  item.bannerImage, // Supondo que a Recomendacao tenha um campo image
+                                  height: 100.0,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  item.nomeLocal, // Supondo que a Recomendacao tenha um campo title
+                                  style: TextStyle(
+                                    fontSize: 16.0,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  return SizedBox.shrink();
                 },
               ),
             ),

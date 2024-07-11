@@ -50,8 +50,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _fetchData() async {
     try {
-      final String? token =
-          await tokenHandler.getToken(); // Obtenha o token de autenticação
+      final String? token = await tokenHandler.getToken(); // Obtenha o token de autenticação
 
       if (token == null) {
         // Trate o caso em que o token não está disponível
@@ -59,8 +58,7 @@ class _ProfilePageState extends State<ProfilePage> {
         return;
       }
       final tokenResponse = await http.get(
-        Uri.parse(
-            'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
+        Uri.parse('https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -77,37 +75,30 @@ class _ProfilePageState extends State<ProfilePage> {
           userBannerUrl = userData['Banner']['NOME_IMAGEM'];
         });
       } else {
-        print(
-            'Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
+        print('Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
       }
 
       final publicationsResponse = await http.get(
-        Uri.parse(
-            'https://backendpint-5wnf.onrender.com/recomendacoes//listarRecomendacoesUserVisiveis'),
+        Uri.parse('https://backendpint-5wnf.onrender.com/recomendacoes/listarRecomendacoesUserVisiveis'),
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
       final eventsResponse = await http.get(
-        Uri.parse(
-            'https://backendpint-5wnf.onrender.com/eventos/listarPorUserVisiveis'),
+        Uri.parse('https://backendpint-5wnf.onrender.com/eventos/listarPorUserVisiveis'),
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
 
-      if (publicationsResponse.statusCode == 200 &&
-          eventsResponse.statusCode == 200) {
+      if (publicationsResponse.statusCode == 200 && eventsResponse.statusCode == 200) {
         setState(() {
-          publications = List<Map<String, dynamic>>.from(
-              json.decode(publicationsResponse.body)['data']);
-          events = List<Map<String, dynamic>>.from(
-              json.decode(eventsResponse.body)['data']);
+          publications = List<Map<String, dynamic>>.from(json.decode(publicationsResponse.body)['data']);
+          events = List<Map<String, dynamic>>.from(json.decode(eventsResponse.body)['data']);
           _showPublications();
         });
       } else {
-        print(
-            'Falha ao carregar dados: ${publicationsResponse.statusCode}, ${eventsResponse.statusCode}');
+        print('Falha ao carregar dados: ${publicationsResponse.statusCode}, ${eventsResponse.statusCode}');
       }
     } catch (e) {
       print('Erro ao buscar dados: $e');
@@ -122,6 +113,7 @@ class _ProfilePageState extends State<ProfilePage> {
         items.add({
           'title': publication['TITULO_RECOMENDACAO'].toString(),
           'description': publication['DESCRICAO_RECOMENDACAO'].toString(),
+          'imageUrl': publication['IMAGEM']['NOME_IMAGEM'].toString(),
         });
       }
     });
@@ -135,6 +127,7 @@ class _ProfilePageState extends State<ProfilePage> {
         items.add({
           'title': event['TITULO_EVENTO'].toString(),
           'description': event['DESCRICAO_EVENTO'].toString(),
+          'imageUrl': event['IMAGEM']['NOME_IMAGEM'].toString(),
         });
       }
     });
@@ -165,7 +158,7 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('https://seu-backend-endpoint.com/upload'),
+        Uri.parse('https://backendpint-5wnf.onrender.com/imagens/upload'),
       );
       request.files.add(
         await http.MultipartFile.fromPath(
@@ -313,36 +306,68 @@ class _ProfilePageState extends State<ProfilePage> {
                 return Padding(
                   padding: const EdgeInsets.symmetric(
                       vertical: 8.0, horizontal: 16.0),
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
+                  child: Card(
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15.0),
                     ),
-                    padding: EdgeInsets.all(20.0),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            items[index]['title']!,
-                            style: TextStyle(
-                              fontSize: 18.0,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                    elevation: 5.0,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(15.0),
+                            topRight: Radius.circular(15.0),
                           ),
-                          SizedBox(height: 10.0),
-                          Text(
-                            items[index]['description']!,
-                            style: TextStyle(
-                              fontSize: 14.0,
-                              color: Colors.white,
-                            ),
-                            textAlign: TextAlign.center,
+                          child: items[index]['imageUrl']!.isNotEmpty
+                              ? Image.network(
+                                  items[index]['imageUrl']!,
+                                  width: double.infinity,
+                                  height: 150.0,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: double.infinity,
+                                      height: 150.0,
+                                      color: Colors.grey,
+                                      child: Icon(Icons.broken_image,
+                                          size: 50.0, color: Colors.white),
+                                    );
+                                  },
+                                )
+                              : Container(
+                                  width: double.infinity,
+                                  height: 150.0,
+                                  color: Colors.grey,
+                                  child: Icon(Icons.image, size: 50.0, color: Colors.white),
+                                ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(15.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                items[index]['title']!,
+                                style: TextStyle(
+                                  fontSize: 18.0,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              SizedBox(height: 10.0),
+                              Text(
+                                items[index]['description']!,
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  color: Colors.black54,
+                                ),
+                                textAlign: TextAlign.left,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 );
