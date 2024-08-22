@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import '../Components/geocoding_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/Recomendacao.dart';
-import '../pages/MapPage.dart';
 import 'package:app_mobile/handlers/TokenHandler.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -547,9 +546,9 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) =>
-                                      ComentariosPage(
-                                          id: widget.recomendacao.idRecomendacao,),
+                                  builder: (context) => ComentariosPage(
+                                    id: widget.recomendacao.idRecomendacao,
+                                  ),
                                 ),
                               );
                             },
@@ -569,19 +568,15 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
   }
 
   void _openMap(BuildContext context, String address) async {
-    final geocodingService = GeocodingService();
-    final location = await geocodingService.getLatLngFromAddress(address);
+    final String encodedAddress = Uri.encodeComponent(address);
+    final String url =
+        'https://www.google.com/maps/search/?api=1&query=$encodedAddress';
 
-    if (location != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => MapPage(targetLocation: location),
-        ),
-      );
+    if (await canLaunch(url)) {
+      await launch(url);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Não foi possível obter a localização')),
+        SnackBar(content: Text('Não foi possível abrir o Google Maps')),
       );
     }
   }

@@ -5,10 +5,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/Evento.dart';
 import '../pages/MapPage.dart';
-import '../Components/geocoding_service.dart'; // Importa o serviço de geocodificação
 import 'package:intl/intl.dart';
 import '../Components/EventoComponents/ChatPageEvento.dart';
 import '../handlers/TokenHandler.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 String formatarDataHora(String dateTime) {
   DateTime parsedDateTime = DateTime.parse(dateTime);
@@ -98,8 +98,8 @@ class _EventoViewState extends State<EventoView> {
       Uri.parse('https://backendpint-5wnf.onrender.com/listaparticipantes/sairEvento/${widget.evento.id}'),
       headers: {'Authorization': 'Bearer $token'},
     );
-     print(response.body);
-     print(response.statusCode);
+    print(response.body);
+    print(response.statusCode);
     if (response.statusCode == 200) {
       final body = json.decode(response.body);
       if (body['success']) {
@@ -169,19 +169,14 @@ class _EventoViewState extends State<EventoView> {
   }
 
   void _openMap(BuildContext context, String address) async {
-    final geocodingService = GeocodingService();
-    final location = await geocodingService.getLatLngFromAddress(address);
+    final encodedAddress = Uri.encodeComponent(address);
+    final url = 'https://www.google.com/maps/search/?api=1&query=$encodedAddress';
 
-    if (location != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => MapPage(targetLocation: location),
-        ),
-      );
+    if (await canLaunch(url)) {
+      await launch(url);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Não foi possível obter a localização')),
+        SnackBar(content: Text('Não foi possível abrir o Google Maps')),
       );
     }
   }

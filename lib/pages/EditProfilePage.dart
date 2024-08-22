@@ -31,8 +31,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   double _avatarID = 0;
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
-  String? _selectedArea;
-  List<String> _areas = [];
+  int? _selectedAreaId;
+  List<Area> _areas = [];
 
   TokenHandler tokenHandler = TokenHandler();
 
@@ -55,21 +55,52 @@ class _EditProfilePageState extends State<EditProfilePage> {
         return;
       }
 
-      final response = await http.get(
-        Uri.parse('https://backendpint-5wnf.onrender.com/areas/listarareasativas'),
+      // Carregar áreas ativas
+      final areasResponse = await http.get(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/areas/listarareasativas'),
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> areasData = json.decode(response.body)['data'];
+      if (areasResponse.statusCode == 200) {
+        final List<dynamic> areasData = json.decode(areasResponse.body)['data'];
+
         setState(() {
-          _areas = areasData.map((area) => area['NOME_AREA'] as String).toList();
-          _selectedArea = _areas.isNotEmpty ? _areas.first : null; // Define a primeira área como selecionada
+          _areas = areasData
+              .map((area) => Area(id: area['ID_AREA'], nome: area['NOME_AREA']))
+              .toList();
+          _areas.sort((a, b) => a.nome.compareTo(b.nome));
         });
+
+        // Agora carregar a área de interesse do utilizador
+        final interesseResponse = await http.get(
+          Uri.parse(
+              'https://backendpint-5wnf.onrender.com/areasinteresse/listarPorUser'),
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        );
+
+        if (interesseResponse.statusCode == 200) {
+          final List<dynamic> interesseData =
+              json.decode(interesseResponse.body)['data'];
+          if (interesseData.isNotEmpty) {
+            final int areaId = interesseData.first['ID_AREA'];
+            setState(() {
+              _selectedAreaId = areaId;
+            });
+          } else {
+            _selectedAreaId = _areas.isNotEmpty ? _areas.first.id : null;
+          }
+        } else {
+          print(
+              'Falha ao carregar a área de interesse do usuário: ${interesseResponse.statusCode}');
+          _selectedAreaId = _areas.isNotEmpty ? _areas.first.id : null;
+        }
       } else {
-        print('Falha ao carregar áreas: ${response.statusCode}');
+        print('Falha ao carregar áreas: ${areasResponse.statusCode}');
       }
     } catch (e) {
       print('Erro ao carregar áreas: $e');
@@ -77,60 +108,62 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _updateUserProfile() async {
-    try {
-      final String? token = await tokenHandler.getToken();
-      if (token == null) {
-        print('Token não encontrado');
-        return;
-      }
+  bool hasInterest = false; // Definido como false por padrão
+  try {
+    final String? token = await tokenHandler.getToken();
+    if (token == null) {
+      print('Token não encontrado');
+      return;
+    }
 
-      final tokenResponse = await http.get(
-        Uri.parse(
-            'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
+    // Verificar se o usuário já tem uma área de interesse
+    final interesseResponse = await http.get(
+      Uri.parse('https://backendpint-5wnf.onrender.com/areasinteresse/listarPorUser'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (interesseResponse.statusCode == 200) {
+      final List<dynamic> interesseData = json.decode(interesseResponse.body)['data'];
+      hasInterest = interesseData.isNotEmpty;
+
+      final url = hasInterest
+          ? 'https://backendpint-5wnf.onrender.com/areasinteresse/update'
+          : 'https://backendpint-5wnf.onrender.com/areasinteresse/create';
+
+      final response = await http.put(
+        Uri.parse(url),
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
+        body: json.encode({
+          'ID_AREA': _selectedAreaId,
+          // Inclua outras informações necessárias, como ID do usuário, se necessário
+        }),
       );
 
-      if (tokenResponse.statusCode == 200) {
-        final userData = json.decode(tokenResponse.body)['data'];
-        int userId = userData['ID_UTILIZADOR'];
-        if (_bannerID == 0) {
-          _bannerID = userData['ID_IMAGEM_BANNER'].toDouble();
-        }
-        if (_avatarID == 0) {
-          _avatarID = userData['ID_IMAGEM_PERFIL'].toDouble();
-        }
-
-        final response = await http.put(
-          Uri.parse(
-              'https://backendpint-5wnf.onrender.com/utilizadores/update/$userId'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-          body: json.encode({
-            'ID_IMAGEM_BANNER': _bannerID,
-            'ID_IMAGEM_PERFIL': _avatarID,
-            'NOME_UTILIZADOR': _nameController.text,
-            'DESCRICAO_UTILIZADOR': _descriptionController.text,
-            'AREA_PREFERENCIA': _selectedArea, // Adiciona a área de preferência
-          }),
-        );
-
-        if (response.statusCode == 200) {
-          print('Perfil atualizado com sucesso');
-        } else {
-          print('Falha ao atualizar perfil: ${response.statusCode}');
-        }
+      if (response.statusCode == 200) {
+        print(hasInterest
+            ? 'Área de interesse atualizada com sucesso'
+            : 'Área de interesse criada com sucesso');
+      } else if (response.statusCode == 409) {
+        print('Área de interesse já existe.');
       } else {
         print(
-            'Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
+            'Falha ao ${hasInterest ? 'atualizar' : 'criar'} área de interesse: ${response.statusCode}');
       }
-    } catch (e) {
-      print('Erro ao atualizar perfil: $e');
+    } else {
+      print(
+          'Falha ao verificar a área de interesse do usuário: ${interesseResponse.statusCode}');
     }
+  } catch (e) {
+    print(
+        'Erro ao ${hasInterest ? 'atualizar' : 'criar'} área de interesse: $e');
   }
+}
+
 
   Future<Map<String, dynamic>> _uploadImage(
       double idImagem, String filePath, String type) async {
@@ -271,8 +304,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
             icon: Icon(Icons.save),
             onPressed: () async {
               await _updateUserProfile();
-              widget.onSave(_bannerImageUrl, _avatarImageUrl,
-                  _nameController.text, _descriptionController.text, _selectedArea ?? '');
+              widget.onSave(
+                  _bannerImageUrl,
+                  _avatarImageUrl,
+                  _nameController.text,
+                  _descriptionController.text,
+                  _selectedAreaId.toString());
               Navigator.of(context).pop();
             },
           ),
@@ -302,57 +339,57 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 ),
                 Positioned(
                   top: 70.0,
-                  left: MediaQuery.of(context).size.width / 2 - 75,
+                  left: MediaQuery.of(context).size.width / 2 - 60.0,
                   child: GestureDetector(
                     onTap: () => _showImageSourceDialog(false),
                     child: CircleAvatar(
-                      radius: 75.0,
-                      backgroundColor: Colors.grey[200],
-                      backgroundImage: _avatarImageUrl.isNotEmpty
-                          ? NetworkImage(_avatarImageUrl)
-                          : AssetImage('assets/images/placeholder_image.png')
-                              as ImageProvider,
-                      child: _avatarImageUrl.isEmpty
-                          ? Icon(
-                              Icons.camera_alt,
-                              color: Colors.grey[800],
-                              size: 50.0,
+                      radius: 60.0,
+                      backgroundColor: Colors.white,
+                      child: _avatarImageUrl.isNotEmpty
+                          ? CircleAvatar(
+                              radius: 55.0,
+                              backgroundImage: NetworkImage(_avatarImageUrl),
                             )
-                          : null,
+                          : CircleAvatar(
+                              radius: 55.0,
+                              backgroundImage: NetworkImage(
+                                  'https://t4.ftcdn.net/jpg/02/43/64/08/360_F_243640861_cUqD3KJUsC8K7H6SJSdXcNJPxGgR8DnP.jpg'),
+                            ),
                     ),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 100.0),
+            SizedBox(height: 60.0),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  TextField(
+                  TextFormField(
                     controller: _nameController,
                     decoration: InputDecoration(labelText: 'Nome'),
                   ),
-                  SizedBox(height: 20.0),
-                  TextField(
+                  SizedBox(height: 16.0),
+                  TextFormField(
                     controller: _descriptionController,
                     decoration: InputDecoration(labelText: 'Descrição'),
                   ),
-                  SizedBox(height: 20.0),
-                  DropdownButtonFormField<String>(
-                    value: _selectedArea,
+                  SizedBox(height: 16.0),
+                  DropdownButtonFormField<int>(
+                    value: _selectedAreaId,
                     items: _areas
-                        .map((area) => DropdownMenuItem<String>(
-                              value: area,
-                              child: Text(area),
+                        .map((area) => DropdownMenuItem<int>(
+                              value: area.id,
+                              child: Text(area.nome),
                             ))
                         .toList(),
                     onChanged: (value) {
                       setState(() {
-                        _selectedArea = value;
+                        _selectedAreaId = value;
                       });
                     },
-                    decoration: InputDecoration(labelText: 'Área de Preferência'),
+                    decoration:
+                        InputDecoration(labelText: 'Área de Preferência'),
                   ),
                 ],
               ),
@@ -362,4 +399,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
       ),
     );
   }
+}
+
+class Area {
+  final int id;
+  final String nome;
+
+  Area({required this.id, required this.nome});
 }
