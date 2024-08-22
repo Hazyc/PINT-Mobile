@@ -10,7 +10,7 @@ class EditProfilePage extends StatefulWidget {
   final String avatarImageUrl;
   final String userName;
   final String userDescription;
-  final Function(String, String, String, String) onSave;
+  final Function(String, String, String, String, String) onSave;
 
   EditProfilePage({
     required this.bannerImageUrl,
@@ -31,6 +31,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   double _avatarID = 0;
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
+  String? _selectedArea;
+  List<String> _areas = [];
 
   TokenHandler tokenHandler = TokenHandler();
 
@@ -42,6 +44,36 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _nameController = TextEditingController(text: widget.userName);
     _descriptionController =
         TextEditingController(text: widget.userDescription);
+    _loadAreas(); // Carregar as áreas do backend na inicialização
+  }
+
+  Future<void> _loadAreas() async {
+    try {
+      final String? token = await tokenHandler.getToken();
+      if (token == null) {
+        print('Token não encontrado');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('https://backendpint-5wnf.onrender.com/areas/listarareasativas'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> areasData = json.decode(response.body)['data'];
+        setState(() {
+          _areas = areasData.map((area) => area['NOME_AREA'] as String).toList();
+          _selectedArea = _areas.isNotEmpty ? _areas.first : null; // Define a primeira área como selecionada
+        });
+      } else {
+        print('Falha ao carregar áreas: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Erro ao carregar áreas: $e');
+    }
   }
 
   Future<void> _updateUserProfile() async {
@@ -60,18 +92,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
         },
       );
 
-
       if (tokenResponse.statusCode == 200) {
         final userData = json.decode(tokenResponse.body)['data'];
         int userId = userData['ID_UTILIZADOR'];
-        if(_bannerID == 0)
-        {
+        if (_bannerID == 0) {
           _bannerID = userData['ID_IMAGEM_BANNER'].toDouble();
-          }
-          if(_avatarID == 0)
-          {
-            _avatarID = userData['ID_IMAGEM_PERFIL'].toDouble();
-            }
+        }
+        if (_avatarID == 0) {
+          _avatarID = userData['ID_IMAGEM_PERFIL'].toDouble();
+        }
 
         final response = await http.put(
           Uri.parse(
@@ -85,6 +114,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             'ID_IMAGEM_PERFIL': _avatarID,
             'NOME_UTILIZADOR': _nameController.text,
             'DESCRICAO_UTILIZADOR': _descriptionController.text,
+            'AREA_PREFERENCIA': _selectedArea, // Adiciona a área de preferência
           }),
         );
 
@@ -103,101 +133,94 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<Map<String, dynamic>> _uploadImage(
-  double idImagem, String filePath, String type) async {
-  try {
-    final String? token = await tokenHandler.getToken();
-    if (token == null) {
-      print('Token não encontrado');
+      double idImagem, String filePath, String type) async {
+    try {
+      final String? token = await tokenHandler.getToken();
+      if (token == null) {
+        print('Token não encontrado');
+        return {};
+      }
+
+      final url = idImagem != 0
+          ? 'https://backendpint-5wnf.onrender.com/imagens/update/$idImagem'
+          : 'https://backendpint-5wnf.onrender.com/imagens/upload';
+
+      var request = http.MultipartRequest('POST', Uri.parse(url));
+      request.headers['Authorization'] = 'Bearer $token';
+
+      request.files.add(await http.MultipartFile.fromPath('imagem', filePath));
+
+      var response = await request.send();
+
+      if (response.statusCode == 200) {
+        var responseData = await http.Response.fromStream(response);
+        var jsonResponse = json.decode(responseData.body);
+        return jsonResponse['data'];
+      } else {
+        print('Falha ao fazer upload da imagem: ${response.statusCode}');
+        return {};
+      }
+    } catch (e) {
+      print('Erro ao fazer upload da imagem: $e');
       return {};
     }
-
-    // Construção da URL baseada no valor de idImagem
-    final url = idImagem != 0
-        ? 'https://backendpint-5wnf.onrender.com/imagens/update/$idImagem'
-        : 'https://backendpint-5wnf.onrender.com/imagens/upload';
-
-    var request = http.MultipartRequest('POST', Uri.parse(url));
-    request.headers['Authorization'] = 'Bearer $token'; // Adiciona o cabeçalho de autorização
-
-    // Adiciona o arquivo ao request
-    request.files.add(await http.MultipartFile.fromPath('imagem', filePath));
-
-    // Envia a requisição
-    var response = await request.send();
-
-    if (response.statusCode == 200) {
-      var responseData = await http.Response.fromStream(response);
-      var jsonResponse = json.decode(responseData.body);
-      return jsonResponse['data'];
-    } else {
-      print('Falha ao fazer upload da imagem: ${response.statusCode}');
-      return {};
-    }
-  } catch (e) {
-    print('Erro ao fazer upload da imagem: $e');
-    return {};
   }
-}
-
 
   Future<void> _pickImage(ImageSource source, bool isBanner) async {
-  try {
-    final String? token = await tokenHandler.getToken();
-    if (token == null) {
-      print('Token não encontrado');
-      return;
-    }
+    try {
+      final String? token = await tokenHandler.getToken();
+      if (token == null) {
+        print('Token não encontrado');
+        return;
+      }
 
-    final tokenResponse = await http.get(
-      Uri.parse(
-          'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
+      final tokenResponse = await http.get(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
 
-    if (tokenResponse.statusCode == 200) {
-      final userData = json.decode(tokenResponse.body)['data'];
-      int idImagem = isBanner
-          ? userData['ID_IMAGEM_BANNER'] ?? 0
-          : userData['ID_IMAGEM_PERFIL'] ?? 0;
-      final pickedFile = await ImagePicker().pickImage(source: source);
-      if (pickedFile != null) {
-        Map<String, dynamic> imageResponse = {};
+      if (tokenResponse.statusCode == 200) {
+        final userData = json.decode(tokenResponse.body)['data'];
+        int idImagem = isBanner
+            ? userData['ID_IMAGEM_BANNER'] ?? 0
+            : userData['ID_IMAGEM_PERFIL'] ?? 0;
+        final pickedFile = await ImagePicker().pickImage(source: source);
+        if (pickedFile != null) {
+          Map<String, dynamic> imageResponse = {};
 
-        if (idImagem == 0 || idImagem == 8 || idImagem == 9) {
-          // Não existe ID de imagem, faz upload
-          imageResponse = await _uploadImage(
-              0, pickedFile.path, isBanner ? 'banner' : 'perfil');
+          if (idImagem == 0 || idImagem == 8 || idImagem == 9) {
+            imageResponse = await _uploadImage(
+                0, pickedFile.path, isBanner ? 'banner' : 'perfil');
+          } else {
+            imageResponse = await _uploadImage(idImagem.toDouble(),
+                pickedFile.path, isBanner ? 'banner' : 'perfil');
+          }
+
+          if (imageResponse.isNotEmpty) {
+            setState(() {
+              if (isBanner) {
+                _bannerImageUrl = imageResponse['NOME_IMAGEM'];
+                _bannerID = imageResponse['ID_IMAGEM'].toDouble();
+              } else {
+                _avatarImageUrl = imageResponse['NOME_IMAGEM'];
+                _avatarID = imageResponse['ID_IMAGEM'].toDouble();
+              }
+            });
+          }
         } else {
-          // Existe ID de imagem, faz update
-          imageResponse = await _uploadImage(
-              idImagem.toDouble(), pickedFile.path, isBanner ? 'banner' : 'perfil');
-        }
-
-        if (imageResponse.isNotEmpty) {
-          setState(() {
-            if (isBanner) {
-              _bannerImageUrl = imageResponse['NOME_IMAGEM'];
-              _bannerID = imageResponse['ID_IMAGEM'].toDouble();
-            } else {
-              _avatarImageUrl = imageResponse['NOME_IMAGEM'];
-              _avatarID = imageResponse['ID_IMAGEM'].toDouble();
-            }
-          });
+          print("Nenhuma imagem selecionada.");
         }
       } else {
-        print("Nenhuma imagem selecionada.");
+        print(
+            'Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
       }
-    } else {
-      print(
-          'Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
+    } catch (e) {
+      print("Erro ao pegar imagem: $e");
     }
-  } catch (e) {
-    print("Erro ao pegar imagem: $e");
   }
-}
-
 
   void _showImageSourceDialog(bool isBanner) {
     showDialog(
@@ -247,9 +270,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
           IconButton(
             icon: Icon(Icons.save),
             onPressed: () async {
-              await _updateUserProfile(); // Atualiza o perfil do usuário no servidor
+              await _updateUserProfile();
               widget.onSave(_bannerImageUrl, _avatarImageUrl,
-                  _nameController.text, _descriptionController.text);
+                  _nameController.text, _descriptionController.text, _selectedArea ?? '');
               Navigator.of(context).pop();
             },
           ),
@@ -278,12 +301,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         ),
                 ),
                 Positioned(
-                  top: 70.0, // Ajuste a posição do avatar
+                  top: 70.0,
                   left: MediaQuery.of(context).size.width / 2 - 75,
                   child: GestureDetector(
                     onTap: () => _showImageSourceDialog(false),
                     child: CircleAvatar(
-                      radius: 75.0, // Tamanho do avatar
+                      radius: 75.0,
                       backgroundColor: Colors.grey[200],
                       backgroundImage: _avatarImageUrl.isNotEmpty
                           ? NetworkImage(_avatarImageUrl)
@@ -301,7 +324,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 ),
               ],
             ),
-            SizedBox(height: 100.0), // Ajuste o espaço aqui conforme necessário
+            SizedBox(height: 100.0),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -314,6 +337,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   TextField(
                     controller: _descriptionController,
                     decoration: InputDecoration(labelText: 'Descrição'),
+                  ),
+                  SizedBox(height: 20.0),
+                  DropdownButtonFormField<String>(
+                    value: _selectedArea,
+                    items: _areas
+                        .map((area) => DropdownMenuItem<String>(
+                              value: area,
+                              child: Text(area),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedArea = value;
+                      });
+                    },
+                    decoration: InputDecoration(labelText: 'Área de Preferência'),
                   ),
                 ],
               ),

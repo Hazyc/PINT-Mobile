@@ -1,21 +1,12 @@
+import 'package:app_mobile/models/Evento.dart';
+import 'package:app_mobile/pages/EventoView.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import '../../models/Evento.dart';
-import '../../pages/EventoView.dart'; // Certifique-se de criar este widget para visualizar os detalhes do evento
-
-
-String formatarDataHora(String dateTime) {
-  DateTime parsedDateTime = DateTime.parse(dateTime);
-  DateFormat formatter = DateFormat('yyyy-MM-dd HH:mm');
-  return formatter.format(parsedDateTime);
-}
 
 class EventoCard extends StatelessWidget {
   final Evento evento;
+  final VoidCallback onLocationTap;
 
-  EventoCard({required this.evento});
-
-  
+  EventoCard({required this.evento, required this.onLocationTap});
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +42,7 @@ class EventoCard extends StatelessWidget {
                     ),
                     child: Image.network(
                       evento.bannerImage,
-                      height: 130, // Definindo a altura da imagem dentro do card
+                      height: 130,
                       width: double.infinity,
                       fit: BoxFit.cover,
                     ),
@@ -108,56 +99,20 @@ class EventoCard extends StatelessWidget {
                         Icon(Icons.location_pin, color: Color(0xFF0DCAF0)),
                         SizedBox(width: 4),
                         Expanded(
-                          child: Text(
-                            evento.address,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF0DCAF0),
+                          child: GestureDetector(
+                            onTap: onLocationTap, // Callback para abrir o Google Maps
+                            child: Text(
+                              evento.address,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF0DCAF0),
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      evento.category,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black54,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      evento.description.length > 50
-                          ? evento.description.substring(0, 50) + '...'
-                          : evento.description,
-                      style: TextStyle(fontSize: 14, color: Colors.black87),
-                    ),
-                    if (evento.description.length > 50)
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => EventoView(
-                                evento: evento,
-                                onLike: () {
-                                  print('Liked');
-                                },
-                              ),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          'ver mais...',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF0DCAF0),
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),

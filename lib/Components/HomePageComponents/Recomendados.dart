@@ -270,7 +270,7 @@ class _RecomendadosPageState extends State<RecomendadosPage> {
                 ? RecomendacaoCard(recomendacao: item)
                 : GestureDetector(
                     onTap: () => _navigateToEventoView(context, item),
-                    child: EventoCard(evento: item),
+                    child: EventoCard(evento: item, onLocationTap: () {  },),
                   ),
           );
         },

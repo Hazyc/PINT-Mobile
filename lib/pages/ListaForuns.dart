@@ -44,7 +44,7 @@ class ListaForuns extends StatelessWidget {
             'id': item['ID_AREA'],
             'nome':
                 item['NOME_AREA'].toString(), // Garantir que seja uma string
-            'imagem': item['IMAGEM'],
+            'imagem': item['IMAGEM']['NOME_IMAGEM'],
             'cor': item['COR_AREA'],
           });
           topicsByArea[item['ID_AREA'].toString()] =

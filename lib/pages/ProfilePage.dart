@@ -40,6 +40,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String userCity = '';
   String userAvatarUrl = '';
   String userBannerUrl = '';
+  String userPreferredArea = ''; // Nova variável para área de preferência
   TokenHandler tokenHandler = TokenHandler();
 
   @override
@@ -50,30 +51,32 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _fetchData() async {
     try {
-      final String? token = await tokenHandler.getToken(); // Obtenha o token de autenticação
+      final String? token = await tokenHandler.getToken();
 
       if (token == null) {
-        // Trate o caso em que o token não está disponível
         print('Token não encontrado');
         return;
       }
+
       final tokenResponse = await http.get(
         Uri.parse('https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
+
       if (tokenResponse.statusCode == 200) {
         final userData = json.decode(tokenResponse.body)['data'];
         setState(() {
-        userName = userData['NOME_UTILIZADOR'] ?? ''; // Usando ?? para lidar com null
-        userDescription = userData['DESCRICAO_UTILIZADOR'] ?? ''; // Usando ?? para lidar com null
-        userEmail = userData['EMAIL_UTILIZADOR'] ?? ''; // Usando ?? para lidar com null
-        userContact = userData['CONTACTO_UTILIZADOR'] ?? ''; // Usando ?? para lidar com null
-        userCity = userData['CIDADE']?['NOME_CIDADE'] ?? ''; // Verificando se 'CIDADE' não é null antes de acessar 'NOME_CIDADE'
-        userAvatarUrl = userData['Perfil']?['NOME_IMAGEM'] ?? ''; // Verificando se 'Perfil' não é null antes de acessar 'NOME_IMAGEM'
-        userBannerUrl = userData['Banner']?['NOME_IMAGEM'] ?? ''; // Verificando se 'Banner' não é null antes de acessar 'NOME_IMAGEM'
-      });
+          userName = userData['NOME_UTILIZADOR'] ?? '';
+          userDescription = userData['DESCRICAO_UTILIZADOR'] ?? '';
+          userEmail = userData['EMAIL_UTILIZADOR'] ?? '';
+          userContact = userData['CONTACTO_UTILIZADOR'] ?? '';
+          userCity = userData['CIDADE']?['NOME_CIDADE'] ?? '';
+          userAvatarUrl = userData['Perfil']?['NOME_IMAGEM'] ?? '';
+          userBannerUrl = userData['Banner']?['NOME_IMAGEM'] ?? '';
+          userPreferredArea = userData['AREA_PREFERENCIA'] ?? ''; // Adiciona a área de preferência
+        });
       } else {
         print('Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
       }
@@ -84,6 +87,7 @@ class _ProfilePageState extends State<ProfilePage> {
           'Authorization': 'Bearer $token',
         },
       );
+
       final eventsResponse = await http.get(
         Uri.parse('https://backendpint-5wnf.onrender.com/eventos/listarPorUserVisiveis'),
         headers: {
@@ -113,7 +117,7 @@ class _ProfilePageState extends State<ProfilePage> {
         items.add({
           'title': publication['TITULO_RECOMENDACAO'].toString(),
           'description': publication['DESCRICAO_RECOMENDACAO'].toString(),
-          'imageUrl': publication['IMAGEM']['NOME_IMAGEM'].toString(),
+          'imageUrl': publication['IMAGEM']?['NOME_IMAGEM']?.toString() ?? '',
         });
       }
     });
@@ -127,7 +131,7 @@ class _ProfilePageState extends State<ProfilePage> {
         items.add({
           'title': event['TITULO_EVENTO'].toString(),
           'description': event['DESCRICAO_EVENTO'].toString(),
-          'imageUrl': event['IMAGEM']['NOME_IMAGEM'].toString(),
+          'imageUrl': event['IMAGEM']?['NOME_IMAGEM']?.toString() ?? '',
         });
       }
     });
@@ -199,13 +203,13 @@ class _ProfilePageState extends State<ProfilePage> {
                         avatarImageUrl: userAvatarUrl,
                         userName: userName,
                         userDescription: userDescription,
-                        onSave:
-                            (newBanner, newAvatar, newName, newDescription) {
+                        onSave: (newBanner, newAvatar, newName, newDescription, newArea) {
                           setState(() {
                             userBannerUrl = newBanner;
                             userAvatarUrl = newAvatar;
                             userName = newName;
                             userDescription = newDescription;
+                            userPreferredArea = newArea; // Atualiza a área de preferência
                           });
                         },
                       )));

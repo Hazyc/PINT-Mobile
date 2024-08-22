@@ -416,7 +416,7 @@ class _HomePageState extends State<HomePage> {
                     padding: EdgeInsets.only(
                         left: index == 0 ? 16.0 : 5.0, right: 5.0),
                     child: HomeCard(
-                      imageAsset: categoria['IMAGEM'],
+                      imageAsset: categoria['IMAGEM']['NOME_IMAGEM'],
                       title: categoria['NOME_AREA'],
                       onTap: () => _navigateToListaGenerica(
                           context, categoria['NOME_AREA']),

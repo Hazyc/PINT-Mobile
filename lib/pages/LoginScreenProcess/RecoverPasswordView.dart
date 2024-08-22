@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../Components/LoginPageComponents/botao.dart';
 
 class PasswordRecoveryPage extends StatefulWidget {
@@ -15,6 +17,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
   final _emailController = TextEditingController();
   bool _codeSent = false;
   final _otpController = TextEditingController();
+  String? _storedOtp;
 
   @override
   void dispose() {
@@ -58,17 +61,52 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
     );
   }
 
-  void _sendRecoveryEmail() {
+  Future<void> _sendRecoveryEmail() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _codeSent = true;
       });
-      print('Código enviado');
+
+      final email = _emailController.text;
+      final response = await http.post(
+        Uri.parse('https://backendpint-5wnf.onrender.com/utilizadores/sendrecoveryemail'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'EMAIL_UTILIZADOR': email}),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        if (responseData['success']) {
+          setState(() {
+            _storedOtp = responseData['data']['OTP'];
+          });
+          print('Código enviado');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao enviar o código.')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao enviar o código.')),
+        );
+      }
     }
   }
 
-  void _resendRecoveryEmail() {
-    print('Código reenviado');
+  void _verifyOtp() {
+    if (_otpController.text == _storedOtp) {
+      // Código OTP correto, prossiga com a recuperação da senha
+      print('Código verificado com sucesso');
+      // Navegue para a próxima página ou faça o que for necessário
+    } else {
+      // Código OTP incorreto
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Código incorreto. Tente novamente.')),
+      );
+    }
   }
 
   @override
@@ -194,10 +232,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
                                     Container(
                                       width: double.infinity,
                                       child: MyButton(
-                                        onTap: () {
-                                          print('Código verificado: ${_otpController.text}');
-                                          // Adicione a lógica para verificar o código aqui
-                                        },
+                                        onTap: _verifyOtp,
                                         buttonText: 'Verificar código', // Texto do botão
                                       ),
                                     ),
@@ -207,7 +242,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
                               Align(
                                 alignment: Alignment.center,
                                 child: GestureDetector(
-                                  onTap: _resendRecoveryEmail,
+                                  onTap: _sendRecoveryEmail,
                                   child: Padding(
                                     padding: const EdgeInsets.only(bottom: 10.0),
                                     child: Text(

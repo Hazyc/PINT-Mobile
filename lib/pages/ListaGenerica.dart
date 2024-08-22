@@ -21,9 +21,7 @@ class ListaGenerica extends StatefulWidget {
 
 class _ListaGenericaState extends State<ListaGenerica> {
   List<String> areas = [];
-
   String? selectedArea;
-
   List<Recomendacao> recomendacoes = [];
   List<Evento> eventos = [];
 
@@ -36,17 +34,14 @@ class _ListaGenericaState extends State<ListaGenerica> {
   void initState() {
     super.initState();
     selectedArea = widget.initialSelectedArea;
-    // Carregar dados iniciais ao iniciar a tela
     _fetchData();
   }
 
   Future<void> _fetchData() async {
     try {
-      final String? token =
-          await tokenHandler.getToken(); // Obtenha o token de autenticação
+      final String? token = await tokenHandler.getToken();
 
       if (token == null) {
-        // Trate o caso em que o token não está disponível
         print('Token não encontrado');
         return;
       }
@@ -61,7 +56,6 @@ class _ListaGenericaState extends State<ListaGenerica> {
         areas = fetchedAreas;
       });
     } catch (e) {
-      // Trate os erros de carregamento de dados, se necessário
       print('Erro ao carregar dados: $e');
     }
   }
@@ -70,25 +64,20 @@ class _ListaGenericaState extends State<ListaGenerica> {
     final String baseUrl = 'https://backendpint-5wnf.onrender.com';
     final response = await http.get(
       Uri.parse('$baseUrl/recomendacoes/listarRecomendacoesVisiveis'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Authorization': 'Bearer $token'},
     );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body)['data'];
       List<Recomendacao> recomendacoes = [];
 
-      // Iterar sobre os dados e buscar a média de avaliação para cada recomendação
       for (var json in data) {
         Recomendacao recomendacao = Recomendacao.fromJson(json);
         try {
           final mediaResponse = await http.get(
             Uri.parse(
                 '$baseUrl/avaliacoes/mediaAvaliacaoporRecomendacao/${recomendacao.idRecomendacao}'),
-            headers: {
-              'Authorization': 'Bearer $token',
-            },
+            headers: {'Authorization': 'Bearer $token'},
           );
 
           if (mediaResponse.statusCode == 200) {
@@ -96,26 +85,21 @@ class _ListaGenericaState extends State<ListaGenerica> {
             double media1 = mediaData['media1'].toDouble();
             double media2 = mediaData['media2'].toDouble();
             double media3 = mediaData['media3'].toDouble();
-
-            // Calcular a média geral
             double avaliacaoGeral = (media1 + media2 + media3) / 3;
-            avaliacaoGeral = double.parse(avaliacaoGeral.toStringAsFixed(1));
-
-            // Atualizar o objeto Recomendacao
-            recomendacao.avaliacaoGeral = avaliacaoGeral;
+            recomendacao.avaliacaoGeral =
+                double.parse(avaliacaoGeral.toStringAsFixed(1));
           } else {
-            throw Exception('Failed to fetch average rating');
+            throw Exception('Falha ao buscar média de avaliação');
           }
         } catch (error) {
           print(
               'Erro ao buscar média de avaliação para recomendação ${recomendacao.idRecomendacao}: $error');
-          // Tratar erro adequadamente (exibir snackbar, mensagem de erro, etc.)
         }
         recomendacoes.add(recomendacao);
       }
       return recomendacoes;
     } else {
-      throw Exception('Failed to load recommendations');
+      throw Exception('Falha ao carregar recomendações');
     }
   }
 
@@ -123,16 +107,14 @@ class _ListaGenericaState extends State<ListaGenerica> {
     final String baseUrl = 'https://backendpint-5wnf.onrender.com';
     final response = await http.get(
       Uri.parse('$baseUrl/eventos/listarTodosVisiveis'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Authorization': 'Bearer $token'},
     );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body)['data'];
       return data.map((json) => Evento.fromJson(json)).toList();
     } else {
-      throw Exception('Failed to load events');
+      throw Exception('Falha ao carregar eventos');
     }
   }
 
@@ -140,19 +122,17 @@ class _ListaGenericaState extends State<ListaGenerica> {
     final String baseUrl = 'https://backendpint-5wnf.onrender.com';
     final response = await http.get(
       Uri.parse('$baseUrl/areas/listarareasativas'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Authorization': 'Bearer $token'},
     );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body)['data'];
       return [
         'Todos',
-        ...data.map((area) => area['NOME_AREA'] as String).toList()
+        ...data.map((area) => area['NOME_AREA'] as String).toList(),
       ];
     } else {
-      throw Exception('Failed to load areas');
+      throw Exception('Falha ao carregar áreas');
     }
   }
 
@@ -319,7 +299,7 @@ class _ListaGenericaState extends State<ListaGenerica> {
                   padding: const EdgeInsets.all(8.0),
                   child: item is Recomendacao
                       ? RecomendacaoCard(recomendacao: item)
-                      : EventoCard(evento: item),
+                      : EventoCard(evento: item, onLocationTap: () {  },),
                 );
               },
             ),
