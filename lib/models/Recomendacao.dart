@@ -39,4 +39,6 @@ class Recomendacao {
     return avaliacaoGeral.toStringAsFixed(1); // Formata para uma casa decimal
   }
 
+  get nome => null;
+
 }

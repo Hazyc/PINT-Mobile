@@ -23,7 +23,10 @@ class _ListaGenericaState extends State<ListaGenerica> {
   List<String> areas = [];
   String? selectedArea;
   List<Recomendacao> recomendacoes = [];
+  List<Recomendacao> recomendacoesoriginais = [];
   List<Evento> eventos = [];
+  double minAvaliacao = 0.0;
+
 
   bool showRecommendations = true;
   bool showEvents = true;
@@ -96,6 +99,7 @@ class _ListaGenericaState extends State<ListaGenerica> {
               'Erro ao buscar média de avaliação para recomendação ${recomendacao.idRecomendacao}: $error');
         }
         recomendacoes.add(recomendacao);
+        recomendacoesoriginais.add(recomendacao);
       }
       return recomendacoes;
     } else {
@@ -137,18 +141,24 @@ class _ListaGenericaState extends State<ListaGenerica> {
   }
 
   List<dynamic> get filteredItems {
-    List<dynamic> filteredList = [];
-    if (showRecommendations) {
-      filteredList.addAll(recomendacoes.where(
-          (item) => selectedArea == 'Todos' || item.categoria == selectedArea));
-    }
-
-    if (showEvents) {
-      filteredList.addAll(eventos.where(
-          (item) => selectedArea == 'Todos' || item.category == selectedArea));
-    }
-    return filteredList;
+  List<dynamic> filteredList = [];
+  if (showRecommendations) {
+    filteredList.addAll(recomendacoes.where(
+      (item) => 
+        (selectedArea == 'Todos' || item.categoria == selectedArea) &&
+        item.avaliacaoGeral >= minAvaliacao,  // Filtra pela avaliação geral
+    ));
   }
+
+  if (showEvents) {
+    filteredList.addAll(eventos.where(
+      (item) => selectedArea == 'Todos' || item.category == selectedArea));
+  }
+  return filteredList;
+}
+
+
+
 
   void _showFilterDialog() {
     showDialog(
@@ -193,6 +203,71 @@ class _ListaGenericaState extends State<ListaGenerica> {
       },
     );
   }
+
+  void aplicarFiltroAvaliacao() {
+    setState(() {
+      print("Aplicando filtro: minAvaliacao = $minAvaliacao");
+      
+      recomendacoes = recomendacoesoriginais.where((recomendacao) {
+        bool resultado = recomendacao.avaliacaoGeral != null && recomendacao.avaliacaoGeral >= minAvaliacao;
+        print("Recomendação ${recomendacao.idRecomendacao} tem avaliação ${recomendacao.avaliacaoGeral}, resultado: $resultado");
+        return resultado;
+      }).toList();
+    });
+  }
+
+  void _showAvaliacaoFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text("Filtrar por Avaliação"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Slider(
+                    value: minAvaliacao,
+                    min: 0.0,
+                    max: 5.0,
+                    divisions: 10,
+                    label: minAvaliacao.toString(),
+                    onChanged: (double value) {
+                      setState(() {
+                        minAvaliacao = value;
+                      });
+                    },
+                  ),
+                  Text(
+                    "Avaliação mínima: ${minAvaliacao.toStringAsFixed(1)}",
+                    style: TextStyle(fontSize: 18),
+                  ),
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: Text("Fechar"),
+                  onPressed: () {
+                    aplicarFiltroAvaliacao(); // Aplica o filtro ao fechar
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: Text("Aplicar"),
+                  onPressed: () {
+                    aplicarFiltroAvaliacao(); // Aplica o filtro
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
 
   void _showCreateOptions() {
     showModalBottomSheet(
@@ -246,7 +321,12 @@ class _ListaGenericaState extends State<ListaGenerica> {
             icon: Icon(Icons.filter_list),
             onPressed: _showFilterDialog,
           ),
+          IconButton(
+            icon: Icon(Icons.star),
+            onPressed: _showAvaliacaoFilterDialog, // Botão para filtrar por avaliação
+          ),
         ],
+
       ),
       body: Column(
         children: [

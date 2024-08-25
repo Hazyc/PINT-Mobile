@@ -34,4 +34,6 @@ class Evento {
       description: json['DESCRICAO_EVENTO'] ?? '',
     );
   }
+
+  get nome => null;
 }
