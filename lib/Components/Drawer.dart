@@ -48,9 +48,11 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print(data);
         if (data['success']) {
           final user = data['data'];
           setState(() {
+            
             avatarUrl = user['Perfil'] != null ? user['Perfil']['NOME_IMAGEM'] : '';
             userName = user['NOME_UTILIZADOR'];
             userEmail = user['EMAIL_UTILIZADOR'];
@@ -67,37 +69,46 @@ class _CustomDrawerState extends State<CustomDrawer> {
   }
 
   Future<void> _fetchAreasOfInterest() async {
-    try {
-      final token = await TokenHandler().getToken();
-      if (token == null) {
-        _showError('Token is null. Please log in again.');
-        return;
-      }
-
-      final response = await http.get(
-        Uri.parse('https://backendpint-5wnf.onrender.com/areas/listarareasativas'),
-        headers: {'x-access-token': 'Bearer $token'},
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success']) {
-          setState(() {
-            areasOfInterest = List<Map<String, dynamic>>.from(data['data'].map((area) => {
-              'NOME_AREA': area['NOME_AREA'],
-              'COR_AREA': area['COR_AREA']
-            }));
-          });
-        } else {
-          _showError('Failed to load areas of interest: ${data['message']}');
-        }
-      } else {
-        _showError('Failed to load areas of interest. Status code: ${response.statusCode}');
-      }
-    } catch (e) {
-      _showError('Failed to load areas of interest. Error: $e');
+  try {
+    final token = await TokenHandler().getToken();
+    if (token == null) {
+      _showError('Token is null. Please log in again.');
+      return;
     }
+
+    // Realiza a requisição para a API
+    final response = await http.get(
+      Uri.parse('https://backendpint-5wnf.onrender.com/areasinteresse/listarporuser'),
+      headers: {'x-access-token': 'Bearer $token'},
+    );
+
+    // Imprime o corpo da resposta para depuração
+    print("Response body: ${response.body}");
+
+    // Verifica o status da resposta
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      print(data);
+      // Exemplo de estrutura de dados que você pode estar recebendo
+      if (data['success']) {
+        // Ajuste conforme a estrutura real da resposta
+        setState(() {
+          areasOfInterest = List<Map<String, dynamic>>.from(data['data'].map((area) => {
+            'NOME_AREA': area['AREA']['NOME_AREA'] ?? 'Nome não disponível',
+            'COR_AREA': area['AREA']['COR_AREA'] ?? 'Cor não disponível',
+          }));
+        });
+      } else {
+        _showError('Failed to load areas of interest: ${data['message']}');
+      }
+    } else {
+      _showError('Failed to load areas of interest. Status code: ${response.statusCode}');
+    }
+  } catch (e) {
+    _showError('Failed to load areas of interest. Error: $e');
   }
+}
+
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
@@ -216,6 +227,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
             ListTile(
               title: Text('Áreas de Interesse', style: TextStyle(color: Colors.grey)),
             ),
+            
             FutureBuilder(
               future: _areasFuture,
               builder: (context, snapshot) {
@@ -237,6 +249,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 }
               },
             ),
+            
             Divider(),
             ListTile(
               leading: Icon(Icons.calendar_today),

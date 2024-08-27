@@ -3,6 +3,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../models/Evento.dart';
+import '../pages/MapPage.dart';
 import 'package:intl/intl.dart';
 import '../models/Evento.dart';
 import '../Components/EventoComponents/ChatPageEvento.dart';
@@ -174,44 +176,28 @@ class _EventoViewState extends State<EventoView> {
   }
 
   Future<void> _unregisterFromEvent() async {
-    try {
-      final token = await TokenHandler().getToken();
-      if (token == null || token.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Token de autenticação não encontrado.')),
-        );
-        return;
-      }
-
-      final response = await http.delete(
-        Uri.parse('https://backendpint-5wnf.onrender.com/listaparticipantes/sairEvento/${widget.evento.id}'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final body = json.decode(response.body);
-        if (body['success']) {
-          setState(() {
-            isRegistered = false;
-          });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(body['message'])),
-          );
-        }
+    final token = await TokenHandler().getToken();
+    final response = await http.delete(
+      Uri.parse('https://backendpint-5wnf.onrender.com/listaparticipantes/sairEvento/${widget.evento.id}'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    print(response.body);
+    print(response.statusCode);
+    if (response.statusCode == 200) {
+      final body = json.decode(response.body);
+      if (body['success']) {
+        setState(() {
+          isRegistered = false;
+        });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro na comunicação com o servidor')),
+          SnackBar(content: Text(body['message'])),
         );
       }
-    } catch (e) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao desinscrever do evento: $e')),
+        SnackBar(content: Text('Erro na comunicação com o servidor')),
       );
-      print('Erro ao desinscrever do evento: $e');
     }
   }
 
@@ -265,15 +251,14 @@ class _EventoViewState extends State<EventoView> {
     }
   }
 
-  void _openMap(BuildContext context, String address) async {
-    final encodedAddress = Uri.encodeComponent(address);
-    final url = 'https://www.google.com/maps/search/?api=1&query=$encodedAddress';
-
-    if (await canLaunch(url)) {
-      await launch(url);
+  Future<void> _openMap(String address) async {
+    String googleMapsUrl = 'https://www.google.com/maps/search/?api=1&query=$address';
+    
+    if (await canLaunch(googleMapsUrl)) {
+      await launch(googleMapsUrl);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Não foi possível abrir o Google Maps')),
+        SnackBar(content: Text('Não foi possível abrir o mapa')),
       );
     }
   }
@@ -457,7 +442,7 @@ class _EventoViewState extends State<EventoView> {
                   ),
                   SizedBox(height: 8),
                   GestureDetector(
-                    onTap: () => _openMap(context, widget.evento.address),
+                    onTap: () => _openMap(widget.evento.address),
                     child: Row(
                       children: [
                         Icon(Icons.location_pin, color: Color(0xFF0DCAF0)),
