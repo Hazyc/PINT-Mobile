@@ -3,12 +3,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../models/Evento.dart';
-import '../pages/MapPage.dart';
 import 'package:intl/intl.dart';
+import '../models/Evento.dart';
 import '../Components/EventoComponents/ChatPageEvento.dart';
 import '../handlers/TokenHandler.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../Components/EventoComponents/EditEventoPage.dart';
 
 String formatarDataHora(String dateTime) {
   DateTime parsedDateTime = DateTime.parse(dateTime);
@@ -28,8 +28,9 @@ class EventoView extends StatefulWidget {
 
 class _EventoViewState extends State<EventoView> {
   bool isRegistered = false;
-  bool isFavorite = false; // Estado para controlar a cor do ícone de favorito
+  bool isFavorite = false;
   late bool canRegister;
+  bool isOrganizer = false;
 
   @override
   void initState() {
@@ -38,83 +39,179 @@ class _EventoViewState extends State<EventoView> {
     DateTime eventDateTime = DateTime.parse(widget.evento.dateTime);
     canRegister = eventDateTime.isAfter(DateTime.now());
     _checkRegistrationStatus();
+    _checkIfOrganizer();
+  }
+
+  Future<void> _checkIfOrganizer() async {
+    try {
+      final token = await TokenHandler().getToken();
+      if (token == null || token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Token de autenticação não encontrado.')),
+        );
+        return;
+      }
+
+      final eventId = widget.evento.id;
+      final url = Uri.parse('https://backendpint-5wnf.onrender.com/evento/verificarcriador/:ID_EVENTO');
+
+      print('URL: $url');
+
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body);
+        if (body['success'] == true) {
+          setState(() {
+            isOrganizer = true;
+          });
+        } else {
+          setState(() {
+            isOrganizer = false;
+          });
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao verificar organizador: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao verificar organizador: $e')),
+      );
+      print('Erro ao verificar organizador: $e');
+    }
   }
 
   Future<void> _checkRegistrationStatus() async {
-    final token = await TokenHandler().getToken();
-    final response = await http.get(
-      Uri.parse('https://backendpint-5wnf.onrender.com/listaparticipantes/checkinscricao/${widget.evento.id}'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    print(response.body);
-    print(response.statusCode);
-    if (response.statusCode == 200) {
-      final body = json.decode(response.body);
-      if (body['success']) {
-        setState(() {
-          isRegistered = body['isRegistered'];
-        });
+    try {
+      final token = await TokenHandler().getToken();
+      if (token == null || token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Token de autenticação não encontrado.')),
+        );
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('https://backendpint-5wnf.onrender.com/listaparticipantes/checkinscricao/${widget.evento.id}'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body);
+        if (body['success']) {
+          setState(() {
+            isRegistered = body['isRegistered'];
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Falha ao verificar inscrição')),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Falha ao verificar inscrição')),
+          SnackBar(content: Text('Erro na comunicação com o servidor')),
         );
       }
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro na comunicação com o servidor')),
+        SnackBar(content: Text('Erro ao verificar inscrição: $e')),
       );
+      print('Erro ao verificar inscrição: $e');
     }
   }
 
   Future<void> _registerForEvent() async {
-    final token = await TokenHandler().getToken();
-    final response = await http.post(
-      Uri.parse('https://backendpint-5wnf.onrender.com/listaparticipantes/entrarEvento/${widget.evento.id}'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    print(response.body);
-    print(response.statusCode);
-    if (response.statusCode == 200) {
-      final body = json.decode(response.body);
-      if (body['success']) {
-        setState(() {
-          isRegistered = true;
-        });
+    try {
+      final token = await TokenHandler().getToken();
+      if (token == null || token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Token de autenticação não encontrado.')),
+        );
+        return;
+      }
+
+      final response = await http.post(
+        Uri.parse('https://backendpint-5wnf.onrender.com/listaparticipantes/entrarEvento/${widget.evento.id}'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body);
+        if (body['success']) {
+          setState(() {
+            isRegistered = true;
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(body['message'])),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(body['message'])),
+          SnackBar(content: Text('Erro na comunicação com o servidor')),
         );
       }
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro na comunicação com o servidor')),
+        SnackBar(content: Text('Erro ao se inscrever no evento: $e')),
       );
+      print('Erro ao se inscrever no evento: $e');
     }
   }
 
   Future<void> _unregisterFromEvent() async {
-    final token = await TokenHandler().getToken();
-    final response = await http.delete(
-      Uri.parse('https://backendpint-5wnf.onrender.com/listaparticipantes/sairEvento/${widget.evento.id}'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    print(response.body);
-    print(response.statusCode);
-    if (response.statusCode == 200) {
-      final body = json.decode(response.body);
-      if (body['success']) {
-        setState(() {
-          isRegistered = false;
-        });
+    try {
+      final token = await TokenHandler().getToken();
+      if (token == null || token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Token de autenticação não encontrado.')),
+        );
+        return;
+      }
+
+      final response = await http.delete(
+        Uri.parse('https://backendpint-5wnf.onrender.com/listaparticipantes/sairEvento/${widget.evento.id}'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body);
+        if (body['success']) {
+          setState(() {
+            isRegistered = false;
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(body['message'])),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(body['message'])),
+          SnackBar(content: Text('Erro na comunicação com o servidor')),
         );
       }
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro na comunicação com o servidor')),
+        SnackBar(content: Text('Erro ao desinscrever do evento: $e')),
       );
+      print('Erro ao desinscrever do evento: $e');
     }
   }
 
@@ -182,25 +279,19 @@ class _EventoViewState extends State<EventoView> {
   }
 
   Future<void> _pickFiles() async {
-    // Solicitar permissão de leitura do armazenamento externo
     if (await Permission.storage.request().isGranted) {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.image,
       );
 
       if (result != null) {
-        // Aqui você pode lidar com os arquivos selecionados
-        print(
-            "Files picked: ${result.files.map((file) => file.name).join(", ")}");
+        print("Files picked: ${result.files.map((file) => file.name).join(", ")}");
       } else {
-        // O usuário cancelou a seleção
         print("No files picked.");
       }
     } else {
-      // Permissão negada
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Permissão de acesso ao armazenamento foi negada.')),
+        SnackBar(content: Text('Permissão de acesso ao armazenamento foi negada.')),
       );
     }
   }
@@ -228,6 +319,14 @@ class _EventoViewState extends State<EventoView> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.evento == null) {
+      return Scaffold(
+        body: Center(
+          child: Text('Erro ao carregar o evento.'),
+        ),
+      );
+    }
+
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
@@ -245,6 +344,13 @@ class _EventoViewState extends State<EventoView> {
                     height: 350,
                     width: double.infinity,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 350,
+                        color: Colors.grey,
+                        child: Center(child: Text('Erro ao carregar imagem')),
+                      );
+                    },
                   ),
                 ),
                 Positioned(
@@ -281,6 +387,27 @@ class _EventoViewState extends State<EventoView> {
                     ),
                   ),
                 ),
+                if (isOrganizer)
+                  Positioned(
+                    top: 40,
+                    right: 70,
+                    child: CircleAvatar(
+                      backgroundColor: Colors.white,
+                      radius: 22,
+                      child: IconButton(
+                        icon: Icon(Icons.edit, color: Color(0xFF0DCAF0)),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EditEventoPage(evento: widget.evento),
+                            ),
+                          );
+                        },
+                        iconSize: 22,
+                      ),
+                    ),
+                  ),
                 Positioned(
                   bottom: 16,
                   right: 16,
@@ -340,7 +467,6 @@ class _EventoViewState extends State<EventoView> {
                           style: TextStyle(
                             fontSize: 16,
                             color: Color(0xFF0DCAF0),
-                            decoration: TextDecoration.underline,
                           ),
                         ),
                       ],
@@ -353,14 +479,13 @@ class _EventoViewState extends State<EventoView> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Subcategoria: ${widget.evento.subcategory}', // Adicionando subcategoria
+                    'Subcategoria: ${widget.evento.subcategory}',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey,
                     ),
                   ),
-                  SizedBox(
-                      height: 16), // Increased space for better readability
+                  SizedBox(height: 16),
                   Row(
                     children: [
                       Text(
@@ -379,8 +504,7 @@ class _EventoViewState extends State<EventoView> {
                       }).toList(),
                     ],
                   ),
-                  SizedBox(
-                      height: 16), // Increased space for better readability
+                  SizedBox(height: 16),
                   Text(
                     'Descrição:',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -400,7 +524,7 @@ class _EventoViewState extends State<EventoView> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isRegistered
                                 ? Colors.green
-                                : Color(0xFF0DCAF0), // Background color
+                                : Color(0xFF0DCAF0),
                           ),
                           child: Text(
                             isRegistered ? 'Inscrito' : 'Inscreve-te no evento',

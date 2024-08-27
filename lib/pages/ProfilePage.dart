@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:app_mobile/handlers/TokenHandler.dart';
+import 'package:app_mobile/models/Evento.dart';
+import 'package:app_mobile/pages/EventoView.dart';
 import 'EditProfilePage.dart';
 
 void main() => runApp(MyApp());
@@ -40,7 +42,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String userCity = '';
   String userAvatarUrl = '';
   String userBannerUrl = '';
-  String userPreferredArea = ''; // Nova variável para área de preferência
+  String userPreferredArea = '';
   TokenHandler tokenHandler = TokenHandler();
 
   @override
@@ -58,6 +60,7 @@ class _ProfilePageState extends State<ProfilePage> {
         return;
       }
 
+      // Busca de dados do usuário
       final tokenResponse = await http.get(
         Uri.parse('https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
         headers: {
@@ -75,12 +78,13 @@ class _ProfilePageState extends State<ProfilePage> {
           userCity = userData['CIDADE']?['NOME_CIDADE'] ?? '';
           userAvatarUrl = userData['Perfil']?['NOME_IMAGEM'] ?? '';
           userBannerUrl = userData['Banner']?['NOME_IMAGEM'] ?? '';
-          userPreferredArea = userData['AREA_PREFERENCIA'] ?? ''; // Adiciona a área de preferência
+          userPreferredArea = userData['AREA_PREFERENCIA'] ?? '';
         });
       } else {
         print('Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
       }
 
+      // Busca de publicações
       final publicationsResponse = await http.get(
         Uri.parse('https://backendpint-5wnf.onrender.com/recomendacoes/listarRecomendacoesUserVisiveis'),
         headers: {
@@ -88,13 +92,15 @@ class _ProfilePageState extends State<ProfilePage> {
         },
       );
 
+      // Busca de eventos
       final eventsResponse = await http.get(
-        Uri.parse('https://backendpint-5wnf.onrender.com/eventos/listarPorUserVisiveis'),
+        Uri.parse('https://backendpint-5wnf.onrender.com/eventos/listarPorUser'),
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
 
+      // Verificação das respostas da API
       if (publicationsResponse.statusCode == 200 && eventsResponse.statusCode == 200) {
         setState(() {
           publications = List<Map<String, dynamic>>.from(json.decode(publicationsResponse.body)['data']);
@@ -132,6 +138,7 @@ class _ProfilePageState extends State<ProfilePage> {
           'title': event['TITULO_EVENTO'].toString(),
           'description': event['DESCRICAO_EVENTO'].toString(),
           'imageUrl': event['IMAGEM']?['NOME_IMAGEM']?.toString() ?? '',
+          'eventId': event['ID_EVENTO'].toString(), // Adiciona o ID do evento
         });
       }
     });
@@ -174,12 +181,40 @@ class _ProfilePageState extends State<ProfilePage> {
       var res = await request.send();
       if (res.statusCode == 200) {
         print('Upload de $type bem-sucedido');
+        _fetchData(); // Atualiza os dados após o upload
       } else {
         print('Falha no upload de $type: ${res.statusCode}');
       }
     } catch (e) {
       print('Erro ao enviar imagem: $e');
     }
+  }
+
+  void _navigateToEventoView(Map<String, dynamic> event) {
+    Evento evento = Evento(
+      id: event['ID_EVENTO'] ?? 0,
+      bannerImage: event['IMAGEM']['NOME_IMAGEM'] ?? '',
+      eventName: event['TITULO_EVENTO'] ?? '',
+      dateTime: event['DATA_HORA_INICIO_EVENTO'] ?? '',
+      address: event['MORADA_EVENTO'] ?? '',
+      category: event['SUBAREA']['AREA']['NOME_AREA'] ?? '',
+      subcategory: event['SUBAREA']['NOME_SUBAREA'] ?? '',
+      lastThreeAttendees: List<String>.from(event['lastThreeAttendees'] ?? []),
+      description: event['DESCRICAO_EVENTO'] ?? '', 
+      organizerId: event['ID_ORGANIZADOR'] ?? 0,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EventoView(
+          evento: evento,
+          onLike: () {
+            print('Evento Curtido!');
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -209,7 +244,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             userAvatarUrl = newAvatar;
                             userName = newName;
                             userDescription = newDescription;
-                            userPreferredArea = newArea; // Atualiza a área de preferência
+                            userPreferredArea = newArea;
                           });
                         },
                       )));
@@ -307,71 +342,80 @@ class _ProfilePageState extends State<ProfilePage> {
               physics: NeverScrollableScrollPhysics(),
               itemCount: items.length,
               itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 8.0, horizontal: 16.0),
-                  child: Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    elevation: 5.0,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(15.0),
-                            topRight: Radius.circular(15.0),
+                return GestureDetector(
+                  onTap: () {
+                    if (!isPublicationsSelected) {
+                      _navigateToEventoView(events[index]);
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 8.0, horizontal: 16.0),
+                    child: Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15.0),
+                      ),
+                      elevation: 5.0,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(15.0),
+                              topRight: Radius.circular(15.0),
+                            ),
+                            child: items[index]['imageUrl']!.isNotEmpty
+                                ? Image.network(
+                                    items[index]['imageUrl']!,
+                                    width: double.infinity,
+                                    height: 150.0,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) {
+                                      return Container(
+                                        width: double.infinity,
+                                        height: 150.0,
+                                        color: Colors.grey,
+                                        child: Icon(Icons.broken_image,
+                                            size: 50.0, color: Colors.white),
+                                      );
+                                    },
+                                  )
+                                : Container(
+                                    width: double.infinity,
+                                    height: 150.0,
+                                    color: Colors.grey,
+                                    child: Icon(Icons.image,
+                                        size: 50.0, color: Colors.white),
+                                  ),
                           ),
-                          child: items[index]['imageUrl']!.isNotEmpty
-                              ? Image.network(
-                                  items[index]['imageUrl']!,
-                                  width: double.infinity,
-                                  height: 150.0,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      width: double.infinity,
-                                      height: 150.0,
-                                      color: Colors.grey,
-                                      child: Icon(Icons.broken_image,
-                                          size: 50.0, color: Colors.white),
-                                    );
-                                  },
-                                )
-                              : Container(
-                                  width: double.infinity,
-                                  height: 150.0,
-                                  color: Colors.grey,
-                                  child: Icon(Icons.image, size: 50.0, color: Colors.white),
+                          Padding(
+                            padding: const EdgeInsets.all(15.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  items[index]['title']!,
+                                  style: TextStyle(
+                                    fontSize: 18.0,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
                                 ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(15.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                items[index]['title']!,
-                                style: TextStyle(
-                                  fontSize: 18.0,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
+                                SizedBox(height: 10.0),
+                                Text(
+                                  items[index]['description']!,
+                                  style: TextStyle(
+                                    fontSize: 14.0,
+                                    color: Colors.black54,
+                                  ),
+                                  textAlign: TextAlign.left,
                                 ),
-                              ),
-                              SizedBox(height: 10.0),
-                              Text(
-                                items[index]['description']!,
-                                style: TextStyle(
-                                  fontSize: 14.0,
-                                  color: Colors.black54,
-                                ),
-                                textAlign: TextAlign.left,
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 );
