@@ -1,5 +1,6 @@
 class Evento {
   final int id;
+  final int albumID;
   final String bannerImage;
   final String eventName;
   final String dateTime;
@@ -12,6 +13,7 @@ class Evento {
 
   Evento({
     required this.id,
+    required this.albumID,
     required this.bannerImage,
     required this.eventName,
     required this.dateTime,
@@ -20,12 +22,13 @@ class Evento {
     required this.subcategory,
     required this.lastThreeAttendees,
     required this.description,
-    required this.organizerId, // Certifique-se de que este campo seja preenchido
+    required this.organizerId,
   });
 
   factory Evento.fromJson(Map<String, dynamic> json) {
     return Evento(
       id: json['ID_EVENTO'] ?? 0,
+      albumID: json['ID_ALBUM'] ?? 0,
       bannerImage: json['IMAGEM']['NOME_IMAGEM'] ?? '',
       eventName: json['TITULO_EVENTO'] ?? '',
       dateTime: json['DATA_HORA_INICIO_EVENTO'] ?? '',
@@ -34,7 +37,7 @@ class Evento {
       subcategory: json['SUBAREA']['NOME_SUBAREA'] ?? '',
       lastThreeAttendees: List<String>.from(json['lastThreeAttendees'] ?? []),
       description: json['DESCRICAO_EVENTO'] ?? '',
-      organizerId: json['ID_ORGANIZADOR'] ?? 0, // Extraia o campo do JSON
+      organizerId: json['ID_ORGANIZADOR'] ?? 0,
     );
   }
 }

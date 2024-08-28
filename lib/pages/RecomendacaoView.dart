@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/Recomendacao.dart';
 import 'package:app_mobile/handlers/TokenHandler.dart';
@@ -27,55 +28,151 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
   double cleanlinessRating = 0;
   double serviceRating = 0;
   double locationRating = 0;
+  List<String> albumImages = [];
+  int displayedImageCount = 6;
+  bool showAllImages = false;
 
   @override
   void initState() {
     super.initState();
     _requestPermission(Permission.storage);
-    _loadAdditionalImages();
     fetchAreaParameters();
+    _loadAlbumImages();
   }
 
-  Future<void> _loadAdditionalImages() async {
-    TokenHandler tokenHandler = TokenHandler();
-    final String? token = await tokenHandler.getToken();
+  void _showMoreImages() {
+    setState(() {
+      displayedImageCount = albumImages.length; // Mostra todas as imagens
+      showAllImages = true;
+    });
+  }
 
-    if (token == null) {
-      print('Token não encontrado');
-      return;
-    }
+  List<String> getDisplayedImages() {
+    return albumImages.take(displayedImageCount).toList();
+  }
 
+  Future<void> _loadAlbumImages() async {
     try {
-      final Uri uri = Uri.parse(
-              'https://backendpint-5wnf.onrender.com/imagens/listarfotosalbumvisivel')
-          .replace(queryParameters: {
-        'ID_ALBUM': widget.recomendacao.idAlbum.toString(),
-      });
+      // Obtendo o token
+      final token = await TokenHandler().getToken();
+      if (token == null || token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Token de autenticação não encontrado.')),
+        );
+        return;
+      }
 
-      final imagensResponse = await http.get(
-        uri,
+      // Verificando o albumID
+      final albumID = widget.recomendacao.idAlbum;
+      print('Album ID: $albumID');
+      if (albumID == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('ID do álbum não encontrado.')),
+        );
+        return;
+      }
+
+      // Formando a URL
+      final url = Uri.parse(
+        'https://backendpint-5wnf.onrender.com/imagens/listarfotosalbum/${widget.recomendacao.idAlbum}',
+      );
+
+      print('Request URL: $url'); // Log da URL
+      print('Token: $token'); // Log do token
+
+      // Enviando a solicitação HTTP
+      final response = await http.get(
+        url,
         headers: {
           'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
         },
       );
 
-      if (imagensResponse.statusCode == 200) {
-        final List<dynamic> imagensData =
-            jsonDecode(imagensResponse.body)['data'];
-        setState(() {
-          additionalImages = imagensData
-              .where((imagem) =>
-                  imagem['NOME_IMAGEM'] != widget.recomendacao.bannerImage)
-              .map((imagem) => imagem['NOME_IMAGEM'] as String)
-              .toList();
-        });
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+
+        if (responseData['success']) {
+          final List<dynamic> imageData = responseData['data'];
+
+          setState(() {
+            albumImages = imageData
+                .map((image) => image['NOME_IMAGEM'] as String)
+                .toList();
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Falha ao carregar as imagens: ${responseData['message'] ?? 'Desconhecido'}'),
+            ),
+          );
+        }
       } else {
-        throw Exception('Failed to load images');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('Erro ao carregar as imagens: ${response.statusCode}'),
+          ),
+        );
       }
-    } catch (error) {
-      print('Erro ao carregar imagens: $error');
-      // Tratar erro conforme necessário
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar as imagens: ${e.toString()}')),
+      );
+    }
+  }
+
+  Future<void> _uploadImage(XFile image) async {
+    try {
+      final token = await TokenHandler().getToken();
+      if (token == null || token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Token de autenticação não encontrado.')),
+        );
+        return;
+      }
+
+      final albumID = widget.recomendacao.idAlbum
+          ?.toString(); // Converte albumID para string
+      if (albumID == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('ID do álbum não encontrado.')),
+        );
+        return;
+      }
+
+      final uri =
+          Uri.parse('https://backendpint-5wnf.onrender.com/imagens/upload');
+      final request = http.MultipartRequest('POST', uri)
+        ..headers['Authorization'] = 'Bearer $token'
+        ..fields['ID_ALBUM'] = albumID
+        ..files.add(await http.MultipartFile.fromPath('imagem', image.path));
+
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      final Map<String, dynamic> responseData = json.decode(responseBody);
+
+      if (response.statusCode == 200 && responseData['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fotos carregadas com sucesso!')),
+        );
+        // Atualize a lista de imagens após o upload
+        _loadAlbumImages();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  'Erro ao carregar fotos: ${responseData['message'] ?? 'Desconhecido'}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar fotos: ${e.toString()}')),
+      );
     }
   }
 
@@ -163,6 +260,59 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
     }
   }
 
+
+  Future<void> _pickFiles() async {
+    final status = await Permission.photos.request();
+
+    if (status.isGranted) {
+      try {
+        final result = await FilePicker.platform.pickFiles(
+          allowMultiple: true,
+          type: FileType.image,
+        );
+
+        if (result != null) {
+          // Obtendo a lista de arquivos selecionados
+          final List<PlatformFile> files = result.files;
+
+          // Fazendo upload de cada imagem selecionada
+          for (var file in files) {
+            final image = XFile(file.path!);
+            await _uploadImage(image); // Envia a imagem selecionada
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Imagens carregadas com sucesso!')),
+          );
+        } else {
+          print("Nenhuma imagem selecionada.");
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Erro ao selecionar imagens: ${e.toString()}')),
+        );
+      }
+    } else if (status.isPermanentlyDenied) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text('Permissão de acesso às fotos foi permanentemente negada.'),
+          action: SnackBarAction(
+            label: 'Configurações',
+            onPressed: () {
+              openAppSettings(); // Abre as configurações do aplicativo
+            },
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Permissão de acesso às fotos foi negada.')),
+      );
+    }
+  }
+
   void _showRatingDialog() {
     showDialog(
       context: context,
@@ -245,40 +395,127 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
     );
   }
 
-  Future<void> _pickFiles() async {
-    if (await _requestPermission(Permission.storage)) {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: true,
-      );
+  Future<void> _requestPermission(Permission permission) async {
+  final status = await permission.request();
+  if (status.isGranted) {
+    return;
+  } else if (status.isPermanentlyDenied) {
+    // Abre as configurações do aplicativo se a permissão for permanentemente negada
+    await openAppSettings();
+  }
+}
 
-      if (result != null) {
-        setState(() {
-          additionalImages.addAll(result.paths.whereType<String>());
-        });
-        // Aqui você pode lidar com os arquivos selecionados
-        print(
-            "Files picked: ${result.files.map((file) => file.name).join(", ")}");
-      } else {
-        // O usuário cancelou a seleção
-        print("No files picked.");
-      }
-    } else {
-      // Permissão negada
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Permissão de acesso ao armazenamento foi negada.')),
-      );
-    }
+  void _showFullImage(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Stack(
+            children: [
+              // Imagem e outras UI
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  color: Colors.black.withOpacity(0.0),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: Hero(
+                          tag: imageUrl,
+                          child: Image.network(
+                            imageUrl,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey,
+                                child: Center(
+                                  child: Icon(Icons.error, color: Colors.red),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        'Toque para fechar',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
-  Future<bool> _requestPermission(Permission permission) async {
-    if (await permission.isGranted) {
-      return true;
-    } else {
-      var result = await permission.request();
-      return result == PermissionStatus.granted;
-    }
+  void _showMoreImagesModal() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        // Calcula as imagens restantes
+        final remainingImages = albumImages.skip(displayedImageCount).toList();
+
+        return Container(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Galeria de Fotos - Mais Imagens:',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Expanded(
+                child: GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 4.0,
+                    mainAxisSpacing: 4.0,
+                  ),
+                  itemCount: remainingImages.length,
+                  itemBuilder: (context, index) {
+                    final imageUrl = remainingImages[index];
+                    return GestureDetector(
+                      onTap: () {
+                        _showFullImage(imageUrl);
+                      },
+                      child: Hero(
+                        tag: imageUrl,
+                        child: Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey,
+                              child: Center(
+                                child: Icon(Icons.error, color: Colors.red),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _showImageDialog(String imagePath) {
@@ -471,43 +708,59 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                     style: TextStyle(fontSize: 16),
                   ),
                   SizedBox(height: 16),
-                  if (additionalImages.isNotEmpty)
+                  Text(
+                    'Galeria de Fotos:',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  if (albumImages.isNotEmpty)
                     Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Mais Imagens:',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 8),
-                        Container(
-                          height: 100, // Altura das imagens
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: additionalImages.length,
-                            itemBuilder: (context, index) {
-                              return GestureDetector(
-                                onTap: () =>
-                                    _showImageDialog(additionalImages[index]),
-                                child: Container(
-                                  width: 100,
-                                  margin: EdgeInsets.symmetric(horizontal: 5.0),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(15),
-                                    image: DecorationImage(
-                                      image:
-                                          NetworkImage(additionalImages[index]),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
+                        GridView.builder(
+                          physics: NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 4.0,
+                            mainAxisSpacing: 4.0,
                           ),
+                          itemCount: getDisplayedImages().length,
+                          itemBuilder: (context, index) {
+                            final imageUrl = getDisplayedImages()[index];
+                            return GestureDetector(
+                              onTap: () {
+                                _showFullImage(imageUrl);
+                              },
+                              child: Hero(
+                                tag: imageUrl,
+                                child: Image.network(
+                                  imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey,
+                                      child: Center(
+                                        child: Icon(Icons.error,
+                                            color: Colors.red),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            );
+                          },
                         ),
+                        if (!showAllImages &&
+                            albumImages.length > displayedImageCount)
+                          TextButton(
+                            onPressed: _showMoreImagesModal,
+                            child: Text(
+                                'Ver mais (${albumImages.length - displayedImageCount} restantes)'),
+                          ),
                       ],
-                    ),
+                    )
+                  else
+                    Text('Nenhuma imagem disponível.'),
                   SizedBox(height: 16),
                   Center(
                     child: Row(

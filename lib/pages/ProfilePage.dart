@@ -193,6 +193,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void _navigateToEventoView(Map<String, dynamic> event) {
     Evento evento = Evento(
       id: event['ID_EVENTO'] ?? 0,
+      albumID: event['ID_ALBUM'] ?? '',
       bannerImage: event['IMAGEM']['NOME_IMAGEM'] ?? '',
       eventName: event['TITULO_EVENTO'] ?? '',
       dateTime: event['DATA_HORA_INICIO_EVENTO'] ?? '',
