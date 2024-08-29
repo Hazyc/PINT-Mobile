@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:app_mobile/handlers/TokenHandler.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 
 class ChatPageEvento extends StatefulWidget {
   final String title;
@@ -21,6 +22,7 @@ class _ChatPageState extends State<ChatPageEvento> {
   final TextEditingController _controller = TextEditingController();
   String currentUser = ''; // Nome do usuário atual (será obtido na inicialização)
   final ScrollController _scrollController = ScrollController();
+  Timer? _timer;
 
   @override
   void initState() {
@@ -28,6 +30,13 @@ class _ChatPageState extends State<ChatPageEvento> {
     // Imprimir o ID do evento recebido
     print('ID do evento recebido: ${widget.eventoId}');
     fetchMessages();
+    _timer = Timer.periodic(Duration(seconds: 3), (Timer t) => fetchMessages());
+  }
+
+  @override 
+    void dispose() {
+    _timer?.cancel(); // Cancela o timer quando a página é descartada
+    super.dispose();
   }
 
   // Função para buscar as mensagens da API
