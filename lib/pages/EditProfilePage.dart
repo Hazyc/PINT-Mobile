@@ -132,18 +132,36 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ? 'https://backendpint-5wnf.onrender.com/areasinteresse/update'
           : 'https://backendpint-5wnf.onrender.com/areasinteresse/create';
 
-      final response = await http.put(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode({
-          'ID_AREA': _selectedAreaId,
-          // Inclua outras informações necessárias, como ID do usuário, se necessário
-        }),
-      );
+      var response;
 
+      if(hasInterest)
+      {
+        response = await http.put(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: json.encode({
+            'ID_AREA': _selectedAreaId,
+            // Inclua outras informações necessárias, como ID do usuário, se necessário
+          }),
+        );
+      } else {
+        response = await http.post(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: json.encode({
+            'ID_AREA': _selectedAreaId,
+            // Inclua outras informações necessárias, como ID do usuário, se necessário
+          }),
+        );
+      }
+
+      
       if (response.statusCode == 200) {
         print(hasInterest
             ? 'Área de interesse atualizada com sucesso'

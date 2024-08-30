@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:app_mobile/pages/LoginScreenProcess/ChangePasswordAfterRecovery.dart';
 import 'package:flutter/material.dart';
 import '../handlers/TokenHandler.dart';
 import 'package:http/http.dart' as http;
@@ -7,6 +8,7 @@ import '../pages/LoginScreenProcess/RecoverPasswordView.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import '../pages/LoginScreenProcess/AccountRegisterGoogleFacebook.dart';
+import './LoginScreenProcess/ChangePasswordAfterRecovery.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -32,7 +34,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-        print('login cancelado pelo user');
+        print('Login cancelado pelo usuário');
         return;
       }
 
@@ -48,12 +50,13 @@ class _LoginPageState extends State<LoginPage> {
         }),
       );
 
+
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
 
         if (responseData['token'] != null) {
           TokenHandler().saveToken(responseData['token']);
-          Navigator.pushReplacementNamed(context, '/home'); 
+          Navigator.pushReplacementNamed(context, '/home');
         } else {
           // Redirecionar para a página de criação de conta com os dados preenchidos
           Navigator.push(
@@ -67,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
           );
         }
       } else {
-        print('Erro na comunicaçao com o backend');
+        print('Erro na comunicação com o backend');
       }
     } catch (error) {
       print('Erro ao fazer login com Google: $error');
@@ -77,13 +80,14 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signInWithFacebook() async {
     try {
       final LoginResult result = await FacebookAuth.instance.login();
-
+      
       if (result.status == LoginStatus.success) {
         final AccessToken accessToken = result.accessToken!;
         final userData = await FacebookAuth.instance.getUserData(fields: "email,name,picture");
 
         final String id = userData['id'];
         final String email = userData['email'];
+        final String displayName = userData['name'];
         final String picture = userData['picture']['data']['url'];
 
         // Enviar os dados da conta para o backend
@@ -92,8 +96,9 @@ class _LoginPageState extends State<LoginPage> {
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
             'id': id,
+            'displayName': displayName,
             'email': email,
-            'picture': picture,
+            'photoUrl': picture,
           }),
         );
 
@@ -116,7 +121,7 @@ class _LoginPageState extends State<LoginPage> {
             );
           }
         } else {
-          print('Erro na comunicaçao com o backend');
+          print('Erro na comunicação com o backend');
         }
       } else {
         print('Falha ao fazer login no Facebook: ${result.status}');
@@ -142,47 +147,72 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _handleSignIn() async {
-    final String email = emailController.text;
-    final String password = passwordController.text;
+  final String email = emailController.text;
+  final String password = passwordController.text;
 
-    if (email.isEmpty || password.isEmpty) {
-      setState(() {
-        mensagem = "Email e senha são obrigatórios";
-      });
-      return;
-    }
+  if (email.isEmpty || password.isEmpty) {
+    setState(() {
+      mensagem = "Email e senha são obrigatórios";
+    });
+    return;
+  }
 
-    try {
-      final response = await http.post(
-        Uri.parse('https://backendpint-5wnf.onrender.com/utilizadores/loginmobile'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'EMAIL_UTILIZADOR': email,
-          'PASSWORD_UTILIZADOR': password,
-        }),
+  try {
+    // Envia a solicitação de login
+    final response = await http.post(
+      Uri.parse('https://backendpint-5wnf.onrender.com/utilizadores/loginmobile'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'EMAIL_UTILIZADOR': email,
+        'PASSWORD_UTILIZADOR': password,
+      }),
+    );
+
+    
+    final responseData = jsonDecode(response.body);
+    print(responseData);
+
+    if (responseData['success']) {
+      final token = responseData['token'];
+      await TokenHandler().saveToken(token);
+      
+      // Verifica se é a primeira vez que o usuário faz login
+
+      final primeiravezResponse = await http.get(
+        Uri.parse('https://backendpint-5wnf.onrender.com/utilizadores/verificarprimeiravez'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token'
+        },
       );
-      final responseData = jsonDecode(response.body);
 
-      if (responseData['success']) {
-        final token = responseData['token'];
-        await TokenHandler().saveToken(token);
-        // Navega para a página inicial somente se o login for bem-sucedido
+      final primeiravezData = jsonDecode(primeiravezResponse.body);
+
+      if (primeiravezData['success'] == false) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => BarraDeNavegacao()),
         );
       } else {
-        setState(() {
-          mensagem = responseData['message'] ?? "Credenciais inválidas";
-        });
+        await TokenHandler().deleteToken();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => ChangePasswordPage(email: email)),
+        );
       }
-    } catch (e) {
-      print("Erro ao fazer login: $e");
+    } else {
       setState(() {
-        mensagem = "Erro ao fazer login";
+        mensagem = responseData['message'] ?? "Credenciais inválidas";
       });
     }
+  } catch (e) {
+    print("Erro ao fazer login: $e");
+    setState(() {
+      mensagem = "Erro ao fazer login";
+    });
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -302,7 +332,7 @@ class _LoginPageState extends State<LoginPage> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 10.0),
                           child: Text(
-                            'Ou continua com',
+                            'Ou continue com',
                             style: TextStyle(
                               color: Colors.grey[700],
                               fontSize: 16,
@@ -327,7 +357,7 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       GestureDetector(
                         child: Image.asset('assets/google.png', width: 50, height: 50),
-                        onTap: () async  {
+                        onTap: () async {
                           await _signInWithGoogle();
                         },
                       ),
