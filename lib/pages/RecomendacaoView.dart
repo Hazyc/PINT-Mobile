@@ -38,6 +38,25 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
     _requestPermission(Permission.storage);
     fetchAreaParameters();
     _loadAlbumImages();
+    fetchExistingReview();
+  }
+
+  double? existingCleanlinessRating;
+  double? existingServiceRating;
+  double? existingLocationRating;
+
+  Future<void> fetchExistingReview() async {
+    final existingReview = await _getExistingReview();
+    if (existingReview != null) {
+      setState(() {
+        existingCleanlinessRating =
+            existingReview['AVALIACAO_PARAMETRO_1']?.toDouble();
+        existingServiceRating =
+            existingReview['AVALIACAO_PARAMETRO_2']?.toDouble();
+        existingLocationRating =
+            existingReview['AVALIACAO_PARAMETRO_3']?.toDouble();
+      });
+    }
   }
 
   void _showMoreImages() {
@@ -224,42 +243,104 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
   }
 
   Future<void> enviarAvaliacoesParaAPI() async {
-    TokenHandler tokenHandler = TokenHandler();
-    final String? token = await tokenHandler.getToken();
+    final existingReview = await _getExistingReview();
+    final token = await TokenHandler().getToken();
 
-    if (token == null) {
+    if (token == null || token.isEmpty) {
       print('Token não encontrado');
       return;
     }
 
+    final Uri url;
+    final Map<String, dynamic> body;
+
+    if (existingReview != null) {
+      // Atualizar avaliação existente
+      url = Uri.parse(
+          'https://backendpint-5wnf.onrender.com/avaliacoes/update/${existingReview['ID_AVALIACAO']}');
+      body = {
+        'AVALIACAO_PARAMETRO_1': cleanlinessRating,
+        'AVALIACAO_PARAMETRO_2': serviceRating,
+        'AVALIACAO_PARAMETRO_3': locationRating,
+      };
+    } else {
+      // Criar nova avaliação
+      url =
+          Uri.parse('https://backendpint-5wnf.onrender.com/avaliacoes/create');
+      body = {
+        'AVALIACAO_PARAMETRO_1': cleanlinessRating,
+        'AVALIACAO_PARAMETRO_2': serviceRating,
+        'AVALIACAO_PARAMETRO_3': locationRating,
+        'ID_RECOMENDACAO': widget.recomendacao.idRecomendacao,
+      };
+    }
+
     try {
-      final response = await http.post(
-        Uri.parse(
-            'https://backendpint-5wnf.onrender.com/avaliacoes/create'), // URL da sua API para enviar avaliações
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'AVALIACAO_PARAMETRO_1': cleanlinessRating,
-          'AVALIACAO_PARAMETRO_2': serviceRating,
-          'AVALIACAO_PARAMETRO_3': locationRating,
-          'ID_RECOMENDACAO': widget.recomendacao.idRecomendacao,
-        }),
-      );
+      final response = await (existingReview != null
+          ? http.put(
+              url,
+              headers: {
+                'Authorization': 'Bearer $token',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode(body),
+            )
+          : http.post(
+              url,
+              headers: {
+                'Authorization': 'Bearer $token',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode(body),
+            ));
 
       if (response.statusCode == 200) {
-        print('Avaliações enviadas com sucesso');
+        print('Avaliação enviada com sucesso');
         // Aqui você pode lidar com a resposta da API conforme necessário
       } else {
-        throw Exception('Falha ao enviar avaliações');
+        throw Exception('Falha ao enviar avaliação');
       }
     } catch (error) {
-      print('Erro ao enviar avaliações: $error');
+      print('Erro ao enviar avaliação: $error');
       // Tratar o erro conforme necessário
     }
   }
 
+  Future<Map<String, dynamic>?> _getExistingReview() async {
+    final token = await TokenHandler().getToken();
+
+    if (token == null || token.isEmpty) {
+      print('Token não encontrado');
+      return null;
+    }
+
+    final url = Uri.parse(
+        'https://backendpint-5wnf.onrender.com/avaliacoes/listarPorRecomendacaoEUser/${widget.recomendacao.idRecomendacao}');
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> reviews = jsonDecode(response.body)['data'];
+        if (reviews.isNotEmpty) {
+          return reviews.first;
+        }
+      } else {
+        throw Exception('Falha ao obter avaliação existente');
+      }
+    } catch (error) {
+      print('Erro ao obter avaliação existente: $error');
+      // Tratar o erro conforme necessário
+    }
+
+    return null;
+  }
 
   Future<void> _pickFiles() async {
     final status = await Permission.photos.request();
@@ -324,7 +405,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
             children: [
               Text(avaliacaoParametros[0]),
               RatingBar.builder(
-                initialRating: 0,
+                initialRating: existingCleanlinessRating ?? 0,
                 minRating: 0,
                 direction: Axis.horizontal,
                 allowHalfRating: true,
@@ -341,7 +422,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
               SizedBox(height: 8),
               Text(avaliacaoParametros[1]),
               RatingBar.builder(
-                initialRating: 0,
+                initialRating: existingServiceRating ?? 0,
                 minRating: 0,
                 direction: Axis.horizontal,
                 allowHalfRating: true,
@@ -358,7 +439,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
               SizedBox(height: 8),
               Text(avaliacaoParametros[2]),
               RatingBar.builder(
-                initialRating: 0,
+                initialRating: existingLocationRating ?? 0,
                 minRating: 0,
                 direction: Axis.horizontal,
                 allowHalfRating: true,
@@ -396,14 +477,14 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
   }
 
   Future<void> _requestPermission(Permission permission) async {
-  final status = await permission.request();
-  if (status.isGranted) {
-    return;
-  } else if (status.isPermanentlyDenied) {
-    // Abre as configurações do aplicativo se a permissão for permanentemente negada
-    await openAppSettings();
+    final status = await permission.request();
+    if (status.isGranted) {
+      return;
+    } else if (status.isPermanentlyDenied) {
+      // Abre as configurações do aplicativo se a permissão for permanentemente negada
+      await openAppSettings();
+    }
   }
-}
 
   void _showFullImage(String imageUrl) {
     showDialog(

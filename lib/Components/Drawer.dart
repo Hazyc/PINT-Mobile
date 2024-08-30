@@ -24,7 +24,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
   String avatarUrl = ''; // User avatar URL
   String userName = ''; // User name
   String userEmail = ''; // User email
-  List<Map<String, dynamic>> areasOfInterest = []; // Areas of interest fetched from API
+  List<Map<String, dynamic>> areasOfInterest =
+      []; // Areas of interest fetched from API
 
   @override
   void initState() {
@@ -42,7 +43,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
       }
 
       final response = await http.get(
-        Uri.parse('https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
         headers: {'x-access-token': 'Bearer $token'},
       );
 
@@ -52,8 +54,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
         if (data['success']) {
           final user = data['data'];
           setState(() {
-            
-            avatarUrl = user['Perfil'] != null ? user['Perfil']['NOME_IMAGEM'] : '';
+            avatarUrl =
+                user['Perfil'] != null ? user['Perfil']['NOME_IMAGEM'] : '';
             userName = user['NOME_UTILIZADOR'];
             userEmail = user['EMAIL_UTILIZADOR'];
           });
@@ -61,7 +63,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
           _showError('Failed to load user data: ${data['message']}');
         }
       } else {
-        _showError('Failed to load user data. Status code: ${response.statusCode}');
+        _showError(
+            'Failed to load user data. Status code: ${response.statusCode}');
       }
     } catch (e) {
       _showError('Failed to load user data. Error: $e');
@@ -69,49 +72,54 @@ class _CustomDrawerState extends State<CustomDrawer> {
   }
 
   Future<void> _fetchAreasOfInterest() async {
-  try {
-    final token = await TokenHandler().getToken();
-    if (token == null) {
-      _showError('Token is null. Please log in again.');
-      return;
-    }
-
-    // Realiza a requisição para a API
-    final response = await http.get(
-      Uri.parse('https://backendpint-5wnf.onrender.com/areasinteresse/listarporuser'),
-      headers: {'x-access-token': 'Bearer $token'},
-    );
-
-    // Imprime o corpo da resposta para depuração
-    print("Response body: ${response.body}");
-
-    // Verifica o status da resposta
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      print(data);
-      // Exemplo de estrutura de dados que você pode estar recebendo
-      if (data['success']) {
-        // Ajuste conforme a estrutura real da resposta
-        setState(() {
-          areasOfInterest = List<Map<String, dynamic>>.from(data['data'].map((area) => {
-            'NOME_AREA': area['AREA']['NOME_AREA'] ?? 'Nome não disponível',
-            'COR_AREA': area['AREA']['COR_AREA'] ?? 'Cor não disponível',
-          }));
-        });
-      } else {
-        _showError('Failed to load areas of interest: ${data['message']}');
+    try {
+      final token = await TokenHandler().getToken();
+      if (token == null) {
+        _showError('Token is null. Please log in again.');
+        return;
       }
-    } else {
-      _showError('Failed to load areas of interest. Status code: ${response.statusCode}');
-    }
-  } catch (e) {
-    _showError('Failed to load areas of interest. Error: $e');
-  }
-}
 
+      // Realiza a requisição para a API
+      final response = await http.get(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/areasinteresse/listarporuser'),
+        headers: {'x-access-token': 'Bearer $token'},
+      );
+
+      // Imprime o corpo da resposta para depuração
+      print("Response body: ${response.body}");
+
+      // Verifica o status da resposta
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print(data);
+        // Exemplo de estrutura de dados que você pode estar recebendo
+        if (data['success']) {
+          // Ajuste conforme a estrutura real da resposta
+          setState(() {
+            areasOfInterest =
+                List<Map<String, dynamic>>.from(data['data'].map((area) => {
+                      'NOME_AREA':
+                          area['AREA']['NOME_AREA'] ?? 'Nome não disponível',
+                      'COR_AREA':
+                          area['AREA']['COR_AREA'] ?? 'Cor não disponível',
+                    }));
+          });
+        } else {
+          _showError('Failed to load areas of interest: ${data['message']}');
+        }
+      } else {
+        _showError(
+            'Failed to load areas of interest. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showError('Failed to load areas of interest. Error: $e');
+    }
+  }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
     print(message); // Also print the error for debugging purposes
   }
 
@@ -174,7 +182,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                       ),
                     ),
                   );
-                } else if (snapshot.connectionState == ConnectionState.done && snapshot.hasError) {
+                } else if (snapshot.connectionState == ConnectionState.done &&
+                    snapshot.hasError) {
                   return DrawerHeader(
                     decoration: BoxDecoration(
                       color: Color(0xFF0DCAF0),
@@ -197,8 +206,12 @@ class _CustomDrawerState extends State<CustomDrawer> {
                       children: [
                         CircleAvatar(
                           radius: 30,
-                          backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-                          child: avatarUrl.isEmpty ? Icon(Icons.person, size: 50) : null,
+                          backgroundImage: avatarUrl.isNotEmpty
+                              ? NetworkImage(avatarUrl)
+                              : null,
+                          child: avatarUrl.isEmpty
+                              ? Icon(Icons.person, size: 50)
+                              : null,
                         ),
                         SizedBox(height: 15),
                         Text(
@@ -208,7 +221,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                             fontSize: 20.0,
                             fontWeight: FontWeight.bold,
                           ),
-                          overflow: TextOverflow.ellipsis, // Ellipsis for long text
+                          overflow:
+                              TextOverflow.ellipsis, // Ellipsis for long text
                         ),
                         Text(
                           userEmail,
@@ -216,7 +230,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                             color: Colors.white,
                             fontSize: 14.0,
                           ),
-                          overflow: TextOverflow.ellipsis, // Ellipsis for long text
+                          overflow:
+                              TextOverflow.ellipsis, // Ellipsis for long text
                         ),
                       ],
                     ),
@@ -225,31 +240,35 @@ class _CustomDrawerState extends State<CustomDrawer> {
               },
             ),
             ListTile(
-              title: Text('Áreas de Interesse', style: TextStyle(color: Colors.grey)),
+              title: Text('Áreas de Interesse',
+                  style: TextStyle(color: Colors.grey)),
             ),
-            
             FutureBuilder(
               future: _areasFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator());
-                } else if (snapshot.connectionState == ConnectionState.done && snapshot.hasError) {
+                } else if (snapshot.connectionState == ConnectionState.done &&
+                    snapshot.hasError) {
                   return Center(child: Text('Error loading areas'));
                 } else {
                   return Column(
-                    children: areasOfInterest.map((area) => ListTile(
-                      leading: Icon(Icons.circle, color: _parseColor(area['COR_AREA'])),
-                      title: Text(area['NOME_AREA']),
-                      onTap: () {
-                        Navigator.pop(context); // Close the drawer
-                        widget.onAreaTap(area['NOME_AREA']); // Call the callback function
-                      },
-                    )).toList(),
+                    children: areasOfInterest
+                        .map((area) => ListTile(
+                              leading: Icon(Icons.circle,
+                                  color: _parseColor(area['COR_AREA'])),
+                              title: Text(area['NOME_AREA']),
+                              onTap: () {
+                                Navigator.pop(context); // Close the drawer
+                                widget.onAreaTap(area[
+                                    'NOME_AREA']); // Call the callback function
+                              },
+                            ))
+                        .toList(),
                   );
                 }
               },
             ),
-            
             Divider(),
             ListTile(
               leading: Icon(Icons.calendar_today),
@@ -259,7 +278,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => CalendarioPage(eventos: widget.eventos), // Passa os eventos
+                    builder: (context) => CalendarioPage(), // Passa os eventos
                   ),
                 );
               },
@@ -292,7 +311,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
               leading: Icon(Icons.exit_to_app),
               title: Text('Sair'),
               onTap: () {
-                _showLogoutConfirmationDialog(context); // Show confirmation dialog
+                _showLogoutConfirmationDialog(
+                    context); // Show confirmation dialog
               },
             ),
           ],
