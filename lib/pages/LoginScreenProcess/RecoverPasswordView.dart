@@ -4,6 +4,7 @@ import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../Components/LoginPageComponents/botao.dart';
+import 'ChangePasswordAfterRecovery.dart';
 
 class PasswordRecoveryPage extends StatefulWidget {
   const PasswordRecoveryPage({Key? key}) : super(key: key);
@@ -100,7 +101,14 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
     if (_otpController.text == _storedOtp) {
       // Código OTP correto, prossiga com a recuperação da senha
       print('Código verificado com sucesso');
-      // Navegue para a próxima página ou faça o que for necessário
+      Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChangePasswordPage(
+          email: _emailController.text,
+        ),
+      ),
+    );
     } else {
       // Código OTP incorreto
       ScaffoldMessenger.of(context).showSnackBar(

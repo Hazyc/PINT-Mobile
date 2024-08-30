@@ -123,9 +123,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
             ElevatedButton(
               onPressed: _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: Color(0xFF0DCAF0),
               ),
-              child: Text('Confirmar'),
+              child: Text('Confirmar', style: TextStyle(fontSize: 16, color: Colors.white)),
             ),
           ],
         ),

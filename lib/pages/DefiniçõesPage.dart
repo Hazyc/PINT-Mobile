@@ -47,7 +47,7 @@ class _SettingsPageState extends State<SettingsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                buildSettingsOption(
+                /*buildSettingsOption(
                   'Modo Noturno',
                   'Ative o modo noturno da aplicação.',
                   Switch(
@@ -62,7 +62,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     inactiveTrackColor: Colors.grey[300],
                   ),
                   Colors.blue, // Cor do título
-                ),
+                ),*/
                 SizedBox(height: 16),
                 buildSettingsOption(
                   'Notificações',

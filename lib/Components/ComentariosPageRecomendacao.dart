@@ -17,6 +17,8 @@ class _ComentariosPageState extends State<ComentariosPage> {
   Map<String, dynamic>? userData;
   TokenHandler tokenHandler = TokenHandler();
   final TextEditingController _commentController = TextEditingController();
+  final TextEditingController _reportController =
+      TextEditingController(); // Controller para o motivo do report
   bool _isLoading = true;
 
   @override
@@ -35,7 +37,8 @@ class _ComentariosPageState extends State<ComentariosPage> {
       }
 
       final response = await http.get(
-        Uri.parse('https://backendpint-5wnf.onrender.com/utilizadores/getByToken'),
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/utilizadores/getByToken'),
         headers: {'x-access-token': 'Bearer $token'},
       );
       print('Response status: ${response.statusCode}');
@@ -64,7 +67,8 @@ class _ComentariosPageState extends State<ComentariosPage> {
 
       print(widget.id);
       final response = await http.get(
-        Uri.parse('https://backendpint-5wnf.onrender.com/comentariosrecomendacaoutilizador/listarPorRecomendacaoVisiveis/${widget.id}'),
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/comentariosrecomendacaoutilizador/listarPorRecomendacaoVisiveis/${widget.id}'),
         headers: {'x-access-token': 'Bearer $token'},
       );
 
@@ -99,7 +103,8 @@ class _ComentariosPageState extends State<ComentariosPage> {
         }
 
         final response = await http.post(
-          Uri.parse('https://backendpint-5wnf.onrender.com/comentariosrecomendacaoutilizador/create'),
+          Uri.parse(
+              'https://backendpint-5wnf.onrender.com/comentariosrecomendacaoutilizador/create'),
           headers: {
             'Content-Type': 'application/json',
             'x-access-token': 'Bearer $token',
@@ -117,10 +122,13 @@ class _ComentariosPageState extends State<ComentariosPage> {
           setState(() {
             comments.add({
               'UTILIZADOR': {
-                'Perfil': {'NOME_IMAGEM': userData!['Perfil']['NOME_IMAGEM'] ?? ''},
+                'Perfil': {
+                  'NOME_IMAGEM': userData!['Perfil']['NOME_IMAGEM'] ?? ''
+                },
                 'NOME_UTILIZADOR': userData!['NOME_UTILIZADOR'] ?? ''
               },
               'COMENTARIO': {'CONTEUDO_COMENTARIO': _commentController.text},
+              'LIKED': false, // Novo campo para controle de likes
             });
             _commentController.clear();
           });
@@ -166,6 +174,125 @@ class _ComentariosPageState extends State<ComentariosPage> {
     // Ensure you update the state and remove the comment from the list
   }
 
+  void showReportDialog(int index) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Reportar Comentário'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Deseja realmente reportar este comentário?'),
+              SizedBox(height: 10),
+              TextField(
+                controller: _reportController,
+                decoration: InputDecoration(
+                  hintText: 'Descreva o motivo do report',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                reportComment(index);
+                Navigator.of(context).pop();
+              },
+              child: Text('Reportar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> reportComment(int index) async {
+    if (_reportController.text.isEmpty) {
+      print('Motivo do report não pode ser vazio');
+      return;
+    }
+
+    try {
+      final token = await tokenHandler.getToken();
+      if (token == null) {
+        print('Token is null. Please log in again.');
+        return;
+      }
+
+      final comment = comments[index];
+      final response = await http.post(
+        Uri.parse('https://backendpint-5wnf.onrender.com/reports/create'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-access-token': 'Bearer $token',
+        },
+        body: json.encode({
+          'ID_COMENTARIO': comment['COMENTARIO']['ID_COMENTARIO'],
+          'TITULO_REPORT':
+              'Report de Comentário na Recomendação ${comment['RECOMENDACAO']['TITULO_RECOMENDACAO']}',
+          'DESCRICAO_REPORT': _reportController.text,
+        }),
+      );
+
+      print(comment['COMENTARIO']['ID_COMENTARIO']);
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      final responseBody = json.decode(response.body);
+
+      if (response.statusCode == 200 && responseBody['success'] == true) {
+        print('Report enviado com sucesso.');
+        _reportController.clear();
+      } else {
+        print('Falha ao enviar report: ${responseBody['message']}');
+      }
+    } catch (e) {
+      print('Erro ao reportar comentário: $e');
+    }
+  }
+
+  Future<void> toggleLike(int index) async {
+    try {
+      final comment = comments[index];
+      final response = await http.post(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/avaliacoes/addOrUpdateLike'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-access-token': 'Bearer ${await tokenHandler.getToken()}',
+        },
+        body: json.encode({
+          'ID_COMENTARIO': comment['COMENTARIO']['ID_COMENTARIO'],
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseBody = json.decode(response.body);
+        if (responseBody['success']) {
+          setState(() {
+            comments[index]['LIKED'] = !comments[index]['LIKED'];
+            comments[index]['LIKES_COUNT'] = responseBody['likesCount'];
+          });
+        } else {
+          print('Failed to toggle like: ${responseBody['message']}');
+        }
+      } else {
+        print('Failed to toggle like. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error toggling like: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -182,16 +309,45 @@ class _ComentariosPageState extends State<ComentariosPage> {
                     itemCount: comments.length,
                     itemBuilder: (context, index) {
                       final comment = comments[index];
+                      final liked = comment['LIKED'] ?? false;
                       return GestureDetector(
                         onLongPress: () {
                           showDeleteConfirmationDialog(index);
                         },
                         child: ListTile(
                           leading: CircleAvatar(
-                            backgroundImage: NetworkImage(comment['UTILIZADOR']?['Perfil']?['NOME_IMAGEM'] ?? ''),
+                            backgroundImage: NetworkImage(comment['UTILIZADOR']
+                                    ?['Perfil']?['NOME_IMAGEM'] ??
+                                ''),
                           ),
-                          title: Text(comment['UTILIZADOR']?['NOME_UTILIZADOR'] ?? ''),
-                          subtitle: Text(comment['COMENTARIO']?['CONTEUDO_COMENTARIO'] ?? ''),
+                          title: Text(
+                              comment['UTILIZADOR']?['NOME_UTILIZADOR'] ?? ''),
+                          subtitle: Text(comment['COMENTARIO']
+                                  ?['CONTEUDO_COMENTARIO'] ??
+                              ''),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  liked
+                                      ? Icons.thumb_up
+                                      : Icons.thumb_up_alt_outlined,
+                                  color: liked ? Colors.blue : null,
+                                ),
+                                onPressed: () {
+                                  toggleLike(index);
+                                },
+                              ),
+                              Text('${comment['LIKES_COUNT'] ?? 0}'),
+                              IconButton(
+                                icon: Icon(Icons.flag),
+                                onPressed: () {
+                                  showReportDialog(index);
+                                },
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -205,15 +361,13 @@ class _ComentariosPageState extends State<ComentariosPage> {
                   child: TextField(
                     controller: _commentController,
                     decoration: InputDecoration(
-                      hintText: 'Adicione um comentário...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                      hintText: 'Escreva um comentário...',
+                      border: OutlineInputBorder(),
                     ),
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.send, color: Color(0xFF0DCAF0)),
+                  icon: Icon(Icons.send),
                   onPressed: addComment,
                 ),
               ],
