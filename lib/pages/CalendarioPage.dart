@@ -142,7 +142,7 @@ class _CalendarioPageState extends State<CalendarioPage> {
                               ),
                               title: Text(evento.eventName),
                               subtitle: Text(
-                                '${DateFormat('HH:mm').format(dateTime)} - ${evento.address}',
+                                '${DateFormat('HH:mm').format(dateTime)} - ${evento.address} - ${evento.subcategory}',
                               ),
                               onTap: () {
                                 Navigator.push(

@@ -12,13 +12,16 @@ class AccountRegisterGoogleFacebook extends StatefulWidget {
   AccountRegisterGoogleFacebook({required this.email, this.initialAvatarUrl});
 
   @override
-  _AccountRegisterGoogleFacebook createState() => _AccountRegisterGoogleFacebook();
+  _AccountRegisterGoogleFacebook createState() =>
+      _AccountRegisterGoogleFacebook();
 }
 
-class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook> {
+class _AccountRegisterGoogleFacebook
+    extends State<AccountRegisterGoogleFacebook> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
   File? _avatarImage;
   final ImagePicker _picker = ImagePicker();
   String? selectedCity;
@@ -38,7 +41,8 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
 
       if (response.statusCode == 200) {
         List<dynamic> data = json.decode(response.body)['data'];
-        List<String> listaCidades = data.map((cidade) => cidade['NOME_CIDADE'].toString()).toList();
+        List<String> listaCidades =
+            data.map((cidade) => cidade['NOME_CIDADE'].toString()).toList();
 
         setState(() {
           cidades = listaCidades;
@@ -91,7 +95,7 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
   }
 
   void _navigateToContaCriadaPage() {
-    Navigator.push(
+    Navigator.pushAndRemoveUntil(
       context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => LoginPage(),
@@ -100,7 +104,8 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
           const end = Offset.zero;
           const curve = Curves.easeInOut;
 
-          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var tween =
+              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
           var offsetAnimation = animation.drive(tween);
 
           return SlideTransition(
@@ -109,6 +114,8 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
           );
         },
       ),
+      (Route<dynamic> route) =>
+          false, // Esta linha remove todas as rotas anteriores
     );
   }
 
@@ -144,7 +151,8 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
           ),
           filled: true,
           fillColor: Colors.grey[200],
-          contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
         ),
       ),
     );
@@ -174,7 +182,8 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
           ),
           filled: true,
           fillColor: Colors.grey[200],
-          contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
         ),
       ),
     );
@@ -194,7 +203,8 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
     }
 
     try {
-      final String url = 'https://backendpint-5wnf.onrender.com/utilizadores/updatemobile';
+      final String url =
+          'https://backendpint-5wnf.onrender.com/utilizadores/updatemobile';
       final response = await http.put(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
@@ -222,7 +232,8 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
     } catch (e) {
       print('Erro ao atualizar utilizador: $e');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Erro ao atualizar utilizador. Tente novamente mais tarde.'),
+        content:
+            Text('Erro ao atualizar utilizador. Tente novamente mais tarde.'),
         backgroundColor: Colors.red,
       ));
     }
@@ -250,14 +261,16 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
           ),
           SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Align(
                     alignment: Alignment.topLeft,
                     child: IconButton(
-                      icon: Icon(Icons.arrow_back, color: Colors.black, size: 30),
+                      icon:
+                          Icon(Icons.arrow_back, color: Colors.black, size: 30),
                       onPressed: () {
                         Navigator.pop(context);
                       },
@@ -287,7 +300,8 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
                             : (widget.initialAvatarUrl != null
                                 ? NetworkImage(widget.initialAvatarUrl!)
                                 : null) as ImageProvider<Object>?,
-                        child: _avatarImage == null && widget.initialAvatarUrl == null
+                        child: _avatarImage == null &&
+                                widget.initialAvatarUrl == null
                             ? Icon(
                                 Icons.camera_alt,
                                 color: Colors.grey,
@@ -330,7 +344,8 @@ class _AccountRegisterGoogleFacebook extends State<AccountRegisterGoogleFacebook
                       onPressed: _atualizarUsuario,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
-                        padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),

@@ -669,24 +669,6 @@ class _EventoViewState extends State<EventoView> {
                   left: 16,
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        backgroundColor: Colors.white,
-                        radius: 22,
-                        child: IconButton(
-                          icon: Icon(Icons.edit, color: Color(0xFF0DCAF0)),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EditEventoPage(
-                                  evento: widget.evento,
-                                ),
-                              ),
-                            );
-                          },
-                          iconSize: 22,
-                        ),
-                      ),
                       SizedBox(width: 16),
                       CircleAvatar(
                         backgroundColor: Colors.white,

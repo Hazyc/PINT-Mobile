@@ -30,52 +30,55 @@ class _LoginPageState extends State<LoginPage> {
     _checkTokenFuture = _checkToken();
   }
 
-  Future<void> _signInWithGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        print('Login cancelado pelo usuário');
-        return;
-      }
-
-      // Enviar os dados da conta para o backend
-      final response = await http.post(
-        Uri.parse('https://backendpint-5wnf.onrender.com/googleauth/google/callback'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'id': googleUser.id,
-          'displayName': googleUser.displayName,
-          'email': googleUser.email,
-          'photoUrl': googleUser.photoUrl,
-        }),
-      );
-
-
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-
-        if (responseData['token'] != null) {
-          TokenHandler().saveToken(responseData['token']);
-          Navigator.pushReplacementNamed(context, '/home');
-        } else {
-          // Redirecionar para a página de criação de conta com os dados preenchidos
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AccountRegisterGoogleFacebook(
-                email: googleUser.email,
-                initialAvatarUrl: googleUser.photoUrl,
-              ),
-            ),
-          );
-        }
-      } else {
-        print('Erro na comunicação com o backend');
-      }
-    } catch (error) {
-      print('Erro ao fazer login com Google: $error');
+ Future<void> _signInWithGoogle() async {
+  try {
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    
+    if (googleUser == null) {
+      print('Login cancelado pelo usuário');
+      return;
     }
+
+    // Define uma URL de foto padrão se googleUser.photoUrl for nulo
+    String photoUrl = googleUser.photoUrl ?? 'https://res.cloudinary.com/dxz8zsm1p/image/upload/v1724145031/Imagens/user.png';
+
+    // Enviar os dados da conta para o backend
+    final response = await http.post(
+      Uri.parse('https://backendpint-5wnf.onrender.com/googleauth/google/callback'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'id': googleUser.id,
+        'displayName': googleUser.displayName,
+        'email': googleUser.email,
+        'photoUrl': photoUrl,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final responseData = jsonDecode(response.body);
+
+      if (responseData['token'] != null) {
+        await TokenHandler().saveToken(responseData['token']);
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        // Redirecionar para a página de criação de conta com os dados preenchidos
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AccountRegisterGoogleFacebook(
+              email: googleUser.email,
+              initialAvatarUrl: photoUrl,
+            ),
+          ),
+        );
+      }
+    } else {
+      print('Erro na comunicação com o backend');
+    }
+  } catch (error) {
+    print('Erro ao fazer login com Google: $error');
   }
+}
 
   Future<void> _signInWithFacebook() async {
     try {
