@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:geocoding/geocoding.dart';
 
 class MapPage extends StatefulWidget {
-  final LatLng? targetLocation;
+  final String? initialAddress;
+  final Function(String)? onAddressSelected; // Função callback para retornar o endereço
 
-  MapPage({this.targetLocation});
+  MapPage({this.initialAddress, this.onAddressSelected});
 
   @override
   _MapPageState createState() => _MapPageState();
@@ -18,15 +18,19 @@ class _MapPageState extends State<MapPage> {
   Position? _currentPosition;
   LatLng? _initialPosition;
   List<Marker> _markers = [];
+  Marker? _selectedMarker;
+  String _address = '';
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
-    _fetchLocations();
+    if (widget.initialAddress != null) {
+      _convertAddressToLatLng(widget.initialAddress!);
+    }
   }
 
-  void _getCurrentLocation() async {
+  Future<void> _getCurrentLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -54,56 +58,55 @@ class _MapPageState extends State<MapPage> {
     });
   }
 
-  Future<void> _fetchLocations() async {
+  Future<void> _convertAddressToLatLng(String address) async {
     try {
-      final recomendacaoResponse = await http.get(Uri.parse('https://backendpint-5wnf.onrender.com/recomendacoes/moradas'));
-      final eventoResponse = await http.get(Uri.parse('https://backendpint-5wnf.onrender.com/eventos/moradas'));
-
-      if (recomendacaoResponse.statusCode == 200 && eventoResponse.statusCode == 200) {
-        List<dynamic> recomendacaoData = json.decode(recomendacaoResponse.body)['data'];
-        List<dynamic> eventoData = json.decode(eventoResponse.body)['data'];
-
+      List<Location> locations = await locationFromAddress(address);
+      if (locations.isNotEmpty) {
+        LatLng latLng = LatLng(locations.first.latitude, locations.first.longitude);
         setState(() {
-          _markers = [
-            ...recomendacaoData.map((location) {
-              return Marker(
-                markerId: MarkerId('recomendacao_${location['id']}'),
-                position: LatLng(location['latitude'], location['longitude']),
-                infoWindow: InfoWindow(
-                  title: location['title'],
-                  onTap: () => _openMapsApp(location['latitude'], location['longitude']),
-                ),
-              );
-            }).toList(),
-            ...eventoData.map((location) {
-              return Marker(
-                markerId: MarkerId('evento_${location['id']}'),
-                position: LatLng(location['latitude'], location['longitude']),
-                infoWindow: InfoWindow(
-                  title: location['title'],
-                  onTap: () => _openMapsApp(location['latitude'], location['longitude']),
-                ),
-              );
-            }).toList(),
-          ];
+          _initialPosition = latLng;
+          _address = address;
         });
-      } else {
-        print('Failed to load locations');
+        if (_controller != null) {
+          _controller!.animateCamera(CameraUpdate.newLatLng(latLng));
+        }
       }
     } catch (e) {
-      print('Error fetching locations: $e');
+      print('Error converting address to LatLng: $e');
     }
   }
 
-  void _openMapsApp(double latitude, double longitude) {
-    final url = 'https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude';
-    // Use a library like url_launcher to open this URL
+  Future<void> _onMapTapped(LatLng location) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(location.latitude, location.longitude);
+      if (placemarks.isNotEmpty) {
+        setState(() {
+          _selectedMarker = Marker(
+            markerId: MarkerId('selected_location'),
+            position: location,
+            infoWindow: InfoWindow(title: placemarks.first.street ?? 'Endereço desconhecido'),
+          );
+          _address = placemarks.first.street ?? 'Endereço desconhecido';
+        });
+        if (_controller != null) {
+          _controller!.animateCamera(CameraUpdate.newLatLng(location));
+        }
+      }
+    } catch (e) {
+      print('Error retrieving placemarks: $e');
+    }
   }
+
+  void _confirmSelection() {
+  if (widget.onAddressSelected != null) {
+    widget.onAddressSelected!(_address);  // Certifique-se de que _address está correto
+    Navigator.pop(context);
+  }
+}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(
           'Mapa',
@@ -111,27 +114,27 @@ class _MapPageState extends State<MapPage> {
         ),
         backgroundColor: const Color(0xFF0DCAF0),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.check),
+            onPressed: _confirmSelection,
+          ),
+        ],
       ),
       body: _initialPosition == null
           ? Center(child: CircularProgressIndicator())
           : GoogleMap(
               initialCameraPosition: CameraPosition(
-                target: widget.targetLocation ?? _initialPosition!,
+                target: _initialPosition!,
                 zoom: 14.0,
               ),
-              markers: Set<Marker>.of(_markers),
+              markers: Set<Marker>.of([..._markers, if (_selectedMarker != null) _selectedMarker!]),
               myLocationEnabled: true,
               myLocationButtonEnabled: true,
               onMapCreated: (controller) {
                 _controller = controller;
-                if (_currentPosition != null && widget.targetLocation == null) {
-                  _controller?.animateCamera(
-                    CameraUpdate.newLatLng(
-                      LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-                    ),
-                  );
-                }
               },
+              onTap: _onMapTapped,
             ),
     );
   }

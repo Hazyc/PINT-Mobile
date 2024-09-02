@@ -27,41 +27,48 @@ class _CalendarioPageState extends State<CalendarioPage> {
   }
 
   Future<void> _fetchEventos() async {
-    TokenHandler tokenHandler = TokenHandler();
-    try {
-      final token = await tokenHandler.getToken();
-      if (token == null) {
-        _showError('Token is null. Please log in again.');
-        return;
-      }
+  TokenHandler tokenHandler = TokenHandler();
+  try {
+    final token = await tokenHandler.getToken();
+    if (token == null) {
+      _showError('Token is null. Please log in again.');
+      return;
+    }
 
-      final response = await http.get(
-        Uri.parse('https://backendpint-5wnf.onrender.com/listaparticipantes/getEventosByUtilizador'),
-        headers: {'x-access-token': 'Bearer $token'},
-      );
-      print(response.body);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+    final response = await http.get(
+      Uri.parse('https://backendpint-5wnf.onrender.com/listaparticipantes/getEventosByUtilizador'),
+      headers: {'x-access-token': 'Bearer $token'},
+    );
+    print(response.body);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
 
-        // Verifica se a resposta contém dados e processa os eventos
-        if (data['success'] == true) {
-          setState(() {
-            _eventos = (data['data'] as List)
-                .map((item) => Evento.fromJson(item['EVENTO']))
-                .toList();
-            _groupEventosPorDia();
-            _isLoading = false;
-          });
-        } else {
-          _showError('Failed to load events.');
-        }
+      // Verifica se a resposta contém dados e se a lista de eventos é válida
+      if (data['success'] == true && data['data'] is List) {
+        setState(() {
+          _eventos = (data['data'] as List)
+              .map((item) => Evento.fromJson(item['EVENTO']))
+              .toList();
+          _groupEventosPorDia();
+          _isLoading = false;
+        });
+      } else if (data['success'] == true && data['data'] == null) {
+        // Caso a lista de eventos seja nula, apenas defina _isLoading como falso
+        setState(() {
+          _eventos = [];
+          _eventosPorDia = {};
+          _isLoading = false;
+        });
       } else {
         _showError('Failed to load events.');
       }
-    } catch (e) {
-      _showError('An error occurred: $e');
+    } else {
+      _showError('Failed to load events.');
     }
+  } catch (e) {
+    _showError('An error occurred: $e');
   }
+}
 
   void _groupEventosPorDia() {
     Map<DateTime, List<Evento>> dataMap = {};
@@ -142,7 +149,7 @@ class _CalendarioPageState extends State<CalendarioPage> {
                               ),
                               title: Text(evento.eventName),
                               subtitle: Text(
-                                '${DateFormat('HH:mm').format(dateTime)} - ${evento.address} - ${evento.subcategory}',
+                                '${DateFormat('HH:mm').format(dateTime)} - ${evento.address} - ${evento.category}',
                               ),
                               onTap: () {
                                 Navigator.push(

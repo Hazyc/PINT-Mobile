@@ -27,7 +27,6 @@ class _ListaGenericaState extends State<ListaGenerica> {
   List<Evento> eventos = [];
   double minAvaliacao = 0.0;
 
-
   bool showRecommendations = true;
   bool showEvents = true;
 
@@ -55,6 +54,7 @@ class _ListaGenericaState extends State<ListaGenerica> {
 
       setState(() {
         recomendacoes = fetchedRecomendacoes;
+        recomendacoesoriginais = fetchedRecomendacoes; // Atualizar a lista original também
         eventos = fetchedEventos;
         areas = fetchedAreas;
       });
@@ -99,7 +99,6 @@ class _ListaGenericaState extends State<ListaGenerica> {
               'Erro ao buscar média de avaliação para recomendação ${recomendacao.idRecomendacao}: $error');
         }
         recomendacoes.add(recomendacao);
-        recomendacoesoriginais.add(recomendacao);
       }
       return recomendacoes;
     } else {
@@ -141,24 +140,21 @@ class _ListaGenericaState extends State<ListaGenerica> {
   }
 
   List<dynamic> get filteredItems {
-  List<dynamic> filteredList = [];
-  if (showRecommendations) {
-    filteredList.addAll(recomendacoes.where(
-      (item) => 
-        (selectedArea == 'Todos' || item.categoria == selectedArea) &&
-        item.avaliacaoGeral >= minAvaliacao,  // Filtra pela avaliação geral
-    ));
+    List<dynamic> filteredList = [];
+    if (showRecommendations) {
+      filteredList.addAll(recomendacoes.where(
+        (item) => 
+          (selectedArea == 'Todos' || item.categoria == selectedArea) &&
+          item.avaliacaoGeral >= minAvaliacao,  // Filtra pela avaliação geral
+      ));
+    }
+
+    if (showEvents) {
+      filteredList.addAll(eventos.where(
+        (item) => selectedArea == 'Todos' || item.category == selectedArea));
+    }
+    return filteredList;
   }
-
-  if (showEvents) {
-    filteredList.addAll(eventos.where(
-      (item) => selectedArea == 'Todos' || item.category == selectedArea));
-  }
-  return filteredList;
-}
-
-
-
 
   void _showFilterDialog() {
     showDialog(
@@ -371,17 +367,20 @@ class _ListaGenericaState extends State<ListaGenerica> {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: filteredItems.length,
-              itemBuilder: (context, index) {
-                final item = filteredItems[index];
-                return Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: item is Recomendacao
-                      ? RecomendacaoCard(recomendacao: item)
-                      : EventoCard(evento: item, onLocationTap: () {  },),
-                );
-              },
+            child: RefreshIndicator(  // Adiciona o RefreshIndicator aqui
+              onRefresh: _fetchData,  // Define a função que será chamada ao atualizar
+              child: ListView.builder(
+                itemCount: filteredItems.length,
+                itemBuilder: (context, index) {
+                  final item = filteredItems[index];
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: item is Recomendacao
+                        ? RecomendacaoCard(recomendacao: item)
+                        : EventoCard(evento: item, onLocationTap: () {  },),
+                  );
+                },
+              ),
             ),
           ),
         ],

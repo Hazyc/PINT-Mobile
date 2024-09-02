@@ -7,6 +7,7 @@ import 'package:app_mobile/handlers/TokenHandler.dart';
 import 'package:app_mobile/models/Evento.dart';
 import 'package:app_mobile/pages/EventoView.dart';
 import 'EditProfilePage.dart';
+import 'dart:async'; // Import the dart:async package
 
 void main() => runApp(MyApp());
 
@@ -44,14 +45,32 @@ class _ProfilePageState extends State<ProfilePage> {
   String userBannerUrl = '';
   String userPreferredArea = '';
   TokenHandler tokenHandler = TokenHandler();
+  Timer? _timer; // Declare a Timer variable
 
   @override
   void initState() {
     super.initState();
-    _fetchData();
+    _fetchUserData();
+    _startPeriodicFetch();
   }
 
-  Future<void> _fetchData() async {
+  @override
+  void dispose() {
+    _timer?.cancel(); // Cancel the timer when the widget is disposed
+    super.dispose();
+  }
+
+  void _startPeriodicFetch() {
+    _timer = Timer.periodic(Duration(seconds: 3), (timer) {
+      if (isPublicationsSelected) {
+        _fetchPublications();
+      } else {
+        _fetchEvents();
+      }
+    });
+  }
+
+  Future<void> _fetchUserData() async {
     try {
       final String? token = await tokenHandler.getToken();
 
@@ -60,9 +79,9 @@ class _ProfilePageState extends State<ProfilePage> {
         return;
       }
 
-      // Busca de dados do usuário
       final tokenResponse = await http.get(
-        Uri.parse('https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -70,6 +89,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       if (tokenResponse.statusCode == 200) {
         final userData = json.decode(tokenResponse.body)['data'];
+        print('Dados do usuário recebidos: $userData'); // Adicione este log
         setState(() {
           userName = userData['NOME_UTILIZADOR'] ?? '';
           userDescription = userData['DESCRICAO_UTILIZADOR'] ?? '';
@@ -81,37 +101,78 @@ class _ProfilePageState extends State<ProfilePage> {
           userPreferredArea = userData['AREA_PREFERENCIA'] ?? '';
         });
       } else {
-        print('Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
-      }
-
-      // Busca de publicações
-      final publicationsResponse = await http.get(
-        Uri.parse('https://backendpint-5wnf.onrender.com/recomendacoes/listarRecomendacoesUserVisiveis'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      // Busca de eventos
-      final eventsResponse = await http.get(
-        Uri.parse('https://backendpint-5wnf.onrender.com/eventos/listarPorUser'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      // Verificação das respostas da API
-      if (publicationsResponse.statusCode == 200 && eventsResponse.statusCode == 200) {
-        setState(() {
-          publications = List<Map<String, dynamic>>.from(json.decode(publicationsResponse.body)['data']);
-          events = List<Map<String, dynamic>>.from(json.decode(eventsResponse.body)['data']);
-          _showPublications();
-        });
-      } else {
-        print('Falha ao carregar dados: ${publicationsResponse.statusCode}, ${eventsResponse.statusCode}');
+        print(
+            'Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
       }
     } catch (e) {
-      print('Erro ao buscar dados: $e');
+      print('Erro ao buscar dados do usuário: $e');
+    }
+  }
+
+  Future<void> _fetchPublications() async {
+    try {
+      final String? token = await tokenHandler.getToken();
+
+      if (token == null) {
+        print('Token não encontrado');
+        return;
+      }
+
+      final publicationsResponse = await http.get(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/recomendacoes/listarRecomendacoesUserVisiveis'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (publicationsResponse.statusCode == 200) {
+        setState(() {
+          publications = List<Map<String, dynamic>>.from(
+              json.decode(publicationsResponse.body)['data']);
+          if (isPublicationsSelected) {
+            _showPublications();
+          }
+        });
+      } else {
+        print(
+            'Falha ao carregar publicações: ${publicationsResponse.statusCode}');
+      }
+    } catch (e) {
+      print('Erro ao buscar publicações: $e');
+    }
+  }
+
+  Future<void> _fetchEvents() async {
+    try {
+      final String? token = await tokenHandler.getToken();
+
+      if (token == null) {
+        print('Token não encontrado');
+        return;
+      }
+
+      final eventsResponse = await http.get(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/eventos/listarPorUser'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (eventsResponse.statusCode == 200) {
+        setState(() {
+          events = List<Map<String, dynamic>>.from(
+              json.decode(eventsResponse.body)['data']);
+          if (!isPublicationsSelected) {
+            _showEvents();
+          }
+        });
+      } else {
+        print('Falha ao carregar eventos: ${eventsResponse.statusCode}');
+      }
+    } catch (e) {
+      print('Erro ao buscar eventos: $e');
     }
   }
 
@@ -181,7 +242,7 @@ class _ProfilePageState extends State<ProfilePage> {
       var res = await request.send();
       if (res.statusCode == 200) {
         print('Upload de $type bem-sucedido');
-        _fetchData(); // Atualiza os dados após o upload
+        _fetchUserData(); // Atualiza os dados após o upload
       } else {
         print('Falha no upload de $type: ${res.statusCode}');
       }
@@ -201,7 +262,7 @@ class _ProfilePageState extends State<ProfilePage> {
       category: event['SUBAREA']['AREA']['NOME_AREA'] ?? '',
       subcategory: event['SUBAREA']['NOME_SUBAREA'] ?? '',
       lastThreeAttendees: List<String>.from(event['lastThreeAttendees'] ?? []),
-      description: event['DESCRICAO_EVENTO'] ?? '', 
+      description: event['DESCRICAO_EVENTO'] ?? '',
       organizerId: event['ID_ORGANIZADOR'] ?? 0,
     );
 
@@ -216,6 +277,15 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
     );
+  }
+
+  Future<void> _refreshData() async {
+    await _fetchUserData();
+    if (isPublicationsSelected) {
+      await _fetchPublications();
+    } else {
+      await _fetchEvents();
+    }
   }
 
   @override
@@ -239,7 +309,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         avatarImageUrl: userAvatarUrl,
                         userName: userName,
                         userDescription: userDescription,
-                        onSave: (newBanner, newAvatar, newName, newDescription, newArea) {
+                        onSave: (newBanner, newAvatar, newName, newDescription,
+                            newArea) {
                           setState(() {
                             userBannerUrl = newBanner;
                             userAvatarUrl = newAvatar;
@@ -253,176 +324,181 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                _bannerImage != null
-                    ? Image.file(
-                        _bannerImage!,
-                        width: double.infinity,
-                        height: 150.0,
-                        fit: BoxFit.cover,
-                      )
-                    : Image.network(
-                        userBannerUrl.isNotEmpty
-                            ? userBannerUrl
-                            : 'https://static.todamateria.com.br/upload/pa/is/paisagem-natural-og.jpg',
-                        width: double.infinity,
-                        height: 150.0,
-                        fit: BoxFit.cover,
-                      ),
-                Positioned(
-                  top: 75.0,
-                  left: MediaQuery.of(context).size.width / 2 - 80,
-                  child: CircleAvatar(
-                    radius: 80.0,
-                    backgroundImage: _avatarImage != null
-                        ? FileImage(_avatarImage!)
-                        : userAvatarUrl.isNotEmpty
-                            ? NetworkImage(userAvatarUrl)
-                            : AssetImage('assets/images/placeholder_image.png')
-                                as ImageProvider,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 90.0),
-            Text(
-              userName,
-              style: TextStyle(
-                  fontSize: 24.0,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue),
-            ),
-            SizedBox(height: 4.0),
-            Text(
-              '$userCity | $userDescription',
-              style: TextStyle(fontSize: 16.0, color: Colors.grey),
-            ),
-            SizedBox(height: 20.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TextButton(
-                  onPressed: _showPublications,
-                  child: Text(
-                    'Recomendações',
-                    style: TextStyle(
-                      fontSize: 16.0,
-                      fontWeight: isPublicationsSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color:
-                          isPublicationsSelected ? Colors.black : Colors.grey,
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  _bannerImage != null
+                      ? Image.file(
+                          _bannerImage!,
+                          width: double.infinity,
+                          height: 150.0,
+                          fit: BoxFit.cover,
+                        )
+                      : Image.network(
+                          userBannerUrl.isNotEmpty
+                              ? userBannerUrl
+                              : 'https://static.todamateria.com.br/upload/pa/is/paisagem-natural-og.jpg',
+                          width: double.infinity,
+                          height: 150.0,
+                          fit: BoxFit.cover,
+                        ),
+                  Positioned(
+                    top: 75.0,
+                    left: MediaQuery.of(context).size.width / 2 - 80,
+                    child: CircleAvatar(
+                      radius: 80.0,
+                      backgroundImage: _avatarImage != null
+                          ? FileImage(_avatarImage!)
+                          : userAvatarUrl.isNotEmpty
+                              ? NetworkImage(userAvatarUrl)
+                              : AssetImage(
+                                      'assets/images/placeholder_image.png')
+                                  as ImageProvider,
                     ),
                   ),
-                ),
-                SizedBox(width: 20.0),
-                TextButton(
-                  onPressed: _showEvents,
-                  child: Text(
-                    'Eventos',
-                    style: TextStyle(
-                      fontSize: 16.0,
-                      fontWeight: !isPublicationsSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color:
-                          !isPublicationsSelected ? Colors.black : Colors.grey,
+                ],
+              ),
+              SizedBox(height: 90.0),
+              Text(
+                userName,
+                style: TextStyle(
+                    fontSize: 24.0,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue),
+              ),
+              SizedBox(height: 4.0),
+              Text(
+                '$userCity | $userDescription',
+                style: TextStyle(fontSize: 16.0, color: Colors.grey),
+              ),
+              SizedBox(height: 20.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: _showPublications,
+                    child: Text(
+                      'Recomendações',
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: isPublicationsSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color:
+                            isPublicationsSelected ? Colors.black : Colors.grey,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 20.0),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    if (!isPublicationsSelected) {
-                      _navigateToEventoView(events[index]);
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 8.0, horizontal: 16.0),
-                    child: Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15.0),
+                  SizedBox(width: 20.0),
+                  TextButton(
+                    onPressed: _showEvents,
+                    child: Text(
+                      'Eventos',
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: !isPublicationsSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: !isPublicationsSelected
+                            ? Colors.black
+                            : Colors.grey,
                       ),
-                      elevation: 5.0,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(15.0),
-                              topRight: Radius.circular(15.0),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20.0),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () {
+                      if (!isPublicationsSelected) {
+                        _navigateToEventoView(events[index]);
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8.0, horizontal: 16.0),
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                        ),
+                        elevation: 5.0,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(15.0),
+                                topRight: Radius.circular(15.0),
+                              ),
+                              child: items[index]['imageUrl']!.isNotEmpty
+                                  ? Image.network(
+                                      items[index]['imageUrl']!,
+                                      width: double.infinity,
+                                      height: 150.0,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return Container(
+                                          width: double.infinity,
+                                          height: 150.0,
+                                          color: Colors.grey,
+                                          child: Icon(Icons.broken_image,
+                                              size: 50.0, color: Colors.white),
+                                        );
+                                      },
+                                    )
+                                  : Container(
+                                      width: double.infinity,
+                                      height: 150.0,
+                                      color: Colors.grey,
+                                      child: Icon(Icons.image,
+                                          size: 50.0, color: Colors.white),
+                                    ),
                             ),
-                            child: items[index]['imageUrl']!.isNotEmpty
-                                ? Image.network(
-                                    items[index]['imageUrl']!,
-                                    width: double.infinity,
-                                    height: 150.0,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) {
-                                      return Container(
-                                        width: double.infinity,
-                                        height: 150.0,
-                                        color: Colors.grey,
-                                        child: Icon(Icons.broken_image,
-                                            size: 50.0, color: Colors.white),
-                                      );
-                                    },
-                                  )
-                                : Container(
-                                    width: double.infinity,
-                                    height: 150.0,
-                                    color: Colors.grey,
-                                    child: Icon(Icons.image,
-                                        size: 50.0, color: Colors.white),
+                            Padding(
+                              padding: const EdgeInsets.all(15.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    items[index]['title']!,
+                                    style: TextStyle(
+                                      fontSize: 18.0,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
                                   ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(15.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  items[index]['title']!,
-                                  style: TextStyle(
-                                    fontSize: 18.0,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
+                                  SizedBox(height: 10.0),
+                                  Text(
+                                    items[index]['description']!,
+                                    style: TextStyle(
+                                      fontSize: 14.0,
+                                      color: Colors.black54,
+                                    ),
+                                    textAlign: TextAlign.left,
                                   ),
-                                ),
-                                SizedBox(height: 10.0),
-                                Text(
-                                  items[index]['description']!,
-                                  style: TextStyle(
-                                    fontSize: 14.0,
-                                    color: Colors.black54,
-                                  ),
-                                  textAlign: TextAlign.left,
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ],
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -30,15 +30,42 @@ class _HomePageState extends State<HomePage> {
   List<Recomendacao> recomendacoes = [];
   String nomeUser = ''; // Campo para armazenar o nome do usuário
   List<dynamic> categorias = [];
+  bool _isRefreshing = false; // Indicador de atualização
 
   @override
   void initState() {
     super.initState();
     fetchData();
     fetchArea();
-    fetchEventos();  
+    fetchEventos();
     fetchEventosAreaInteresse();
     fetchRecomendacoesAreaInteresse();
+  }
+
+  // Função para realizar a atualização
+  Future<void> _refresh() async {
+    setState(() {
+      _isRefreshing = true;
+    });
+
+    try {
+      await Future.wait([
+        fetchData(),
+        fetchArea(),
+        fetchEventos(),
+        fetchEventosAreaInteresse(),
+        fetchRecomendacoesAreaInteresse(),
+      ]);
+    } catch (e) {
+      // Opcional: Exibir uma mensagem de erro caso algo falhe
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao atualizar dados: $e')),
+      );
+    } finally {
+      setState(() {
+        _isRefreshing = false;
+      });
+    }
   }
 
   Future<void> fetchEventos() async {
@@ -55,13 +82,14 @@ class _HomePageState extends State<HomePage> {
         'Authorization': 'Bearer $token',
       },
     );
-    final List<dynamic> data = jsonDecode(response.body)['data'];
+
     if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body)['data'];
       setState(() {
         eventos2 = data.map((json) => Evento.fromJson(json)).toList();
       });
     } else {
-      throw Exception('Failed to load events');
+      throw Exception('Falha ao carregar eventos');
     }
   }
 
@@ -74,7 +102,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     try {
-      // Fetch user data
+      // Buscar dados do usuário
       final userResponse = await http.get(
         Uri.parse(
             'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
@@ -106,7 +134,7 @@ class _HomePageState extends State<HomePage> {
       final data = jsonDecode(response.body)['data'];
       return data['ID_UTILIZADOR'].toString();
     } else {
-      throw Exception('Failed to get user ID');
+      throw Exception('Falha ao obter ID do usuário');
     }
   }
 
@@ -132,8 +160,7 @@ class _HomePageState extends State<HomePage> {
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body)['data'];
-      print(
-          'Dados recebidos: $data'); // Adicione este print para verificar os dados recebidos
+      print('Dados recebidos: $data'); // Debug
       setState(() {
         recomendacoes = data
             .map((json) => Recomendacao.fromJson(json))
@@ -141,10 +168,9 @@ class _HomePageState extends State<HomePage> {
           return areasDeInteresse.contains(recomendacao.categoria);
         }).toList();
       });
-      print(
-          'Recomendações processadas: $recomendacoes'); // Adicione este print para verificar as recomendações processadas
+      print('Recomendações processadas: $recomendacoes'); // Debug
     } else {
-      throw Exception('Failed to load recommendations');
+      throw Exception('Falha ao carregar recomendações');
     }
   }
 
@@ -176,7 +202,7 @@ class _HomePageState extends State<HomePage> {
         }).toList();
       });
     } else {
-      throw Exception('Failed to load events');
+      throw Exception('Falha ao carregar eventos');
     }
   }
 
@@ -192,7 +218,7 @@ class _HomePageState extends State<HomePage> {
       final List<dynamic> data = jsonDecode(response.body)['data'];
       return data.map((area) => area['AREA']['NOME_AREA'] as String).toList();
     } else {
-      throw Exception('Failed to load user areas of interest');
+      throw Exception('Falha ao carregar áreas de interesse do usuário');
     }
   }
 
@@ -218,7 +244,7 @@ class _HomePageState extends State<HomePage> {
           categorias = data['data'];
         });
       } else {
-        throw Exception('Failed to load categories');
+        throw Exception('Falha ao carregar categorias');
       }
     } catch (e) {
       print('Erro ao carregar categorias: $e');
@@ -244,7 +270,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _navigateToNotifications(BuildContext context) {
-    // Implement the actual NotificationsPage navigation
+    // Implementar a navegação para NotificationsPage
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -275,8 +301,8 @@ class _HomePageState extends State<HomePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-          builder: (context) =>
-              RecomendacaoView(recomendacao: recomendacao, onLike: () {})),
+          builder: (context) => RecomendacaoView(
+              recomendacao: recomendacao, onLike: () {})),
     );
   }
 
@@ -294,8 +320,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final greeting = _getGreeting();
-    final combinedList = _combineLists(
-        eventos, recomendacoes); // Combine eventos e recomendações
+    final combinedList = _combineLists(eventos, recomendacoes); // Combine eventos e recomendações
 
     return Scaffold(
       drawer: Container(
@@ -307,270 +332,276 @@ class _HomePageState extends State<HomePage> {
           eventos: eventos2,
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.only(
-                  top: 32.0, left: 16.0, right: 16.0, bottom: 16.0),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0DCAF0),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(10),
-                  bottomRight: Radius.circular(10),
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(), // Garante que o scroll seja sempre possível
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ... [O restante do seu código permanece inalterado]
+
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.only(
+                    top: 32.0, left: 16.0, right: 16.0, bottom: 16.0),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0DCAF0),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(10),
+                    bottomRight: Radius.circular(10),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Builder(
+                          builder: (context) => IconButton(
+                            icon: Icon(Icons.menu, size: 30, color: Colors.white),
+                            onPressed: () => Scaffold.of(context).openDrawer(),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.notifications,
+                              size: 30, color: Colors.white),
+                          onPressed: () => _navigateToNotifications(context),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      greeting,
+                      style: TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      'Descobre o melhor para ti!',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white.withOpacity(0.7),
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Pesquisar',
+                          border: InputBorder.none,
+                          icon: Icon(Icons.search),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Builder(
-                        builder: (context) => IconButton(
-                          icon: Icon(Icons.menu, size: 30, color: Colors.white),
-                          onPressed: () => Scaffold.of(context).openDrawer(),
+              SizedBox(height: 20.0),
+              Center(child: CityWeatherCard()),
+              SizedBox(height: 10.0),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Categorias',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        widget.onItemTapped(2);
+                      },
+                      child: Text(
+                        'Ver Todas',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.blue,
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.notifications,
-                            size: 30, color: Colors.white),
-                        onPressed: () => _navigateToNotifications(context),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    greeting,
-                    style: TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
                     ),
-                  ),
-                  Text(
-                    'Descobre o melhor para ti!',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withOpacity(0.7),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Pesquisar',
-                        border: InputBorder.none,
-                        icon: Icon(Icons.search),
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            SizedBox(height: 20.0),
-            Center(child: CityWeatherCard()),
-            SizedBox(height: 10.0),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Categorias',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+              SizedBox(height: 10.0),
+              Container(
+                height: 200,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: categorias.length,
+                  itemBuilder: (context, index) {
+                    var categoria = categorias[index];
+                    return Padding(
+                      padding: EdgeInsets.only(
+                          left: index == 0 ? 16.0 : 5.0, right: 5.0),
+                      child: HomeCard(
+                        imageAsset: categoria['IMAGEM']['NOME_IMAGEM'],
+                        title: categoria['NOME_AREA'],
+                        onTap: () => _navigateToListaGenerica(
+                            context, categoria['NOME_AREA']),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 20.0),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Poderá gostar de...",
+                      style:
+                          TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
                     ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      widget.onItemTapped(2);
-                    },
-                    child: Text(
-                      'Ver Todas',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.blue,
+                    TextButton(
+                      onPressed: () {
+                        _navigateToRecomendados(context);
+                      },
+                      child: Text(
+                        'Ver Todos',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.blue,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            SizedBox(height: 10.0),
-            Container(
-              height: 200,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: categorias.length,
-                itemBuilder: (context, index) {
-                  var categoria = categorias[index];
-                  return Padding(
-                    padding: EdgeInsets.only(
-                        left: index == 0 ? 16.0 : 5.0, right: 5.0),
-                    child: HomeCard(
-                      imageAsset: categoria['IMAGEM']['NOME_IMAGEM'],
-                      title: categoria['NOME_AREA'],
-                      onTap: () => _navigateToListaGenerica(
-                          context, categoria['NOME_AREA']),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 20.0),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Poderá gostar de...",
-                    style:
-                        TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      _navigateToRecomendados(context);
-                    },
-                    child: Text(
-                      'Ver Todos',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.blue,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10.0),
-            Container(
-              height: 150.0,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: combinedList.length,
-                itemBuilder: (context, index) {
-                  var item = combinedList[index];
+              const SizedBox(height: 10.0),
+              Container(
+                height: 150.0,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: combinedList.length,
+                  itemBuilder: (context, index) {
+                    var item = combinedList[index];
 
-                  if (item is Evento) {
-                    return Padding(
-                      padding: EdgeInsets.only(
-                          left: index == 0 ? 16.0 : 8.0, right: 8.0),
-                      child: GestureDetector(
-                        onTap: () => _navigateToEventoView(context, item),
-                        child: Container(
-                          width: 200.0,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10.0),
-                            gradient: LinearGradient(
-                              colors: [Colors.white, Colors.grey.shade200],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            border: Border.all(
-                              color: Colors.grey.shade300,
-                              width: 1.0,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(10.0),
-                                  topRight: Radius.circular(10.0),
-                                ),
-                                child: Image.network(
-                                  item.bannerImage,
-                                  height: 100.0,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                ),
+                    if (item is Evento) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                            left: index == 0 ? 16.0 : 8.0, right: 8.0),
+                        child: GestureDetector(
+                          onTap: () => _navigateToEventoView(context, item),
+                          child: Container(
+                            width: 200.0,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10.0),
+                              gradient: LinearGradient(
+                                colors: [Colors.white, Colors.grey.shade200],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Text(
-                                  item.eventName,
-                                  style: TextStyle(
-                                    fontSize: 16.0,
-                                    fontWeight: FontWeight.bold,
+                              border: Border.all(
+                                color: Colors.grey.shade300,
+                                width: 1.0,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: Radius.circular(10.0),
+                                    topRight: Radius.circular(10.0),
                                   ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
+                                  child: Image.network(
+                                    item.bannerImage,
+                                    height: 100.0,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                    item.eventName,
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  } else if (item is Recomendacao) {
-                    return Padding(
-                      padding: EdgeInsets.only(
-                          left: index == 0 ? 16.0 : 8.0, right: 8.0),
-                      child: GestureDetector(
-                        onTap: () => _navigateToRecomendacaoView(context, item),
-                        child: Container(
-                          width: 200.0,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10.0),
-                            gradient: LinearGradient(
-                              colors: [Colors.white, Colors.grey.shade200],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            border: Border.all(
-                              color: Colors.grey.shade300,
-                              width: 1.0,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(10.0),
-                                  topRight: Radius.circular(10.0),
-                                ),
-                                child: Image.network(
-                                  item.bannerImage, // Supondo que a Recomendacao tenha um campo image
-                                  height: 100.0,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                ),
+                      );
+                    } else if (item is Recomendacao) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                            left: index == 0 ? 16.0 : 8.0, right: 8.0),
+                        child: GestureDetector(
+                          onTap: () => _navigateToRecomendacaoView(context, item),
+                          child: Container(
+                            width: 200.0,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10.0),
+                              gradient: LinearGradient(
+                                colors: [Colors.white, Colors.grey.shade200],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Text(
-                                  item.nomeLocal, // Supondo que a Recomendacao tenha um campo title
-                                  style: TextStyle(
-                                    fontSize: 16.0,
-                                    fontWeight: FontWeight.bold,
+                              border: Border.all(
+                                color: Colors.grey.shade300,
+                                width: 1.0,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: Radius.circular(10.0),
+                                    topRight: Radius.circular(10.0),
                                   ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
+                                  child: Image.network(
+                                    item.bannerImage, // Supondo que a Recomendacao tenha um campo image
+                                    height: 100.0,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                    item.nomeLocal, // Supondo que a Recomendacao tenha um campo title
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }
-                  return SizedBox.shrink();
-                },
+                      );
+                    }
+                    return SizedBox.shrink();
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: 30.0),
-          ],
+              const SizedBox(height: 30.0),
+            ],
+          ),
         ),
       ),
     );

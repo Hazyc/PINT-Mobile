@@ -108,80 +108,117 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _updateUserProfile() async {
-  bool hasInterest = false; // Definido como false por padrão
-  try {
-    final String? token = await tokenHandler.getToken();
-    if (token == null) {
-      print('Token não encontrado');
-      return;
-    }
-
-    // Verificar se o usuário já tem uma área de interesse
-    final interesseResponse = await http.get(
-      Uri.parse('https://backendpint-5wnf.onrender.com/areasinteresse/listarPorUser'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (interesseResponse.statusCode == 200) {
-      final List<dynamic> interesseData = json.decode(interesseResponse.body)['data'];
-      hasInterest = interesseData.isNotEmpty;
-
-      final url = hasInterest
-          ? 'https://backendpint-5wnf.onrender.com/areasinteresse/update'
-          : 'https://backendpint-5wnf.onrender.com/areasinteresse/create';
-
-      var response;
-
-      if(hasInterest)
-      {
-        response = await http.put(
-          Uri.parse(url),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-          body: json.encode({
-            'ID_AREA': _selectedAreaId,
-            // Inclua outras informações necessárias, como ID do usuário, se necessário
-          }),
-        );
-      } else {
-        response = await http.post(
-          Uri.parse(url),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-          body: json.encode({
-            'ID_AREA': _selectedAreaId,
-            // Inclua outras informações necessárias, como ID do usuário, se necessário
-          }),
-        );
+    bool hasInterest = false; // Definido como false por padrão
+    try {
+      final String? token = await tokenHandler.getToken();
+      if (token == null) {
+        print('Token não encontrado');
+        return;
       }
 
-      
-      if (response.statusCode == 200) {
-        print(hasInterest
-            ? 'Área de interesse atualizada com sucesso'
-            : 'Área de interesse criada com sucesso');
-      } else if (response.statusCode == 409) {
-        print('Área de interesse já existe.');
+      // Primeiro, obtém os dados do usuário para atualização do perfil
+      final tokenResponse = await http.get(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/utilizadores/getbytoken'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (tokenResponse.statusCode == 200) {
+        final userData = json.decode(tokenResponse.body)['data'];
+        int userId = userData['ID_UTILIZADOR'];
+        if (_bannerID == 0) {
+          _bannerID = userData['ID_IMAGEM_BANNER'].toDouble();
+        }
+        if (_avatarID == 0) {
+          _avatarID = userData['ID_IMAGEM_PERFIL'].toDouble();
+        }
+
+        // Atualiza o perfil do usuário
+        final profileUpdateResponse = await http.put(
+          Uri.parse(
+              'https://backendpint-5wnf.onrender.com/utilizadores/update/$userId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: json.encode({
+            'ID_IMAGEM_BANNER': _bannerID,
+            'ID_IMAGEM_PERFIL': _avatarID,
+            'NOME_UTILIZADOR': _nameController.text,
+            'DESCRICAO_UTILIZADOR': _descriptionController.text,
+          }),
+        );
+
+        if (profileUpdateResponse.statusCode == 200) {
+          print('Perfil atualizado com sucesso');
+        } else {
+          print(
+              'Falha ao atualizar perfil: ${profileUpdateResponse.statusCode}');
+        }
+
+        // Verifica se o usuário já tem uma área de interesse
+        final interesseResponse = await http.get(
+          Uri.parse(
+              'https://backendpint-5wnf.onrender.com/areasinteresse/listarPorUser'),
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        );
+
+        if (interesseResponse.statusCode == 200) {
+          final List<dynamic> interesseData =
+              json.decode(interesseResponse.body)['data'];
+          hasInterest = interesseData.isNotEmpty;
+
+          final areaInterestUrl = hasInterest
+              ? 'https://backendpint-5wnf.onrender.com/areasinteresse/update'
+              : 'https://backendpint-5wnf.onrender.com/areasinteresse/create';
+
+          final areaInterestResponse = hasInterest
+              ? await http.put(
+                  Uri.parse(areaInterestUrl),
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer $token',
+                  },
+                  body: json.encode({
+                    'ID_AREA': _selectedAreaId,
+                    // Inclua outras informações necessárias, como ID do usuário, se necessário
+                  }),
+                )
+              : await http.post(
+                  Uri.parse(areaInterestUrl),
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer $token',
+                  },
+                  body: json.encode({
+                    'ID_AREA': _selectedAreaId,
+                    // Inclua outras informações necessárias, como ID do usuário, se necessário
+                  }),
+                );
+
+          if (areaInterestResponse.statusCode == 200) {
+            print(
+                'Área de interesse ${hasInterest ? 'atualizada' : 'criada'} com sucesso');
+          } else {
+            print(
+                'Falha ao ${hasInterest ? 'atualizar' : 'criar'} área de interesse: ${areaInterestResponse.statusCode}');
+          }
+        } else {
+          print(
+              'Falha ao carregar área de interesse: ${interesseResponse.statusCode}');
+        }
       } else {
         print(
-            'Falha ao ${hasInterest ? 'atualizar' : 'criar'} área de interesse: ${response.statusCode}');
+            'Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
       }
-    } else {
-      print(
-          'Falha ao verificar a área de interesse do usuário: ${interesseResponse.statusCode}');
+    } catch (e) {
+      print('Erro ao atualizar perfil: $e');
     }
-  } catch (e) {
-    print(
-        'Erro ao ${hasInterest ? 'atualizar' : 'criar'} área de interesse: $e');
   }
-}
-
 
   Future<Map<String, dynamic>> _uploadImage(
       double idImagem, String filePath, String type) async {

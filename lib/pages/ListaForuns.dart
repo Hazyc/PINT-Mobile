@@ -5,8 +5,20 @@ import '../Components/ForumComponents/ForumCard.dart';
 import '../Components/ForumComponents/SubForumPage.dart';
 import 'package:app_mobile/handlers/TokenHandler.dart';
 
-class ListaForuns extends StatelessWidget {
+class ListaForuns extends StatefulWidget {
+  @override
+  _ListaForunsState createState() => _ListaForunsState();
+}
+
+class _ListaForunsState extends State<ListaForuns> {
   TokenHandler tokenHandler = TokenHandler();
+  late Future<Map<String, dynamic>> _forumData;
+
+  @override
+  void initState() {
+    super.initState();
+    _forumData = fetchData();
+  }
 
   Future<Map<String, dynamic>> fetchData() async {
     final String? token = await tokenHandler.getToken();
@@ -78,6 +90,12 @@ class ListaForuns extends StatelessWidget {
     }
   }
 
+  Future<void> _refreshData() async {
+    setState(() {
+      _forumData = fetchData(); // Recarrega os dados ao fazer o refresh
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,48 +108,51 @@ class ListaForuns extends StatelessWidget {
         centerTitle: true,
         iconTheme: IconThemeData(color: Colors.white),
       ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: fetchData(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Failed to load forums'));
-          } else {
-            final areas = snapshot.data!['areas'];
-            final topicsByArea = snapshot.data!['topicsByArea'];
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: _forumData,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Failed to load forums'));
+            } else {
+              final areas = snapshot.data!['areas'];
+              final topicsByArea = snapshot.data!['topicsByArea'];
 
-            return GridView.builder(
-              padding: EdgeInsets.all(10.0),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10.0,
-                mainAxisSpacing: 10.0,
-              ),
-              itemCount: areas.length,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SubForumPage(
-                          title: areas[index]['nome']!,
-                          subForuns:
-                              topicsByArea[areas[index]['id'].toString()]!,
+              return GridView.builder(
+                padding: EdgeInsets.all(10.0),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 10.0,
+                  mainAxisSpacing: 10.0,
+                ),
+                itemCount: areas.length,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SubForumPage(
+                            title: areas[index]['nome']!,
+                            subForuns:
+                                topicsByArea[areas[index]['id'].toString()]!,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  child: ForumCard(
-                    nome: areas[index]['nome']!,
-                    imagem: areas[index]['imagem']!,
-                  ),
-                );
-              },
-            );
-          }
-        },
+                      );
+                    },
+                    child: ForumCard(
+                      nome: areas[index]['nome']!,
+                      imagem: areas[index]['imagem']!,
+                    ),
+                  );
+                },
+              );
+            }
+          },
+        ),
       ),
     );
   }

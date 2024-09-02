@@ -664,24 +664,6 @@ class _EventoViewState extends State<EventoView> {
                 ),
               ),
               if (isOrganizer)
-                Positioned(
-                  bottom: 16,
-                  left: 16,
-                  child: Row(
-                    children: [
-                      SizedBox(width: 16),
-                      CircleAvatar(
-                        backgroundColor: Colors.white,
-                        radius: 22,
-                        child: IconButton(
-                          icon: Icon(Icons.forum, color: Colors.white),
-                          onPressed: _navigateToChatPage,
-                          iconSize: 22,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               Positioned(
                 bottom: 16,
                 right: 16,

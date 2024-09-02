@@ -4,6 +4,7 @@ import '../LoginScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import '../ContaCriadaInfo.dart';
 
 class AccountRegister extends StatefulWidget {
   @override
@@ -161,7 +162,7 @@ class _AccountRegister extends State<AccountRegister> {
     Navigator.push(
       context,
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => LoginPage(),
+        pageBuilder: (context, animation, secondaryAnimation) => ContaCriadaPage(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(1.0, 0.0);
           const end = Offset.zero;

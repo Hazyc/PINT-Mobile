@@ -6,10 +6,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import '../../handlers/TokenHandler.dart';
+import '../../pages/MapPage.dart';
 
 class FormularioCriacaoEvento extends StatefulWidget {
   @override
-  _FormularioCriacaoEventoState createState() => _FormularioCriacaoEventoState();
+  _FormularioCriacaoEventoState createState() =>
+      _FormularioCriacaoEventoState();
 }
 
 class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
@@ -36,26 +38,23 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
     final String? token = await tokenHandler.getToken();
 
     if (token == null) {
-      // Trate o caso em que o token não está disponível
       print('Token não encontrado');
       return;
     }
 
     final response = await http.get(
-      Uri.parse('https://backendpint-5wnf.onrender.com/areas/listarareasativas'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+      Uri.parse(
+          'https://backendpint-5wnf.onrender.com/areas/listarareasativas'),
+      headers: {'Authorization': 'Bearer $token'},
     );
 
     if (response.statusCode == 200) {
       List<dynamic> areas = json.decode(response.body)['data'];
       for (var area in areas) {
         final subResponse = await http.get(
-          Uri.parse('https://backendpint-5wnf.onrender.com/subareas/listarPorAreaAtivos/${area['ID_AREA']}'),
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
+          Uri.parse(
+              'https://backendpint-5wnf.onrender.com/subareas/listarPorAreaAtivos/${area['ID_AREA']}'),
+          headers: {'Authorization': 'Bearer $token'},
         );
         if (subResponse.statusCode == 200) {
           List<dynamic> subareas = json.decode(subResponse.body)['data'];
@@ -83,25 +82,28 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   }
 
   Future<void> _pickDateTime() async {
+    DateTime now = DateTime.now();
     DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
+      initialDate: now,
+      firstDate: now,
       lastDate: DateTime(2101),
-      locale: Locale('pt', 'BR'), // Configurar o calendário para português
+      locale: Locale('pt', 'BR'),
     );
+
     if (pickedDate != null) {
       TimeOfDay? pickedTime = await showTimePicker(
         context: context,
-        initialTime: TimeOfDay.now(),
+        initialTime: TimeOfDay.fromDateTime(now),
         builder: (BuildContext context, Widget? child) {
           return Localizations.override(
             context: context,
-            locale: Locale('pt', 'BR'), // Configurar o seletor de hora para português
+            locale: Locale('pt', 'BR'),
             child: child!,
           );
         },
       );
+
       if (pickedTime != null) {
         final pickedDateTime = DateTime(
           pickedDate.year,
@@ -110,6 +112,12 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           pickedTime.hour,
           pickedTime.minute,
         );
+
+        if (pickedDateTime.isBefore(now)) {
+          _showErrorDialog('A data e hora selecionadas devem ser futuras.');
+          return;
+        }
+
         setState(() {
           _dateTime = pickedDateTime;
         });
@@ -119,10 +127,9 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
 
   Future<void> _saveForm() async {
     TokenHandler tokenHandler = TokenHandler();
-    final String? token = await tokenHandler.getToken(); // Obtenha o token de autenticação
+    final String? token = await tokenHandler.getToken();
 
     if (token == null) {
-      // Trate o caso em que o token não está disponível
       print('Token não encontrado');
       return;
     }
@@ -133,7 +140,6 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
       try {
         String? imageId;
 
-        // Upload da imagem do banner
         if (_image != null) {
           var uploadRequest = http.MultipartRequest(
             'POST',
@@ -141,25 +147,23 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           );
           uploadRequest.headers['Authorization'] = 'Bearer $token';
 
-          var file = await http.MultipartFile.fromPath(
-            'imagem',
-            _image!.path,
-          );
+          var file = await http.MultipartFile.fromPath('imagem', _image!.path);
           uploadRequest.files.add(file);
 
           var uploadResponse = await uploadRequest.send();
-          var uploadResponseString = await uploadResponse.stream.bytesToString();
+          var uploadResponseString =
+              await uploadResponse.stream.bytesToString();
 
           if (uploadResponse.statusCode == 200) {
             var jsonResponse = jsonDecode(uploadResponseString);
-            imageId = jsonResponse['data']['ID_IMAGEM'].toString(); // Convertendo ID_IMAGEM para String
+            imageId = jsonResponse['data']['ID_IMAGEM'].toString();
           } else {
-            _showErrorDialog('Falha ao fazer upload da imagem. Por favor, tente novamente.');
+            _showErrorDialog(
+                'Falha ao fazer upload da imagem. Por favor, tente novamente.');
             return;
           }
         }
 
-        // Montar o corpo da requisição para criar o evento
         final response = await http.post(
           Uri.parse('https://backendpint-5wnf.onrender.com/eventos/create'),
           headers: <String, String>{
@@ -173,8 +177,8 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
             'TITULO_EVENTO': _eventName,
             'MORADA_EVENTO': _address,
             'DESCRICAO_EVENTO': _description,
-            'HORA_INICIO': _dateTime!.toIso8601String(),
-            'HORA_FIM': null, // Adicione a lógica para pegar a hora de fim se necessário
+            'HORA_INICIO': _dateTime?.toIso8601String(),
+            'HORA_FIM': null,
           }),
         );
 
@@ -196,7 +200,8 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
 
           Navigator.pop(context);
         } else {
-          _showErrorDialog('Falha ao criar evento. Por favor, tente novamente.');
+          _showErrorDialog(
+              'Falha ao criar evento. Por favor, tente novamente.');
         }
       } catch (error) {
         print('Erro: $error');
@@ -223,6 +228,43 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
     );
   }
 
+  void _openMapPage() async {
+    final selectedAddress = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MapPage(
+          initialAddress: _address,
+          onAddressSelected: (address) {
+            setState(() {
+              _address =
+                  address; // Atualiza o campo de localização com o endereço selecionado
+            });
+          },
+        ),
+      ),
+    );
+
+    if (selectedAddress != null) {
+      setState(() {
+        _address = selectedAddress; // Confirma a atualização do estado
+      });
+    }
+  }
+
+  Widget _buildLocationField() {
+    return _buildTextField(
+      hintText: 'Insira a localização do evento',
+      onSaved: (value) => _address = value!,
+      validator: (value) => value == null || value.isEmpty
+          ? 'Por favor insira a localização do evento.'
+          : null,
+      suffixIcon: IconButton(
+        icon: Icon(Icons.map, color: Colors.grey[600]),
+        onPressed: _openMapPage, // Abre a página do mapa
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -233,7 +275,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           'Criação de Evento',
           style: TextStyle(
             fontSize: 24,
-            color: Colors.white, // Define a cor do título como branco
+            color: Colors.white,
           ),
         ),
         leading: IconButton(
@@ -293,13 +335,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
                           SizedBox(height: 16.0),
                           _buildTitle('Localização'),
                           SizedBox(height: 8.0),
-                          _buildTextField(
-                            hintText: 'Insira a localização do evento',
-                            onSaved: (value) => _address = value!,
-                            validator: (value) => value == null || value.isEmpty
-                                ? 'Por favor insira a localização do evento.'
-                                : null,
-                          ),
+                          _buildLocationField(),
                           SizedBox(height: 16.0),
                           _buildTitle('Data e Hora do Evento'),
                           SizedBox(height: 8.0),
@@ -329,7 +365,8 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.create, size: 20, color: Colors.white),
+                                  Icon(Icons.create,
+                                      size: 20, color: Colors.white),
                                   SizedBox(width: 8),
                                   Text(
                                     'Criar Evento',
@@ -374,6 +411,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
     required FormFieldSetter<String> onSaved,
     required FormFieldValidator<String> validator,
     int maxLines = 1,
+    Widget? suffixIcon,
   }) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25.0),
@@ -386,6 +424,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           ),
           filled: true,
           fillColor: Colors.grey[200],
+          suffixIcon: suffixIcon,
         ),
         maxLines: maxLines,
         onSaved: onSaved,
@@ -410,7 +449,8 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
                 ? Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.add_a_photo, size: 30, color: Colors.grey[600]),
+                      Icon(Icons.add_a_photo,
+                          size: 30, color: Colors.grey[600]),
                       SizedBox(height: 8),
                       Text(label),
                     ],
@@ -480,7 +520,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           onChanged: (newValue) {
             setState(() {
               _category = newValue;
-              _subcategory = null; // Reset subcategory quando a categoria muda
+              _subcategory = null;
             });
           },
         ),
@@ -500,14 +540,14 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
         child: DropdownButton<String>(
           hint: Text('Selecione uma subcategoria'),
           value: _subcategory,
-          items: (categoriesWithSubcategories[_category] ?? []).map((subcategory) {
+          items:
+              (categoriesWithSubcategories[_category] ?? []).map((subcategory) {
             return DropdownMenuItem<String>(
               value: subcategory,
               child: Text(subcategory),
             );
           }).toList(),
           onChanged: (newValue) {
-            print(newValue);
             setState(() {
               _subcategory = newValue;
             });
