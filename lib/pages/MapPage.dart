@@ -5,7 +5,8 @@ import 'package:geocoding/geocoding.dart';
 
 class MapPage extends StatefulWidget {
   final String? initialAddress;
-  final Function(String)? onAddressSelected; // Função callback para retornar o endereço
+  final Function(String)?
+      onAddressSelected; // Função callback para retornar o endereço
 
   MapPage({this.initialAddress, this.onAddressSelected});
 
@@ -48,13 +49,15 @@ class _MapPageState extends State<MapPage> {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      return Future.error('Permissão de localização foi negada permanentemente.');
+      return Future.error(
+          'Permissão de localização foi negada permanentemente.');
     }
 
     _currentPosition = await Geolocator.getCurrentPosition();
 
     setState(() {
-      _initialPosition = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
+      _initialPosition =
+          LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
     });
   }
 
@@ -62,7 +65,8 @@ class _MapPageState extends State<MapPage> {
     try {
       List<Location> locations = await locationFromAddress(address);
       if (locations.isNotEmpty) {
-        LatLng latLng = LatLng(locations.first.latitude, locations.first.longitude);
+        LatLng latLng =
+            LatLng(locations.first.latitude, locations.first.longitude);
         setState(() {
           _initialPosition = latLng;
           _address = address;
@@ -78,16 +82,22 @@ class _MapPageState extends State<MapPage> {
 
   Future<void> _onMapTapped(LatLng location) async {
     try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(location.latitude, location.longitude);
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(location.latitude, location.longitude);
       if (placemarks.isNotEmpty) {
         setState(() {
           _selectedMarker = Marker(
             markerId: MarkerId('selected_location'),
             position: location,
-            infoWindow: InfoWindow(title: placemarks.first.street ?? 'Endereço desconhecido'),
+            infoWindow: InfoWindow(
+                title: placemarks.first.street ?? 'Endereço desconhecido'),
           );
           _address = placemarks.first.street ?? 'Endereço desconhecido';
         });
+
+        // Imprime o endereço selecionado no terminal
+        print('Endereço selecionado: $_address');
+
         if (_controller != null) {
           _controller!.animateCamera(CameraUpdate.newLatLng(location));
         }
@@ -99,7 +109,7 @@ class _MapPageState extends State<MapPage> {
 
   void _confirmSelection() {
   if (widget.onAddressSelected != null) {
-    widget.onAddressSelected!(_address);  // Certifique-se de que _address está correto
+    widget.onAddressSelected!(_address);  // Aqui o endereço é passado para o callback
     Navigator.pop(context);
   }
 }
@@ -128,7 +138,8 @@ class _MapPageState extends State<MapPage> {
                 target: _initialPosition!,
                 zoom: 14.0,
               ),
-              markers: Set<Marker>.of([..._markers, if (_selectedMarker != null) _selectedMarker!]),
+              markers: Set<Marker>.of(
+                  [..._markers, if (_selectedMarker != null) _selectedMarker!]),
               myLocationEnabled: true,
               myLocationButtonEnabled: true,
               onMapCreated: (controller) {

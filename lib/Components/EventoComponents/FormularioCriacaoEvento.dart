@@ -239,6 +239,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
               _address =
                   address; // Atualiza o campo de localização com o endereço selecionado
             });
+            Navigator.pop(context, address); // Retorna o endereço selecionado
           },
         ),
       ),
@@ -252,6 +253,9 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   }
 
   Widget _buildLocationField() {
+    TextEditingController _locationController =
+        TextEditingController(text: _address);
+
     return _buildTextField(
       hintText: 'Insira a localização do evento',
       onSaved: (value) => _address = value!,
@@ -260,8 +264,11 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           : null,
       suffixIcon: IconButton(
         icon: Icon(Icons.map, color: Colors.grey[600]),
-        onPressed: _openMapPage, // Abre a página do mapa
+        onPressed: () async {
+          _openMapPage(); // Abre a página do mapa
+        },
       ),
+      controller: _locationController, // Adiciona o controller aqui
     );
   }
 
@@ -412,10 +419,12 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
     required FormFieldValidator<String> validator,
     int maxLines = 1,
     Widget? suffixIcon,
+    TextEditingController? controller, // Adicione este parâmetro
   }) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25.0),
       child: TextFormField(
+        controller: controller, // E adicione aqui também
         decoration: InputDecoration(
           hintText: hintText,
           border: OutlineInputBorder(

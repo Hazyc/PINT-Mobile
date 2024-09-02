@@ -14,8 +14,6 @@ class AccountRegister extends StatefulWidget {
 class _AccountRegister extends State<AccountRegister> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
   final TextEditingController cargoController = TextEditingController();
   final TextEditingController moradaController = TextEditingController();
   File? _avatarImage;
@@ -89,8 +87,6 @@ class _AccountRegister extends State<AccountRegister> {
     final String? cidadeNome = selectedCity?['NOME_CIDADE'];
     final String nome = nameController.text;
     final String email = emailController.text;
-    final String password = passwordController.text;
-    final String confirmPassword = confirmPasswordController.text;
     final String cargo = cargoController.text;
     final String morada = moradaController.text;
 
@@ -108,13 +104,6 @@ class _AccountRegister extends State<AccountRegister> {
       return;
     }
 
-    if (password != confirmPassword) {
-      setState(() {
-        errorMessage = "As senhas não coincidem";
-      });
-      return;
-    }
-
     try {
       var request = http.MultipartRequest(
         'POST',
@@ -122,7 +111,6 @@ class _AccountRegister extends State<AccountRegister> {
       );
       request.fields['NOME_UTILIZADOR'] = nome;
       request.fields['EMAIL_UTILIZADOR'] = email;
-      request.fields['PASSWORD_UTILIZADOR'] = password;
       request.fields['CARGO_UTILIZADOR'] = cargo;
       request.fields['MORADA_UTILIZADOR'] = morada;
       request.fields['CIDADE'] = cidadeNome;
@@ -326,22 +314,6 @@ class _AccountRegister extends State<AccountRegister> {
                   _buildTextField(
                     hintText: 'Insira o seu email',
                     controller: emailController,
-                  ),
-                  SizedBox(height: 16.0),
-                  _buildTitle('Senha'),
-                  SizedBox(height: 8.0),
-                  _buildTextField(
-                    hintText: 'Insira a sua senha',
-                    controller: passwordController,
-                    obscureText: true,
-                  ),
-                  SizedBox(height: 16.0),
-                  _buildTitle('Confirmar senha'),
-                  SizedBox(height: 8.0),
-                  _buildTextField(
-                    hintText: 'Confirme a sua senha',
-                    controller: confirmPasswordController,
-                    obscureText: true,
                   ),
                   SizedBox(height: 16.0),
                   _buildTitle('Cargo'),
