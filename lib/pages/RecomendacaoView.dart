@@ -31,6 +31,8 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
   List<String> albumImages = [];
   int displayedImageCount = 6;
   bool showAllImages = false;
+  double precoMedio = 0;
+  double precoMedioAPI = 0;
 
   @override
   void initState() {
@@ -39,11 +41,28 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
     fetchAreaParameters();
     _loadAlbumImages();
     fetchExistingReview();
+    fetchprecomedio();
   }
 
   double? existingCleanlinessRating;
   double? existingServiceRating;
   double? existingLocationRating;
+
+  Future<void> fetchprecomedio() async {
+
+    //está a funcionar
+    final response = await http.get(Uri.parse('https://backendpint-5wnf.onrender.com/avaliacoes/mediaPrecoPorRecomendacao/${widget.recomendacao.idRecomendacao}'),
+      headers: {'Authorization': 'Bearer ${await TokenHandler().getToken()}'},
+    );
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> responseData = json.decode(response.body);
+      precoMedio = responseData['data']['media']?.toDouble() ?? 0;
+      print('Preço médio: $precoMedio');
+      print (responseData);
+    } else {
+      throw Exception('Failed to fetch average price');
+    }
+  }
 
   Future<void> fetchExistingReview() async {
     final existingReview = await _getExistingReview();
@@ -262,6 +281,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
         'AVALIACAO_PARAMETRO_1': cleanlinessRating,
         'AVALIACAO_PARAMETRO_2': serviceRating,
         'AVALIACAO_PARAMETRO_3': locationRating,
+        'PRECO_MEDIO': precoMedioAPI,
       };
     } else {
       // Criar nova avaliação
@@ -272,6 +292,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
         'AVALIACAO_PARAMETRO_2': serviceRating,
         'AVALIACAO_PARAMETRO_3': locationRating,
         'ID_RECOMENDACAO': widget.recomendacao.idRecomendacao,
+        'PRECO_MEDIO': precoMedioAPI,
       };
     }
 
@@ -304,6 +325,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
       print('Erro ao enviar avaliação: $error');
       // Tratar o erro conforme necessário
     }
+    fetchprecomedio();
   }
 
   Future<Map<String, dynamic>?> _getExistingReview() async {
@@ -453,6 +475,18 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                   locationRating = rating;
                 },
               ),
+               SizedBox(height: 10),
+               Text('Preço médio por pessoa:'),
+                TextField(
+                  onChanged: (value) {
+                    precoMedioAPI = double.parse(value);
+                  },
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: 'Insira o preço médio por pessoa (€)',
+                  ),
+                ),
+
             ],
           ),
           actions: [
@@ -776,6 +810,22 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                         ),
                         onRatingUpdate: (rating) {},
                       ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  Row(
+                    children: [
+                        Text(
+                        'Preço médio:',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(width: 8),
+                        Text(
+                        '${precoMedio.toStringAsFixed(2)} €',
+                        ),
+
+
                     ],
                   ),
                   SizedBox(height: 16),
