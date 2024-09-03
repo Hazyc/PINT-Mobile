@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:app_mobile/pages/LoginScreenProcess/ChangePasswordAfterRecovery.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../handlers/TokenHandler.dart';
 import 'package:http/http.dart' as http;
 import '../Components/NavigationBar.dart';
@@ -197,17 +198,10 @@ class _LoginPageState extends State<LoginPage> {
         final primeiravezData = jsonDecode(primeiravezResponse.body);
 
         if (primeiravezData['success'] == false) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => BarraDeNavegacao()),
-          );
-        } else {
+          context.go('/home');
+          } else {
           await TokenHandler().deleteToken();
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (context) => ChangePasswordPage(email: email)),
-          );
+          context.go('/change-password', extra: email);
         }
       } else {
         // Verifica se a mensagem de erro é relacionada a credenciais inválidas
@@ -315,11 +309,7 @@ class _LoginPageState extends State<LoginPage> {
                       children: [
                         InkWell(
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => PasswordRecoveryPage()),
-                            );
+                            context.push('/recover-password');
                           },
                           child: Text(
                             'Recuperar senha?',
@@ -430,7 +420,8 @@ class _LoginPageState extends State<LoginPage> {
                         SizedBox(width: 4),
                         InkWell(
                           onTap: () {
-                            Navigator.pushNamed(context, '/create-account');
+                            context.push(
+                                '/create-account'); // Use push em vez de go
                           },
                           child: Text(
                             'Registre-se agora!',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../Components/LoginPageComponents/botao.dart';
+import 'package:go_router/go_router.dart';
 import 'LoginScreen.dart';
 
 
@@ -49,10 +50,7 @@ class ContaCriadaPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 25.0),
               child: MyButton(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => LoginPage()),
-                  );
+                  context.go('/login');
                 },
                 buttonText: 'Ir para o Login',
               ),

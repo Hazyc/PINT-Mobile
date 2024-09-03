@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import '../LoginScreen.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -128,7 +129,7 @@ class _AccountRegister extends State<AccountRegister> {
         final jsonResponse = json.decode(responseData);
 
         if (jsonResponse['success'] == true) {
-          _navigateToContaCriadaPage();
+          context.go('/conta-criada-sucesso');
         } else {
           setState(() {
             errorMessage = "Erro ao registrar usuário: ${jsonResponse['message']}";
@@ -144,28 +145,6 @@ class _AccountRegister extends State<AccountRegister> {
         errorMessage = "Erro ao registrar usuário: $e";
       });
     }
-  }
-
-  void _navigateToContaCriadaPage() {
-    Navigator.push(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => ContaCriadaPage(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          const begin = Offset(1.0, 0.0);
-          const end = Offset.zero;
-          const curve = Curves.easeInOut;
-
-          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-          var offsetAnimation = animation.drive(tween);
-
-          return SlideTransition(
-            position: offsetAnimation,
-            child: child,
-          );
-        },
-      ),
-    );
   }
 
   Widget _buildTitle(String title) {
@@ -239,6 +218,7 @@ class _AccountRegister extends State<AccountRegister> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+ 
       body: Stack(
         children: [
           Container(
@@ -267,7 +247,7 @@ class _AccountRegister extends State<AccountRegister> {
                     child: IconButton(
                       icon: Icon(Icons.arrow_back, color: Colors.black, size: 30),
                       onPressed: () {
-                        Navigator.pop(context);
+                        context.pop();
                       },
                     ),
                   ),

@@ -4,7 +4,7 @@ import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../Components/LoginPageComponents/botao.dart';
-import 'ChangePasswordAfterRecovery.dart';
+import 'package:go_router/go_router.dart';
 
 class PasswordRecoveryPage extends StatefulWidget {
   const PasswordRecoveryPage({Key? key}) : super(key: key);
@@ -101,14 +101,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
     if (_otpController.text == _storedOtp) {
       // Código OTP correto, prossiga com a recuperação da senha
       print('Código verificado com sucesso');
-      Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChangePasswordPage(
-          email: _emailController.text,
-        ),
-      ),
-    );
+      context.push('/change-password', extra: _emailController.text);
     } else {
       // Código OTP incorreto
       ScaffoldMessenger.of(context).showSnackBar(
@@ -122,6 +115,16 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
     return Scaffold(
       body: Stack(
         children: [
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Image.asset(
+              'assets/vetor_invertido.png',
+              fit: BoxFit.cover,
+              height: MediaQuery.of(context).size.height * 0.2,
+            ),
+          ),
           Column(
             children: [
               Expanded(
@@ -273,11 +276,7 @@ class _PasswordRecoveryPageState extends State<PasswordRecoveryPage> {
                   ),
                 ),
               ),
-              Image.asset(
-                'assets/vetor_invertido.png',
-                fit: BoxFit.cover,
-                height: MediaQuery.of(context).size.height * 0.2,
-              ),
+              
             ],
           ),
         ],

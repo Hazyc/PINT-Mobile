@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:go_router/go_router.dart';
 import 'dart:convert';
-import '../LoginScreen.dart';
 
 void main() {
   runApp(MyApp());
@@ -66,11 +66,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         final responseData = jsonDecode(response.body);
         if (responseData['success']) {
           _showMessage('Senha alterada com sucesso!');
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => LoginPage()),
-            (Route<dynamic> route) => false,
-          );
+          context.go('/login');
         } else {
           _showMessage('Erro ao alterar a senha: ${responseData['message']}');
         }
@@ -90,98 +86,97 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            color: Colors.white,
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: Stack(
+      children: [
+        Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: Colors.white,
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Image.asset(
+            'assets/vetor_invertido.png',
+            fit: BoxFit.cover,
+            height: MediaQuery.of(context).size.height * 0.2,
           ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Image.asset(
-              'assets/vetor_invertido.png',
-              fit: BoxFit.cover,
-              height: MediaQuery.of(context).size.height * 0.2,
-            ),
-          ),
-          SingleChildScrollView(
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: IconButton(
-                      icon:
-                          Icon(Icons.arrow_back, color: Colors.black, size: 30),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+        ),
+        SingleChildScrollView(
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: IconButton(
+                    icon: Icon(Icons.arrow_back, color: Colors.black, size: 30),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    'Trocar Senha',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
                     ),
                   ),
-                  Center(
+                ),
+                SizedBox(height: 32),
+                _buildTitle('Nova Senha'),
+                SizedBox(height: 8.0),
+                _buildTextField(
+                  hintText: 'Insira a nova senha',
+                  controller: _newPasswordController,
+                  obscureText: true,
+                ),
+                SizedBox(height: 16),
+                _buildTitle('Confirmar Nova Senha'),
+                SizedBox(height: 8.0),
+                _buildTextField(
+                  hintText: 'Confirme a nova senha',
+                  controller: _confirmPasswordController,
+                  obscureText: true,
+                ),
+                SizedBox(height: 32),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
                     child: Text(
-                      'Trocar Senha',
+                      'Confirmar',
                       style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
+                        color: Colors.white,
+                        fontSize: 16,
                       ),
                     ),
                   ),
-                  SizedBox(height: 32),
-                  _buildTitle('Nova Senha'),
-                  SizedBox(height: 8.0),
-                  _buildTextField(
-                    hintText: 'Insira a nova senha',
-                    controller: _newPasswordController,
-                    obscureText: true,
-                  ),
-                  SizedBox(height: 16),
-                  _buildTitle('Confirmar Nova Senha'),
-                  SizedBox(height: 8.0),
-                  _buildTextField(
-                    hintText: 'Confirme a nova senha',
-                    controller: _confirmPasswordController,
-                    obscureText: true,
-                  ),
-                  SizedBox(height: 32),
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: _submit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      child: Text(
-                        'Confirmar',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
 // Funções de auxílio para reutilizar código
   Widget _buildTitle(String title) {
