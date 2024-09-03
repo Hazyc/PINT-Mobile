@@ -157,7 +157,6 @@ class _CalendarioPageState extends State<CalendarioPage> {
                                   MaterialPageRoute(
                                     builder: (context) => EventoView(
                                       evento: evento,
-                                      onLike: () {},
                                     ),
                                   ),
                                 );

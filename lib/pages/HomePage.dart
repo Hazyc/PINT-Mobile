@@ -292,7 +292,7 @@ class _HomePageState extends State<HomePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-          builder: (context) => EventoView(evento: evento, onLike: () {})),
+          builder: (context) => EventoView(evento: evento)),
     );
   }
 
@@ -302,7 +302,7 @@ class _HomePageState extends State<HomePage> {
       context,
       MaterialPageRoute(
           builder: (context) => RecomendacaoView(
-              recomendacao: recomendacao, onLike: () {})),
+              recomendacao: recomendacao)),
     );
   }
 

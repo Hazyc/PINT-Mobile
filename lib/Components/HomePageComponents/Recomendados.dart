@@ -237,7 +237,7 @@ class _RecomendadosPageState extends State<RecomendadosPage> {
   void _navigateToEventoView(BuildContext context, Evento evento) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => EventoView(evento: evento, onLike: () {})),
+      MaterialPageRoute(builder: (context) => EventoView(evento: evento)),
     );
   }
 

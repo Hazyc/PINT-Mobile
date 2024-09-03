@@ -20,9 +20,8 @@ String formatarDataHora(String dateTime) {
 
 class EventoView extends StatefulWidget {
   final Evento evento;
-  final VoidCallback onLike;
 
-  EventoView({required this.evento, required this.onLike});
+  EventoView({required this.evento});
 
   @override
   _EventoViewState createState() => _EventoViewState();
@@ -36,6 +35,7 @@ class _EventoViewState extends State<EventoView> {
   List<String> albumImages = [];
   int displayedImageCount = 6;
   bool showAllImages = false;
+  late bool estadoEvento;
 
   @override
   void initState() {
@@ -43,6 +43,8 @@ class _EventoViewState extends State<EventoView> {
     _requestPermission(Permission.storage);
     DateTime eventDateTime = DateTime.parse(widget.evento.dateTime);
     canRegister = eventDateTime.isAfter(DateTime.now());
+    estadoEvento = widget.evento.estadoEvento;
+    print('Estado Evento: $estadoEvento');
     _checkRegistrationStatus();
     _checkIfOrganizer();
     _loadAlbumImages();
@@ -82,7 +84,7 @@ class _EventoViewState extends State<EventoView> {
 
       // Formando a URL
       final url = Uri.parse(
-        'https://backendpint-5wnf.onrender.com/imagens/listarfotosalbum/${widget.evento.albumID}',
+        'https://backendpint-5wnf.onrender.com/imagens/listarfotosalbumvisivel?ID_ALBUM=${widget.evento.albumID}',
       );
 
       print('Request URL: $url'); // Log da URL
@@ -663,27 +665,6 @@ class _EventoViewState extends State<EventoView> {
                   ),
                 ),
               ),
-              if (isOrganizer)
-              Positioned(
-                bottom: 16,
-                right: 16,
-                child: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: 22,
-                  child: IconButton(
-                    icon: Icon(
-                      isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: isFavorite ? Colors.red : Color(0xFF0DCAF0),
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        isFavorite = !isFavorite;
-                      });
-                    },
-                    iconSize: 20,
-                  ),
-                ),
-              ),
               Positioned(
                 bottom: 16,
                 left: 16,
@@ -851,7 +832,7 @@ class _EventoViewState extends State<EventoView> {
                         ),
                       ),
                       SizedBox(width: 16),
-                      if (isOrganizer)
+                      if (isOrganizer && !estadoEvento)
                         CircleAvatar(
                           backgroundColor: Color(0xFF0DCAF0),
                           radius: 22,

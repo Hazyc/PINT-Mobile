@@ -15,10 +15,7 @@ class RecomendacaoCard extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (context) => RecomendacaoView(
-              recomendacao: recomendacao,
-              onLike: () {
-                print('Liked');
-              },
+              recomendacao: recomendacao
             ),
           ),
         );

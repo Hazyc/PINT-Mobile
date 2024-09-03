@@ -12,9 +12,8 @@ import '../Components/ComentariosPageRecomendacao.dart';
 
 class RecomendacaoView extends StatefulWidget {
   final Recomendacao recomendacao;
-  final VoidCallback onLike;
 
-  RecomendacaoView({required this.recomendacao, required this.onLike});
+  RecomendacaoView({required this.recomendacao});
 
   @override
   _RecomendacaoViewState createState() => _RecomendacaoViewState();
@@ -675,26 +674,6 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                         color: Color(0xFF0DCAF0),
                         fontWeight: FontWeight.bold,
                       ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 16,
-                  right: 16,
-                  child: CircleAvatar(
-                    backgroundColor: Colors.white,
-                    radius: 22,
-                    child: IconButton(
-                      icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: isFavorite ? Colors.red : Color(0xFF0DCAF0),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          isFavorite = !isFavorite;
-                        });
-                      },
-                      iconSize: 20,
                     ),
                   ),
                 ),

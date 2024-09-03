@@ -264,16 +264,15 @@ class _ProfilePageState extends State<ProfilePage> {
       lastThreeAttendees: List<String>.from(event['lastThreeAttendees'] ?? []),
       description: event['DESCRICAO_EVENTO'] ?? '',
       organizerId: event['ID_ORGANIZADOR'] ?? 0,
+      bannerID: event['ID_IMAGEM'] ?? 0,
+      estadoEvento: event['ATIVO_EVENTO'] ?? false
     );
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EventoView(
-          evento: evento,
-          onLike: () {
-            print('Evento Curtido!');
-          },
+          evento: evento
         ),
       ),
     );

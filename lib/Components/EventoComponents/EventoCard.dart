@@ -16,10 +16,7 @@ class EventoCard extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (context) => EventoView(
-              evento: evento,
-              onLike: () {
-                print('Liked');
-              },
+              evento: evento
             ),
           ),
         );

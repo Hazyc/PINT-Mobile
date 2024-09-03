@@ -25,12 +25,15 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   String? _category;
   String? _subcategory;
 
+  TextEditingController _locationController = TextEditingController();
+
   Map<String, List<String>> categoriesWithSubcategories = {};
 
   @override
   void initState() {
     super.initState();
     _fetchCategories();
+    _locationController.text = _address;
   }
 
   Future<void> _fetchCategories() async {
@@ -253,9 +256,6 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   }
 
   Widget _buildLocationField() {
-    TextEditingController _locationController =
-        TextEditingController(text: _address);
-
     return _buildTextField(
       hintText: 'Insira a localização do evento',
       onSaved: (value) => _address = value!,
@@ -268,7 +268,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           _openMapPage(); // Abre a página do mapa
         },
       ),
-      controller: _locationController, // Adiciona o controller aqui
+      controller: _locationController, // Usa o controlador definido na classe
     );
   }
 
