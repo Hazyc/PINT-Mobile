@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "605915056852",
+    "project_id": "projeto-pint-70fc6",
+    "storage_bucket": "projeto-pint-70fc6.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:605915056852:android:85892092ef99965a62c941",
+        "android_client_info": {
+          "package_name": "com.example.app_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDVPPEti1gkk2KNERDUNl4WNqFdddNyaQk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

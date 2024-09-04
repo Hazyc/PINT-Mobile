@@ -25,15 +25,12 @@ import 'pages/EventoView.dart';
 import 'Components/HomePageComponents/Recomendados.dart';
 import 'package:app_mobile/models/Evento.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Garante que o Flutter seja inicializado corretamente
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform, // Inicializa o Firebase com as configurações geradas
-  );
+void main() {
   runApp(MyApp());
 }
 
 final GoRouter _router = GoRouter(
+  initialLocation: '/',
   routes: <RouteBase>[
     GoRoute(
       path: '/',
@@ -146,6 +143,7 @@ final GoRouter _router = GoRouter(
       },
     ),
   ],
+  debugLogDiagnostics: true,
   errorBuilder: (context, state) => Scaffold(
     body: Center(
       child: Text('Página não encontrada'),
