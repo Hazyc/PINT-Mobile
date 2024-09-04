@@ -98,7 +98,7 @@ final GoRouter _router = GoRouter(
           RecomendadosPage(),
     ),
     GoRoute(
-      path: '/evento/:id',
+      path: '/evento',
       builder: (context, state) {
         final evento = state.extra as Evento; // Recebe o evento diretamente
         print('Evento recebido: ${evento}'); // Print do evento completo
