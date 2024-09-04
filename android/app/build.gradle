@@ -60,7 +60,7 @@ android {
         release {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
-            storeFile file('F:/PINT/PINT-Mobile/android/app/debug.keystore')
+            storeFile file('C:/Users/ziigbass/.android/debug.keystore')
             storePassword 'android'
         }
     }

@@ -1,6 +1,9 @@
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
 import 'pages/LoginScreen.dart';
 import 'pages/LoginScreenProcess/AccountRegister.dart';
 import 'pages/ContaCriadaInfo.dart';
@@ -22,12 +25,15 @@ import 'pages/EventoView.dart';
 import 'Components/HomePageComponents/Recomendados.dart';
 import 'package:app_mobile/models/Evento.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // Garante que o Flutter seja inicializado corretamente
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform, // Inicializa o Firebase com as configurações geradas
+  );
   runApp(MyApp());
 }
 
 final GoRouter _router = GoRouter(
-  initialLocation: '/home',
   routes: <RouteBase>[
     GoRoute(
       path: '/',
