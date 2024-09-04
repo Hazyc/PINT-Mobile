@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:go_router/go_router.dart';
 import '../Components/ForumComponents/ForumCard.dart';
 import '../Components/ForumComponents/SubForumPage.dart';
 import 'package:app_mobile/handlers/TokenHandler.dart';
@@ -132,15 +133,9 @@ class _ListaForunsState extends State<ListaForuns> {
                 itemBuilder: (context, index) {
                   return GestureDetector(
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SubForumPage(
-                            title: areas[index]['nome']!,
-                            subForuns:
-                                topicsByArea[areas[index]['id'].toString()]!,
-                          ),
-                        ),
+                      context.push(
+                        '/subforum/${areas[index]['nome']}',
+                        extra: topicsByArea[areas[index]['id'].toString()],
                       );
                     },
                     child: ForumCard(

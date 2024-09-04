@@ -5,7 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:ui';
-import '../models/Evento.dart';
+import 'package:app_mobile/models/Evento.dart';
 import 'package:intl/intl.dart';
 import '../Components/EventoComponents/ChatPageEvento.dart';
 import '../handlers/TokenHandler.dart';

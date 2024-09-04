@@ -41,6 +41,7 @@ dev_dependencies:
   table_calendar: ^3.0.1
   google_sign_in: ^6.2.1
   flutter_facebook_auth: ^6.0.4
+  test: ^1.25.2
 
 
 flutter:

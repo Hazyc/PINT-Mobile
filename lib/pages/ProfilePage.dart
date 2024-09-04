@@ -6,7 +6,8 @@ import 'dart:convert';
 import 'package:app_mobile/handlers/TokenHandler.dart';
 import 'package:app_mobile/models/Evento.dart';
 import 'package:app_mobile/pages/EventoView.dart';
-import 'EditProfilePage.dart';
+import '../models/Profile.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:async'; // Import the dart:async package
 
 void main() => runApp(MyApp());
@@ -253,27 +254,25 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _navigateToEventoView(Map<String, dynamic> event) {
     Evento evento = Evento(
-      id: event['ID_EVENTO'] ?? 0,
-      albumID: event['ID_ALBUM'] ?? '',
-      bannerImage: event['IMAGEM']['NOME_IMAGEM'] ?? '',
-      eventName: event['TITULO_EVENTO'] ?? '',
-      dateTime: event['DATA_HORA_INICIO_EVENTO'] ?? '',
-      address: event['MORADA_EVENTO'] ?? '',
-      category: event['SUBAREA']['AREA']['NOME_AREA'] ?? '',
-      subcategory: event['SUBAREA']['NOME_SUBAREA'] ?? '',
-      lastThreeAttendees: List<String>.from(event['lastThreeAttendees'] ?? []),
-      description: event['DESCRICAO_EVENTO'] ?? '',
-      organizerId: event['ID_ORGANIZADOR'] ?? 0,
-      bannerID: event['ID_IMAGEM'] ?? 0,
-      estadoEvento: event['ATIVO_EVENTO'] ?? false
-    );
+        id: event['ID_EVENTO'] ?? 0,
+        albumID: event['ID_ALBUM'] ?? '',
+        bannerImage: event['IMAGEM']['NOME_IMAGEM'] ?? '',
+        eventName: event['TITULO_EVENTO'] ?? '',
+        dateTime: event['DATA_HORA_INICIO_EVENTO'] ?? '',
+        address: event['MORADA_EVENTO'] ?? '',
+        category: event['SUBAREA']['AREA']['NOME_AREA'] ?? '',
+        subcategory: event['SUBAREA']['NOME_SUBAREA'] ?? '',
+        lastThreeAttendees:
+            List<String>.from(event['lastThreeAttendees'] ?? []),
+        description: event['DESCRICAO_EVENTO'] ?? '',
+        organizerId: event['ID_ORGANIZADOR'] ?? 0,
+        bannerID: event['ID_IMAGEM'] ?? 0,
+        estadoEvento: event['ATIVO_EVENTO'] ?? false);
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => EventoView(
-          evento: evento
-        ),
+        builder: (context) => EventoView(evento: evento),
       ),
     );
   }
@@ -302,23 +301,23 @@ class _ProfilePageState extends State<ProfilePage> {
           IconButton(
             icon: Icon(Icons.edit, color: Colors.white),
             onPressed: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => EditProfilePage(
-                        bannerImageUrl: userBannerUrl,
-                        avatarImageUrl: userAvatarUrl,
-                        userName: userName,
-                        userDescription: userDescription,
-                        onSave: (newBanner, newAvatar, newName, newDescription,
-                            newArea) {
-                          setState(() {
-                            userBannerUrl = newBanner;
-                            userAvatarUrl = newAvatar;
-                            userName = newName;
-                            userDescription = newDescription;
-                            userPreferredArea = newArea;
-                          });
-                        },
-                      )));
+              context.push('/edit-profile',
+                  extra: EditProfileArguments(
+                    bannerImageUrl: userBannerUrl,
+                    avatarImageUrl: userAvatarUrl,
+                    userName: userName,
+                    userDescription: userDescription,
+                    onSave: (newBanner, newAvatar, newName, newDescription,
+                        newArea) {
+                      setState(() {
+                        userBannerUrl = newBanner;
+                        userAvatarUrl = newAvatar;
+                        userName = newName;
+                        userDescription = newDescription;
+                        userPreferredArea = newArea;
+                      });
+                    },
+                  ));
             },
           ),
         ],

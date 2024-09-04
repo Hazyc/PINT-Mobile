@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../handlers/TokenHandler.dart';
-import '../../models/Evento.dart';
+import 'package:app_mobile/models/Evento.dart';
 import '../../models/Recomendacao.dart';
 import '../../Components/EventoComponents/EventoCard.dart';
 import '../../Components/RecomendacaoComponents/RecomendacaoCard.dart';

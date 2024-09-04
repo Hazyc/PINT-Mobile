@@ -7,20 +7,23 @@ import '../pages/ListaGenerica.dart';
 import '../pages/ListaForuns.dart';
 
 class BarraDeNavegacao extends StatefulWidget {
-  const BarraDeNavegacao({Key? key}) : super(key: key);
+  final int selectedIndex;
+
+  const BarraDeNavegacao({Key? key, this.selectedIndex = 0}) : super(key: key);
 
   @override
   _BarraDeNavegacaoState createState() => _BarraDeNavegacaoState();
 }
 
 class _BarraDeNavegacaoState extends State<BarraDeNavegacao> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
 
   static List<Widget> _telas = [];
 
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.selectedIndex; // Use o índice passado
     _telas = [
       HomePage(onItemTapped: _onItemTapped),
       ListaForuns(),

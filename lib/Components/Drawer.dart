@@ -5,7 +5,8 @@ import '../handlers/TokenHandler.dart';
 import '../pages/ListaForuns.dart'; // Adjust the path as needed
 import '../pages/DefiniçõesPage.dart';
 import '../pages/CalendarioPage.dart'; // Import the calendar page
-import '../models/Evento.dart'; // Import the event model
+import 'package:app_mobile/models/Evento.dart';
+import 'package:go_router/go_router.dart';
 
 class CustomDrawer extends StatefulWidget {
   final Function(String) onAreaTap;
@@ -142,7 +143,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
               onPressed: () {
                 Navigator.of(context).pop(); // Fecha o diálogo
                 TokenHandler().deleteToken();
-                Navigator.pushReplacementNamed(context, '/login');
+                context.go('/login');
               },
             ),
           ],
@@ -259,10 +260,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                                   color: _parseColor(area['COR_AREA'])),
                               title: Text(area['NOME_AREA']),
                               onTap: () {
-                                Navigator.pop(context); // Close the drawer
-                                widget.onAreaTap(area[
-                                    'NOME_AREA']); // Call the callback function
-                              },
+                          context.go('/area-of-interest/${area['NOME_AREA']}');
+                        },
                             ))
                         .toList(),
                   );
@@ -275,12 +274,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
               title: Text('Calendário'),
               onTap: () {
                 Navigator.pop(context); // Fecha o Drawer
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CalendarioPage(), // Passa os eventos
-                  ),
-                );
+                context.push('/calendar');
               },
             ),
             ListTile(
@@ -288,24 +282,15 @@ class _CustomDrawerState extends State<CustomDrawer> {
               title: Text('Fórum'),
               onTap: () {
                 Navigator.pop(context); // Close the drawer
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ListaForuns(),
-                  ),
-                );
+                context.push('/forum');
               },
             ),
             Divider(),
             ListTile(
               leading: Icon(Icons.settings),
               title: Text('Definições'),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SettingsPage(),
-                ),
-              ),
+              onTap: () => context.push(
+                '/settings'),
             ),
             ListTile(
               leading: Icon(Icons.exit_to_app),

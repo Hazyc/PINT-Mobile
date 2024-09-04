@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'ChatPage.dart'; // Certifique-se de ajustar o caminho conforme necessário
 import 'FormularioCriacaoSubForum.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 class SubForumPage extends StatefulWidget {
@@ -29,7 +30,7 @@ class _SubForumPageState extends State<SubForumPage> {
   }
 
   void _addSubForum(Map<String, dynamic> newSubForum) {
-    Map<String, dynamic> novoSubForum= {
+    Map<String, dynamic> novoSubForum = {
       'nome': newSubForum['TITULO_TOPICO'],
       'imagem': newSubForum['IMAGEM'],
       'subarea': newSubForum['SUBAREA'],
@@ -38,94 +39,95 @@ class _SubForumPageState extends State<SubForumPage> {
     setState(() {
       subForuns.add(novoSubForum);
     });
-
   }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      title: Text(
-        'Sub-Fóruns de ${widget.title}',
-        style: TextStyle(color: Colors.white, fontSize: 24.0),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Sub-Fóruns de ${widget.title}',
+          style: TextStyle(color: Colors.white, fontSize: 24.0),
+        ),
+        backgroundColor: const Color(0xFF0DCAF0),
+        centerTitle: true,
+        iconTheme: IconThemeData(color: Colors.white),
       ),
-      backgroundColor: const Color(0xFF0DCAF0),
-      centerTitle: true,
-      iconTheme: IconThemeData(color: Colors.white),
-    ),
-    body: subForuns == null || subForuns.isEmpty
-        ? Center(
-            child: Text('Nenhum sub-fórum disponível.'),
-          )
-        : ListView.builder(
-            itemCount: subForuns.length,
-            itemBuilder: (context, index) {
-              final subForum = subForuns[index];
-              final imagemUrl = subForum['imagem'] as String?;
-              final nome = subForum['nome'] as String?;
-              final subarea = subForum['subarea'] as String?;
-              final dataCriacao = subForum['dataCriacao'] as String?;
+      body: subForuns == null || subForuns.isEmpty
+          ? Center(
+              child: Text('Nenhum sub-fórum disponível.'),
+            )
+          : ListView.builder(
+              itemCount: subForuns.length,
+              itemBuilder: (context, index) {
+                final subForum = subForuns[index];
+                final imagemUrl = subForum['imagem'] as String?;
+                final nome = subForum['nome'] as String?;
+                final subarea = subForum['subarea'] as String?;
+                final dataCriacao = subForum['dataCriacao'] as String?;
 
-              return Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-                elevation: 5,
-                child: ListTile(
-                  leading: imagemUrl != null
-                      ? Image.network(
-                          imagemUrl,
-                          width: 50,
-                          height: 50,
-                          fit: BoxFit.cover,
-                        )
-                      : SizedBox.shrink(), // Retorna um espaço vazio se a imagemUrl for nula
-                  title: nome != null
-                      ? Text(
-                          nome,
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        )
-                      : SizedBox.shrink(), // Retorna um espaço vazio se o nome for nulo
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Sub-área: ${subarea ?? ''}'),
-                      Text('Criado em: ${dataCriacao != null ? _formatDate(dataCriacao) : ''}'),
-                    ],
+                return Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.0),
                   ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChatPage(
-                          title: nome!,
-                          subForumId: '${widget.title}-$nome',
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              );
-            },
-          ),
-    floatingActionButton: FloatingActionButton(
-      onPressed: () async {
+                  elevation: 5,
+                  child: ListTile(
+                    leading: imagemUrl != null
+                        ? Image.network(
+                            imagemUrl,
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                          )
+                        : SizedBox
+                            .shrink(), // Retorna um espaço vazio se a imagemUrl for nula
+                    title: nome != null
+                        ? Text(
+                            nome,
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          )
+                        : SizedBox
+                            .shrink(), // Retorna um espaço vazio se o nome for nulo
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Sub-área: ${subarea ?? ''}'),
+                        Text(
+                            'Criado em: ${dataCriacao != null ? _formatDate(dataCriacao) : ''}'),
+                      ],
+                    ),
+                    onTap: () {
+                      final String generatedSubForumId =
+                          '${widget.title}-$nome';
+                      context.push(
+                        '/chatpage/$generatedSubForumId',
+                        extra: {
+                          'title': nome!,
+                          'subForumId': generatedSubForumId,
+                        },
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+      floatingActionButton: FloatingActionButton(
         // Navegar para o formulário de criação de sub-fórum
-        final newSubForum = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => FormularioCriacaoSubForum(category: widget.title),
-          ),
-        );
+        onPressed: () async {
+          // Use context.push para navegar para o formulário de criação
+          final result = await context.push<Map<String, dynamic>>(
+            '/create-subforum/${Uri.encodeComponent(widget.title)}',
+          );
 
-        if (newSubForum != null) {
-          _addSubForum(newSubForum);
-        }
-      },
-      child: Icon(Icons.add),
-      backgroundColor: const Color(0xFF0DCAF0),
-    ),
-  );
-}
-
+          if (result != null) {
+            // Adicione o novo sub-fórum à lista
+            _addSubForum(result);
+          }
+        },
+        child: Icon(Icons.add),
+        backgroundColor: const Color(0xFF0DCAF0),
+      ),
+    );
+  }
 }

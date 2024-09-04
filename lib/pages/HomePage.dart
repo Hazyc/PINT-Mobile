@@ -7,8 +7,8 @@ import './ListaGenerica.dart';
 import 'package:app_mobile/handlers/TokenHandler.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/Evento.dart';
-import './NotificacoesPage.dart';
+import 'package:app_mobile/models/Evento.dart';
+import 'package:go_router/go_router.dart';
 import '../Components/HomePageComponents/Recomendados.dart';
 import './EventoView.dart'; // Import the event view page
 import './RecomendacaoView.dart';
@@ -271,29 +271,15 @@ class _HomePageState extends State<HomePage> {
 
   void _navigateToNotifications(BuildContext context) {
     // Implementar a navegação para NotificationsPage
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => NotificationsPage(),
-      ),
-    );
+    context.push('/notifcations');
   }
 
   void _navigateToRecomendados(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RecomendadosPage(),
-      ),
-    );
+    context.push('/my-recommendations');
   }
 
   void _navigateToEventoView(BuildContext context, Evento evento) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-          builder: (context) => EventoView(evento: evento)),
-    );
+    GoRouter.of(context).go('/event/${evento.id}');
   }
 
   void _navigateToRecomendacaoView(
