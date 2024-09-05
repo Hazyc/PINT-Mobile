@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/Recomendacao.dart';
 import '../../pages/RecomendacaoView.dart';
+import 'package:go_router/go_router.dart';
 
 class RecomendacaoCard extends StatelessWidget {
   final Recomendacao recomendacao;
@@ -11,13 +12,9 @@ class RecomendacaoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => RecomendacaoView(
-              recomendacao: recomendacao
-            ),
-          ),
+        context.push(
+          '/evento/${recomendacao.idRecomendacao}', 
+          extra: recomendacao
         );
       },
       child: Card(

@@ -271,7 +271,7 @@ class _HomePageState extends State<HomePage> {
 
   void _navigateToNotifications(BuildContext context) {
     // Implementar a navegação para NotificationsPage
-    context.push('/notifcations');
+    context.push('/notifications');
   }
 
   void _navigateToRecomendados(BuildContext context) {

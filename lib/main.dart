@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'package:http/http.dart' as http;
+import 'package:app_mobile/handlers/TokenHandler.dart';
+import 'package:intl/intl.dart';
 
 import 'pages/LoginScreen.dart';
 import 'pages/LoginScreenProcess/AccountRegister.dart';
@@ -24,13 +26,116 @@ import 'pages/RecomendacaoView.dart';
 import 'pages/EventoView.dart';
 import 'Components/HomePageComponents/Recomendados.dart';
 import 'package:app_mobile/models/Evento.dart';
+import 'package:app_mobile/models/Recomendacao.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
 }
 
+Future<bool> isTokenValid() async {
+  final String? token = await TokenHandler().getToken();
+
+  if (token == null) return false;
+
+  final String baseUrl = 'https://backendpint-5wnf.onrender.com';
+  final response = await http.get(
+    Uri.parse(
+        '$baseUrl/utilizadores/getByToken'), // Substitua pelo endpoint correto
+    headers: {'Authorization': 'Bearer $token'},
+  );
+  return response.statusCode == 200;
+}
+
+Future<Evento?> fetchEventoById(String token, int id) async {
+  final tokenHandler = TokenHandler();
+  final String? token = await tokenHandler.getToken();
+
+  if (token == null) {
+    print('Token não encontrado');
+    return null;
+  }
+
+  try {
+    final String baseUrl = 'https://backendpint-5wnf.onrender.com';
+    final response = await http.get(
+      Uri.parse('$baseUrl/eventos/listarTodosVisiveis'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body)['data'];
+      final eventoData = data.firstWhere(
+        (json) => json['ID_EVENTO'] == id,
+        orElse: () => null,
+      );
+      return eventoData != null ? Evento.fromJson(eventoData) : null;
+    } else {
+      throw Exception('Falha ao carregar eventos');
+    }
+  } catch (e) {
+    print('Erro ao buscar evento por ID: $e');
+    return null;
+  }
+}
+
+Future<Recomendacao?> fetchRecomendacaoById(String token, int id) async {
+  try {
+    final String baseUrl = 'https://backendpint-5wnf.onrender.com';
+    final response = await http.get(
+      Uri.parse('$baseUrl/recomendacoes/listarRecomendacaoPorId/$id'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body)['data'];
+      if (data.isNotEmpty) {
+        Recomendacao recomendacao = Recomendacao.fromJson(data);
+        try {
+          final mediaResponse = await http.get(
+            Uri.parse(
+                '$baseUrl/avaliacoes/mediaAvaliacaoporRecomendacao/${recomendacao.idRecomendacao}'),
+            headers: {'Authorization': 'Bearer $token'},
+          );
+
+          if (mediaResponse.statusCode == 200) {
+            final mediaData = jsonDecode(mediaResponse.body)['data'];
+            double media1 = mediaData['media1'].toDouble();
+            double media2 = mediaData['media2'].toDouble();
+            double media3 = mediaData['media3'].toDouble();
+            double avaliacaoGeral = (media1 + media2 + media3) / 3;
+            recomendacao.avaliacaoGeral =
+                double.parse(avaliacaoGeral.toStringAsFixed(1));
+          } else {
+            throw Exception('Falha ao buscar média de avaliação');
+          }
+        } catch (error) {
+          print(
+              'Erro ao buscar média de avaliação para recomendação ${recomendacao.idRecomendacao}: $error');
+        }
+        return recomendacao;
+      } else {
+        throw Exception('Recomendação não encontrada');
+      }
+    } else {
+      throw Exception('Falha ao carregar recomendação');
+    }
+  } catch (e) {
+    print('Erro ao buscar recomendação por ID: $e');
+    return null;
+  }
+}
+
 final GoRouter _router = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/home',
+  redirect: (BuildContext context, GoRouterState state) async {
+    final isValid = await isTokenValid();
+    // Se não for válido, redireciona para a página de login
+    if (!isValid && state != '/login') {
+      return '/login';
+    }
+    return null; // Deixe o estado de navegação inalterado
+  },
   routes: <RouteBase>[
     GoRoute(
       path: '/',
@@ -80,7 +185,7 @@ final GoRouter _router = GoRouter(
       builder: (BuildContext context, GoRouterState state) => SettingsPage(),
     ),
     GoRoute(
-      path: '/notifcations',
+      path: '/notifications',
       builder: (BuildContext context, GoRouterState state) =>
           NotificationsPage(),
     ),
@@ -98,12 +203,63 @@ final GoRouter _router = GoRouter(
           RecomendadosPage(),
     ),
     GoRoute(
-      path: '/evento',
-      builder: (context, state) {
-        final evento = state.extra as Evento; // Recebe o evento diretamente
-        print('Evento recebido: ${evento}'); // Print do evento completo
-        print('ID do Evento: ${evento.id}'); // Print do ID do evento
-        return EventoView(evento: evento);
+      path: '/evento/:id',
+      builder: (BuildContext context, GoRouterState state) {
+        final id = int.parse(state.pathParameters['id']!);
+        final token =
+            'your_auth_token'; // Certifique-se de passar o token correto
+        return FutureBuilder<Evento?>(
+          future: fetchEventoById(token, id),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Erro: ${snapshot.error}'));
+            } else if (snapshot.hasData && snapshot.data != null) {
+              return EventoView(evento: snapshot.data!);
+            } else {
+              return Center(child: Text('Evento não encontrado.'));
+            }
+          },
+        );
+      },
+    ),
+    GoRoute(
+      path: '/recomendacao/:id',
+      builder: (BuildContext context, GoRouterState state) {
+      final id = int.parse(state.pathParameters['id']!);
+        final token =
+            'your_auth_token'; // Certifique-se de passar o token correto
+        return FutureBuilder<Recomendacao?>(
+          future: fetchRecomendacaoById(token, id),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Erro: ${snapshot.error}'));
+            } else if (snapshot.hasData) {
+              final recomendacao = snapshot.data!;
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Título: ${recomendacao.nomeLocal}',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 8),
+                    Text('Descrição: ${recomendacao.descricao}'),
+                    SizedBox(height: 8),
+                    Text(
+                        'Avaliação Geral: ${recomendacao.avaliacaoGeral?.toStringAsFixed(1) ?? 'N/A'}'),
+                  ],
+                ),
+              );
+            } else {
+              return Center(child: Text('Nenhum dado encontrado'));
+            }
+          },
+        );
       },
     ),
     GoRoute(

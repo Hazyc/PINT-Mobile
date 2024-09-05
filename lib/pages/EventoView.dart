@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
+import 'package:go_router/go_router.dart';
 import 'dart:convert';
 import 'dart:ui';
 import 'package:app_mobile/models/Evento.dart';
@@ -640,7 +641,7 @@ class _EventoViewState extends State<EventoView> {
                   child: IconButton(
                     icon: Icon(Icons.arrow_back, color: Color(0xFF0DCAF0)),
                     onPressed: () {
-                      Navigator.of(context).pop();
+                      context.go('/home');
                     },
                     iconSize: 22,
                   ),

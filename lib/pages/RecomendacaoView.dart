@@ -5,6 +5,7 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/Recomendacao.dart';
+import 'package:go_router/go_router.dart';
 import 'package:app_mobile/handlers/TokenHandler.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -48,16 +49,17 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
   double? existingLocationRating;
 
   Future<void> fetchprecomedio() async {
-
     //está a funcionar
-    final response = await http.get(Uri.parse('https://backendpint-5wnf.onrender.com/avaliacoes/mediaPrecoPorRecomendacao/${widget.recomendacao.idRecomendacao}'),
+    final response = await http.get(
+      Uri.parse(
+          'https://backendpint-5wnf.onrender.com/avaliacoes/mediaPrecoPorRecomendacao/${widget.recomendacao.idRecomendacao}'),
       headers: {'Authorization': 'Bearer ${await TokenHandler().getToken()}'},
     );
     if (response.statusCode == 200) {
       final Map<String, dynamic> responseData = json.decode(response.body);
       precoMedio = responseData['data']['media']?.toDouble() ?? 0;
       print('Preço médio: $precoMedio');
-      print (responseData);
+      print(responseData);
     } else {
       throw Exception('Failed to fetch average price');
     }
@@ -474,18 +476,17 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                   locationRating = rating;
                 },
               ),
-               SizedBox(height: 10),
-               Text('Preço médio por pessoa:'),
-                TextField(
-                  onChanged: (value) {
-                    precoMedioAPI = double.parse(value);
-                  },
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: 'Insira o preço médio por pessoa (€)',
-                  ),
+              SizedBox(height: 10),
+              Text('Preço médio por pessoa:'),
+              TextField(
+                onChanged: (value) {
+                  precoMedioAPI = double.parse(value);
+                },
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  hintText: 'Insira o preço médio por pessoa (€)',
                 ),
-
+              ),
             ],
           ),
           actions: [
@@ -686,7 +687,16 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                     child: IconButton(
                       icon: Icon(Icons.arrow_back, color: Color(0xFF0DCAF0)),
                       onPressed: () {
-                        Navigator.of(context).pop();
+                        final isDirectNavigation = ModalRoute.of(context)
+                                ?.settings
+                                .name ==
+                            '/recomendacao/${widget.recomendacao.idRecomendacao}';
+
+                        if (isDirectNavigation) {
+                          GoRouter.of(context).go('/home');
+                        } else {
+                          Navigator.of(context).pop();
+                        }
                       },
                       iconSize: 22,
                     ),
@@ -794,17 +804,15 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                   SizedBox(height: 16),
                   Row(
                     children: [
-                        Text(
+                      Text(
                         'Preço médio:',
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       SizedBox(width: 8),
-                        Text(
+                      Text(
                         '${precoMedio.toStringAsFixed(2)} €',
-                        ),
-
-
+                      ),
                     ],
                   ),
                   SizedBox(height: 16),
