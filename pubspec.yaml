@@ -18,22 +18,21 @@ dependencies:
   url_launcher: ^6.3.0
   geocoding: ^3.0.0
   go_router: ^14.2.7
-  firebase_core: # Certifique-se de especificar a versão
   flutter_localizations:
     sdk: flutter
   intl: ^0.19.0
   provider: ^6.1.2
   http: ^1.2.1
-  uni_links: ^0.5.1
   flutter_secure_storage: ^5.0.2
   google_sign_in: ^6.2.1
   flutter_facebook_auth: ^6.0.4
+  path: ^1.9.0 
+  
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-  path: ^1.9.0 
   flutter_speed_dial: ^6.1.0
   flutter_rating_bar: ^4.0.1
   pin_code_fields: ^8.0.1

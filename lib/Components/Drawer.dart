@@ -260,8 +260,9 @@ class _CustomDrawerState extends State<CustomDrawer> {
                                   color: _parseColor(area['COR_AREA'])),
                               title: Text(area['NOME_AREA']),
                               onTap: () {
-                          context.go('/area-of-interest/${area['NOME_AREA']}');
-                        },
+                        Navigator.pop(context); // Close the drawer
+                        widget.onAreaTap(area['NOME_AREA']); // Call the callback function
+                      },
                             ))
                         .toList(),
                   );

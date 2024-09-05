@@ -196,9 +196,9 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
       final Map<String, dynamic> responseData = json.decode(responseBody);
 
       if (response.statusCode == 200 && responseData['success']) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        /*ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Fotos carregadas com sucesso!')),
-        );
+        );*/
         // Atualize a lista de imagens após o upload
         _loadAlbumImages();
       } else {
@@ -366,56 +366,36 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
   }
 
   Future<void> _pickFiles() async {
-    final status = await Permission.photos.request();
+  // O FilePicker não requer permissões explícitas para acesso a arquivos
+  try {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.image,
+    );
 
-    if (status.isGranted) {
-      try {
-        final result = await FilePicker.platform.pickFiles(
-          allowMultiple: true,
-          type: FileType.image,
-        );
+    if (result != null) {
+      final List<PlatformFile> files = result.files;
 
-        if (result != null) {
-          // Obtendo a lista de arquivos selecionados
-          final List<PlatformFile> files = result.files;
-
-          // Fazendo upload de cada imagem selecionada
-          for (var file in files) {
-            final image = XFile(file.path!);
-            await _uploadImage(image); // Envia a imagem selecionada
-          }
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Imagens carregadas com sucesso!')),
-          );
-        } else {
-          print("Nenhuma imagem selecionada.");
+      for (var file in files) {
+        if (file.path != null) {
+          final image = XFile(file.path!);
+          await _uploadImage(image);
         }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Erro ao selecionar imagens: ${e.toString()}')),
-        );
       }
-    } else if (status.isPermanentlyDenied) {
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              Text('Permissão de acesso às fotos foi permanentemente negada.'),
-          action: SnackBarAction(
-            label: 'Configurações',
-            onPressed: () {
-              openAppSettings(); // Abre as configurações do aplicativo
-            },
-          ),
-        ),
+        SnackBar(content: Text('Imagens carregadas com sucesso!')),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Permissão de acesso às fotos foi negada.')),
-      );
+      print("Nenhuma imagem selecionada.");
     }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erro ao selecionar imagens: ${e.toString()}')),
+    );
   }
+}
+
 
   void _showRatingDialog() {
     showDialog(
@@ -687,15 +667,12 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                     child: IconButton(
                       icon: Icon(Icons.arrow_back, color: Color(0xFF0DCAF0)),
                       onPressed: () {
-                        final isDirectNavigation = ModalRoute.of(context)
-                                ?.settings
-                                .name ==
-                            '/recomendacao/${widget.recomendacao.idRecomendacao}';
-
-                        if (isDirectNavigation) {
-                          GoRouter.of(context).go('/home');
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(
+                              context); // Volta para a última página da pilha
                         } else {
-                          Navigator.of(context).pop();
+                          context.go(
+                              '/home'); // Volta para a página '/home' se acessado via URL
                         }
                       },
                       iconSize: 22,
@@ -895,6 +872,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                             style: TextStyle(fontSize: 16, color: Colors.white),
                           ),
                         ),
+                        /*
                         SizedBox(width: 16),
                         CircleAvatar(
                           backgroundColor: Color(0xFF0DCAF0),
@@ -906,7 +884,7 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                             },
                             iconSize: 22,
                           ),
-                        ),
+                        ),*/
                         SizedBox(width: 16),
                         CircleAvatar(
                           backgroundColor: Color(0xFF0DCAF0),

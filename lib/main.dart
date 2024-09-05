@@ -47,7 +47,7 @@ Future<bool> isTokenValid() async {
   return response.statusCode == 200;
 }
 
-Future<Evento?> fetchEventoById(String token, int id) async {
+Future<Evento?> fetchEventoById(int id) async {
   final tokenHandler = TokenHandler();
   final String? token = await tokenHandler.getToken();
 
@@ -79,7 +79,15 @@ Future<Evento?> fetchEventoById(String token, int id) async {
   }
 }
 
-Future<Recomendacao?> fetchRecomendacaoById(String token, int id) async {
+Future<Recomendacao?> fetchRecomendacaoById(int id) async {
+  final tokenHandler = TokenHandler();
+  final String? token = await tokenHandler.getToken();
+
+  if (token == null) {
+    print('Token não encontrado');
+    return null;
+  }
+
   try {
     final String baseUrl = 'https://backendpint-5wnf.onrender.com';
     final response = await http.get(
@@ -126,12 +134,22 @@ Future<Recomendacao?> fetchRecomendacaoById(String token, int id) async {
   }
 }
 
+final List<String> publicRoutes = [
+  '/login',
+  '/create-account',
+  '/recover-password',
+  '/conta-criada-sucesso',
+  '/change-password',
+  // Adicione outras rotas públicas aqui
+];
+
 final GoRouter _router = GoRouter(
   initialLocation: '/home',
-  redirect: (BuildContext context, GoRouterState state) async {
+   redirect: (BuildContext context, GoRouterState state) async {
     final isValid = await isTokenValid();
-    // Se não for válido, redireciona para a página de login
-    if (!isValid && state != '/login') {
+    final isPublicRoute = publicRoutes.contains(state.uri.path);
+
+    if (!isValid && !isPublicRoute) {
       return '/login';
     }
     return null; // Deixe o estado de navegação inalterado
@@ -206,10 +224,8 @@ final GoRouter _router = GoRouter(
       path: '/evento/:id',
       builder: (BuildContext context, GoRouterState state) {
         final id = int.parse(state.pathParameters['id']!);
-        final token =
-            'your_auth_token'; // Certifique-se de passar o token correto
         return FutureBuilder<Evento?>(
-          future: fetchEventoById(token, id),
+          future: fetchEventoById(id),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator());
@@ -228,33 +244,15 @@ final GoRouter _router = GoRouter(
       path: '/recomendacao/:id',
       builder: (BuildContext context, GoRouterState state) {
       final id = int.parse(state.pathParameters['id']!);
-        final token =
-            'your_auth_token'; // Certifique-se de passar o token correto
         return FutureBuilder<Recomendacao?>(
-          future: fetchRecomendacaoById(token, id),
+          future: fetchRecomendacaoById(id),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
               return Center(child: Text('Erro: ${snapshot.error}'));
-            } else if (snapshot.hasData) {
-              final recomendacao = snapshot.data!;
-              return Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Título: ${recomendacao.nomeLocal}',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
-                    Text('Descrição: ${recomendacao.descricao}'),
-                    SizedBox(height: 8),
-                    Text(
-                        'Avaliação Geral: ${recomendacao.avaliacaoGeral?.toStringAsFixed(1) ?? 'N/A'}'),
-                  ],
-                ),
-              );
+            } else if (snapshot.hasData && snapshot.data != null) {
+              return RecomendacaoView(recomendacao: snapshot.data!);
             } else {
               return Center(child: Text('Nenhum dado encontrado'));
             }

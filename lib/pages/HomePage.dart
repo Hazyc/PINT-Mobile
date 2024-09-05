@@ -271,7 +271,7 @@ class _HomePageState extends State<HomePage> {
 
   void _navigateToNotifications(BuildContext context) {
     // Implementar a navegação para NotificationsPage
-    context.push('/notifications');
+    context.push('/notifcations');
   }
 
   void _navigateToRecomendados(BuildContext context) {
@@ -370,21 +370,6 @@ class _HomePageState extends State<HomePage> {
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.white.withOpacity(0.7),
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: 'Pesquisar',
-                          border: InputBorder.none,
-                          icon: Icon(Icons.search),
-                        ),
                       ),
                     ),
                   ],

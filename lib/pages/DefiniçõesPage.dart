@@ -81,7 +81,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   Colors.blue, // Cor do título
                 ),
                 SizedBox(height: 16),
-                buildClickableOption(
+                /*buildClickableOption(
                   'Terminar Sessão',
                   'Termine sua sessão atual.',
                   () {
@@ -114,7 +114,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     );
                   },
                   Colors.blue, // Cor do título
-                ),
+                ),*/
                 SizedBox(height: 16),
                 buildClickableOption(
                   'Apagar Conta',

@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-import '../LoginScreen.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:go_router/go_router.dart';
 import '../ContaCriadaInfo.dart';
 
 class AccountRegister extends StatefulWidget {
@@ -30,14 +29,17 @@ class _AccountRegister extends State<AccountRegister> {
   }
 
   Future<void> _fetchCities() async {
-    final response = await http.get(Uri.parse('https://backendpint-5wnf.onrender.com/cidades/list'));
+    final response = await http
+        .get(Uri.parse('https://backendpint-5wnf.onrender.com/cidades/list'));
     if (response.statusCode == 200) {
       final List<dynamic> cityList = json.decode(response.body)['data'];
       setState(() {
-        cities = cityList.map((data) => {
-          'ID_CIDADE': data['ID_CIDADE'].toString(),
-          'NOME_CIDADE': data['NOME_CIDADE'].toString(),
-        }).toList();
+        cities = cityList
+            .map((data) => {
+                  'ID_CIDADE': data['ID_CIDADE'].toString(),
+                  'NOME_CIDADE': data['NOME_CIDADE'].toString(),
+                })
+            .toList();
       });
     } else {
       // Handle error
@@ -108,7 +110,8 @@ class _AccountRegister extends State<AccountRegister> {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('https://backendpint-5wnf.onrender.com/utilizadores/register'),
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/utilizadores/register'),
       );
       request.fields['NOME_UTILIZADOR'] = nome;
       request.fields['EMAIL_UTILIZADOR'] = email;
@@ -118,7 +121,8 @@ class _AccountRegister extends State<AccountRegister> {
 
       if (_avatarImage != null) {
         request.files.add(
-          await http.MultipartFile.fromPath('IMAGEM_PERFIL', _avatarImage!.path),
+          await http.MultipartFile.fromPath(
+              'IMAGEM_PERFIL', _avatarImage!.path),
         );
       }
 
@@ -132,7 +136,8 @@ class _AccountRegister extends State<AccountRegister> {
           context.go('/conta-criada-sucesso');
         } else {
           setState(() {
-            errorMessage = "Erro ao registrar usuário: ${jsonResponse['message']}";
+            errorMessage =
+                "Erro ao registrar usuário: ${jsonResponse['message']}";
           });
         }
       } else {
@@ -142,8 +147,10 @@ class _AccountRegister extends State<AccountRegister> {
       }
     } catch (e) {
       setState(() {
-        errorMessage = "Erro ao registrar usuário: $e";
+        errorMessage =
+            "Erro ao registrar usuário: ${e.toString()}"; // Captura a mensagem completa do erro
       });
+      print("Erro: $e"); // Adiciona um print para ajudar na depuração
     }
   }
 
@@ -179,7 +186,8 @@ class _AccountRegister extends State<AccountRegister> {
           ),
           filled: true,
           fillColor: Colors.grey[200],
-          contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
         ),
       ),
     );
@@ -196,7 +204,8 @@ class _AccountRegister extends State<AccountRegister> {
             selectedCity = newValue;
           });
         },
-        items: cities.map<DropdownMenuItem<Map<String, String>>>((Map<String, String> city) {
+        items: cities.map<DropdownMenuItem<Map<String, String>>>(
+            (Map<String, String> city) {
           return DropdownMenuItem<Map<String, String>>(
             value: city,
             child: Text(city['NOME_CIDADE']!),
@@ -209,7 +218,8 @@ class _AccountRegister extends State<AccountRegister> {
           ),
           filled: true,
           fillColor: Colors.grey[200],
-          contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
         ),
       ),
     );
@@ -218,7 +228,6 @@ class _AccountRegister extends State<AccountRegister> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
- 
       body: Stack(
         children: [
           Container(
@@ -238,16 +247,18 @@ class _AccountRegister extends State<AccountRegister> {
           ),
           SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 30.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Align(
                     alignment: Alignment.topLeft,
                     child: IconButton(
-                      icon: Icon(Icons.arrow_back, color: Colors.black, size: 30),
+                      icon:
+                          Icon(Icons.arrow_back, color: Colors.black, size: 30),
                       onPressed: () {
-                        context.pop();
+                        context.go('/login');
                       },
                     ),
                   ),
@@ -270,7 +281,9 @@ class _AccountRegister extends State<AccountRegister> {
                       child: CircleAvatar(
                         radius: 70,
                         backgroundColor: Colors.grey[200],
-                        backgroundImage: _avatarImage != null ? FileImage(_avatarImage!) : null,
+                        backgroundImage: _avatarImage != null
+                            ? FileImage(_avatarImage!)
+                            : null,
                         child: _avatarImage == null
                             ? Icon(
                                 Icons.camera_alt,
@@ -315,7 +328,8 @@ class _AccountRegister extends State<AccountRegister> {
                   _buildCityDropdown(),
                   if (errorMessage != null)
                     Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10.0),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 25.0, vertical: 10.0),
                       child: Chip(
                         label: Text(errorMessage!),
                         backgroundColor: Colors.redAccent,
@@ -328,7 +342,8 @@ class _AccountRegister extends State<AccountRegister> {
                       onPressed: _registerUser,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
-                        padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),

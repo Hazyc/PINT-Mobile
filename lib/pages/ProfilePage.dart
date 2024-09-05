@@ -5,7 +5,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:app_mobile/handlers/TokenHandler.dart';
 import 'package:app_mobile/models/Evento.dart';
+import 'package:app_mobile/models/Recomendacao.dart';
 import 'package:app_mobile/pages/EventoView.dart';
+import 'package:app_mobile/pages/RecomendacaoView.dart';
 import '../models/Profile.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async'; // Import the dart:async package
@@ -32,7 +34,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   List<Map<String, String>> items = [];
-  List<Map<String, dynamic>> publications = [];
+  List<Map<String, dynamic>> recomendacoes = [];
   List<Map<String, dynamic>> events = [];
   bool isPublicationsSelected = true;
   File? _bannerImage;
@@ -119,25 +121,25 @@ class _ProfilePageState extends State<ProfilePage> {
         return;
       }
 
-      final publicationsResponse = await http.get(
+      final recomendacoesResponse = await http.get(
         Uri.parse(
-            'https://backendpint-5wnf.onrender.com/recomendacoes/listarRecomendacoesUserVisiveis'),
+            'https://backendpint-5wnf.onrender.com/recomendacoes//listarRecomendacoesPorUser'),
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
 
-      if (publicationsResponse.statusCode == 200) {
+      if (recomendacoesResponse.statusCode == 200) {
         setState(() {
-          publications = List<Map<String, dynamic>>.from(
-              json.decode(publicationsResponse.body)['data']);
+          recomendacoes = List<Map<String, dynamic>>.from(
+              json.decode(recomendacoesResponse.body)['data']);
           if (isPublicationsSelected) {
-            _showPublications();
+            _showRecomendacoes();
           }
         });
       } else {
         print(
-            'Falha ao carregar publicações: ${publicationsResponse.statusCode}');
+            'Falha ao carregar publicações: ${recomendacoesResponse.statusCode}');
       }
     } catch (e) {
       print('Erro ao buscar publicações: $e');
@@ -177,15 +179,16 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  void _showPublications() {
+  void _showRecomendacoes() {
     setState(() {
       isPublicationsSelected = true;
       items.clear();
-      for (var publication in publications) {
+      for (var recomendacao in recomendacoes) {
         items.add({
-          'title': publication['TITULO_RECOMENDACAO'].toString(),
-          'description': publication['DESCRICAO_RECOMENDACAO'].toString(),
-          'imageUrl': publication['IMAGEM']?['NOME_IMAGEM']?.toString() ?? '',
+          'title': recomendacao['TITULO_RECOMENDACAO'].toString(),
+          'description': recomendacao['DESCRICAO_RECOMENDACAO'].toString(),
+          'imageUrl': recomendacao['IMAGEM']?['NOME_IMAGEM']?.toString() ?? '',
+          'recomendacaoId': recomendacao['ID_RECOMENDACAO'].toString(),
         });
       }
     });
@@ -273,6 +276,27 @@ class _ProfilePageState extends State<ProfilePage> {
       context,
       MaterialPageRoute(
         builder: (context) => EventoView(evento: evento),
+      ),
+    );
+  }
+
+  void _navigateToRecomendacaoView(Map<String, dynamic> publication) {
+    Recomendacao recomendacao = Recomendacao(
+      idRecomendacao: publication['ID_RECOMENDACAO'],
+      bannerImage: publication['IMAGEM']['NOME_IMAGEM'] ?? '',
+      nomeLocal: publication['TITULO_RECOMENDACAO'] ?? '',
+      endereco: publication['MORADA_RECOMENDACAO'] ?? '',
+      avaliacaoGeral: (publication['AVALIACAO_GERAL'] ?? 0.0).toDouble(),
+      descricao: publication['DESCRICAO_RECOMENDACAO'] ?? '',
+      categoria: publication['SUBAREA']['AREA']['NOME_AREA'] ?? '',
+      subcategoria: publication['SUBAREA']['NOME_SUBAREA'] ?? '',
+      idAlbum: publication['ID_ALBUM'] ?? '',
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RecomendacaoView(recomendacao: recomendacao),
       ),
     );
   }
@@ -379,7 +403,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   TextButton(
-                    onPressed: _showPublications,
+                    onPressed: _showRecomendacoes,
                     child: Text(
                       'Recomendações',
                       style: TextStyle(
@@ -418,8 +442,12 @@ class _ProfilePageState extends State<ProfilePage> {
                 itemBuilder: (context, index) {
                   return GestureDetector(
                     onTap: () {
-                      if (!isPublicationsSelected) {
-                        _navigateToEventoView(events[index]);
+                      if (isPublicationsSelected) {
+                        _navigateToRecomendacaoView(
+                            recomendacoes[index]); // Navegar para recomendação
+                      } else {
+                        _navigateToEventoView(
+                            events[index]); // Navegar para evento
                       }
                     },
                     child: Padding(

@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
+
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
 import 'dart:ui';
@@ -41,7 +42,6 @@ class _EventoViewState extends State<EventoView> {
   @override
   void initState() {
     super.initState();
-    _requestPermission(Permission.storage);
     DateTime eventDateTime = DateTime.parse(widget.evento.dateTime);
     canRegister = eventDateTime.isAfter(DateTime.now());
     estadoEvento = widget.evento.estadoEvento;
@@ -168,9 +168,9 @@ class _EventoViewState extends State<EventoView> {
       final Map<String, dynamic> responseData = json.decode(responseBody);
 
       if (response.statusCode == 200 && responseData['success']) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        /*ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Fotos carregadas com sucesso!')),
-        );
+        );*/
         // Atualize a lista de imagens após o upload
         _loadAlbumImages();
       } else {
@@ -413,63 +413,35 @@ class _EventoViewState extends State<EventoView> {
   }
 
   Future<void> _pickFiles() async {
-  final status = await Permission.photos.request();
-
-  if (status.isGranted) {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        allowMultiple: true,
-        type: FileType.image,
-      );
-
-      if (result != null) {
-        // Obtendo a lista de arquivos selecionados
-        final List<PlatformFile> files = result.files;
-
-        // Fazendo upload de cada imagem selecionada
-        for (var file in files) {
-          final image = XFile(file.path!);
-          await _uploadImage(image); // Envia a imagem selecionada
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Imagens carregadas com sucesso!')),
-        );
-      } else {
-        print("Nenhuma imagem selecionada.");
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao selecionar imagens: ${e.toString()}')),
-      );
-    }
-  } else if (status.isPermanentlyDenied) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Permissão de acesso às fotos foi permanentemente negada.'),
-        action: SnackBarAction(
-          label: 'Configurações',
-          onPressed: () {
-            openAppSettings(); // Abre as configurações do aplicativo
-          },
-        ),
-      ),
+  // O FilePicker não requer permissões explícitas para acesso a arquivos
+  try {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.image,
     );
-  } else {
+
+    if (result != null) {
+      final List<PlatformFile> files = result.files;
+
+      for (var file in files) {
+        if (file.path != null) {
+          final image = XFile(file.path!);
+          await _uploadImage(image);
+        }
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Imagens carregadas com sucesso!')),
+      );
+    } else {
+      print("Nenhuma imagem selecionada.");
+    }
+  } catch (e) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Permissão de acesso às fotos foi negada.')),
+      SnackBar(content: Text('Erro ao selecionar imagens: ${e.toString()}')),
     );
   }
 }
-
-  Future<bool> _requestPermission(Permission permission) async {
-    if (await permission.isGranted) {
-      return true;
-    } else {
-      var result = await permission.request();
-      return result == PermissionStatus.granted;
-    }
-  }
 
   void _navigateToChatPage() {
     Navigator.push(
@@ -607,122 +579,129 @@ class _EventoViewState extends State<EventoView> {
     }
 
     return Scaffold(
-    body: SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-                child: Image.network(
-                  widget.evento.bannerImage,
-                  height: 350,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 350,
-                      color: Colors.grey,
-                      child: Center(child: Text('Erro ao carregar imagem')),
-                    );
-                  },
-                ),
-              ),
-              Positioned(
-                top: 40,
-                left: 16,
-                child: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: 22,
-                  child: IconButton(
-                    icon: Icon(Icons.arrow_back, color: Color(0xFF0DCAF0)),
-                    onPressed: () {
-                      context.go('/home');
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
+                  ),
+                  child: Image.network(
+                    widget.evento.bannerImage,
+                    height: 350,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 350,
+                        color: Colors.grey,
+                        child: Center(child: Text('Erro ao carregar imagem')),
+                      );
                     },
-                    iconSize: 22,
                   ),
                 ),
-              ),
-              Positioned(
-                top: 40,
-                right: 16,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    widget.evento.category,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF0DCAF0),
-                      fontWeight: FontWeight.bold,
+                Positioned(
+                  top: 40,
+                  left: 16,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.white,
+                    radius: 22,
+                    child: IconButton(
+                      icon: Icon(Icons.arrow_back, color: Color(0xFF0DCAF0)),
+                      onPressed: () {
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(
+                              context); // Volta para a última página da pilha
+                        } else {
+                          context.go(
+                              '/home'); // Volta para a página '/home' se acessado via URL
+                        }
+                      },
+                      iconSize: 22,
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                bottom: 16,
-                left: 16,
-                child: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: 22,
-                  child: IconButton(
-                    icon: Icon(Icons.attach_file, color: Color(0xFF0DCAF0)),
-                    onPressed: _pickFiles,
-                    iconSize: 22,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.evento.eventName,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 8),
-                GestureDetector(
-                  onTap: () => _openMap(widget.evento.address),
-                  child: Row(
-                    children: [
-                      Icon(Icons.location_pin, color: Color(0xFF0DCAF0)),
-                      SizedBox(width: 4),
-                      Text(
-                        widget.evento.address,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Color(0xFF0DCAF0),
-                        ),
+                Positioned(
+                  top: 40,
+                  right: 16,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      widget.evento.category,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF0DCAF0),
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
+                    ),
                   ),
                 ),
-                SizedBox(height: 8),
-                Text(
-                  formatarDataHora(widget.evento.dateTime),
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Subcategoria: ${widget.evento.subcategory}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
+                Positioned(
+                  bottom: 16,
+                  left: 16,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.white,
+                    radius: 22,
+                    child: IconButton(
+                      icon: Icon(Icons.attach_file, color: Color(0xFF0DCAF0)),
+                      onPressed: _pickFiles,
+                      iconSize: 22,
+                    ),
                   ),
                 ),
+              ],
+            ),
+            Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.evento.eventName,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () => _openMap(widget.evento.address),
+                    child: Row(
+                      children: [
+                        Icon(Icons.location_pin, color: Color(0xFF0DCAF0)),
+                        SizedBox(width: 4),
+                        Text(
+                          widget.evento.address,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF0DCAF0),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    formatarDataHora(widget.evento.dateTime),
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Subcategoria: ${widget.evento.subcategory}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  /*
                 SizedBox(height: 16),
                 Row(
                   children: [
@@ -741,126 +720,126 @@ class _EventoViewState extends State<EventoView> {
                       );
                     }).toList(),
                   ],
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Descrição:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  widget.evento.description,
-                  style: TextStyle(fontSize: 16),
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Galeria de Fotos:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                if (albumImages.isNotEmpty)
-                  Column(
-                    children: [
-                      GridView.builder(
-                        physics: NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        gridDelegate:
-                            SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 4.0,
-                          mainAxisSpacing: 4.0,
-                        ),
-                        itemCount: getDisplayedImages().length,
-                        itemBuilder: (context, index) {
-                          final imageUrl = getDisplayedImages()[index];
-                          return GestureDetector(
-                            onTap: () {
-                              _showFullImage(imageUrl);
-                            },
-                            child: Hero(
-                              tag: imageUrl,
-                              child: Image.network(
-                                imageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.grey,
-                                    child: Center(
-                                      child: Icon(Icons.error,
-                                          color: Colors.red),
-                                    ),
-                                  );
-                                },
+                ),*/
+                  SizedBox(height: 16),
+                  Text(
+                    'Descrição:',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    widget.evento.description,
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Galeria de Fotos:',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  if (albumImages.isNotEmpty)
+                    Column(
+                      children: [
+                        GridView.builder(
+                          physics: NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 4.0,
+                            mainAxisSpacing: 4.0,
+                          ),
+                          itemCount: getDisplayedImages().length,
+                          itemBuilder: (context, index) {
+                            final imageUrl = getDisplayedImages()[index];
+                            return GestureDetector(
+                              onTap: () {
+                                _showFullImage(imageUrl);
+                              },
+                              child: Hero(
+                                tag: imageUrl,
+                                child: Image.network(
+                                  imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey,
+                                      child: Center(
+                                        child: Icon(Icons.error,
+                                            color: Colors.red),
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-                      if (!showAllImages &&
-                          albumImages.length > displayedImageCount)
-                        TextButton(
-                          onPressed: _showMoreImagesModal,
+                            );
+                          },
+                        ),
+                        if (!showAllImages &&
+                            albumImages.length > displayedImageCount)
+                          TextButton(
+                            onPressed: _showMoreImagesModal,
+                            child: Text(
+                                'Ver mais (${albumImages.length - displayedImageCount} restantes)'),
+                          ),
+                      ],
+                    )
+                  else
+                    Text('Nenhuma imagem disponível.'),
+                  SizedBox(height: 16),
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          onPressed: canRegister ? _handleRegistration : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                isRegistered ? Colors.green : Color(0xFF0DCAF0),
+                          ),
                           child: Text(
-                              'Ver mais (${albumImages.length - displayedImageCount} restantes)'),
+                            isRegistered ? 'Inscrito' : 'Inscreve-te no evento',
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
                         ),
-                    ],
-                  )
-                else
-                  Text('Nenhuma imagem disponível.'),
-                SizedBox(height: 16),
-                Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton(
-                        onPressed: canRegister ? _handleRegistration : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              isRegistered ? Colors.green : Color(0xFF0DCAF0),
-                        ),
-                        child: Text(
-                          isRegistered ? 'Inscrito' : 'Inscreve-te no evento',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      CircleAvatar(
-                        backgroundColor: Color(0xFF0DCAF0),
-                        radius: 22,
-                        child: IconButton(
-                          icon: Icon(Icons.forum, color: Colors.white),
-                          onPressed: _navigateToChatPage,
-                          iconSize: 22,
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      if (isOrganizer && !estadoEvento)
+                        SizedBox(width: 16),
                         CircleAvatar(
                           backgroundColor: Color(0xFF0DCAF0),
                           radius: 22,
                           child: IconButton(
-                            icon: Icon(Icons.edit, color: Colors.white),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => EditEventoPage(
-                                    evento: widget.evento,
-                                  ),
-                                ),
-                              );
-                            },
+                            icon: Icon(Icons.forum, color: Colors.white),
+                            onPressed: _navigateToChatPage,
                             iconSize: 22,
                           ),
                         ),
-                    ],
+                        SizedBox(width: 16),
+                        if (isOrganizer && !estadoEvento)
+                          CircleAvatar(
+                            backgroundColor: Color(0xFF0DCAF0),
+                            radius: 22,
+                            child: IconButton(
+                              icon: Icon(Icons.edit, color: Colors.white),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => EditEventoPage(
+                                      evento: widget.evento,
+                                    ),
+                                  ),
+                                );
+                              },
+                              iconSize: 22,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

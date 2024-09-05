@@ -8,12 +8,12 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../handlers/TokenHandler.dart';
 
-class ReviewPage extends StatefulWidget {
+class FormularioCriacaoRecomendacao extends StatefulWidget {
   @override
-  _ReviewPageState createState() => _ReviewPageState();
+  _FormularioCriacaoRecomendacaoState createState() => _FormularioCriacaoRecomendacaoState();
 }
 
-class _ReviewPageState extends State<ReviewPage> {
+class _FormularioCriacaoRecomendacaoState extends State<FormularioCriacaoRecomendacao> {
   final TextEditingController _commentController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _addressController = TextEditingController(); // Controlador para a morada

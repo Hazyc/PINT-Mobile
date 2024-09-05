@@ -10,6 +10,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import '../pages/LoginScreenProcess/AccountRegisterGoogleFacebook.dart';
 import './LoginScreenProcess/ChangePasswordAfterRecovery.dart';
+import './LoginScreenProcess/AccountRegister.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -199,7 +200,7 @@ class _LoginPageState extends State<LoginPage> {
 
         if (primeiravezData['success'] == false) {
           context.go('/home');
-          } else {
+        } else {
           await TokenHandler().deleteToken();
           context.go('/change-password', extra: email);
         }
@@ -420,8 +421,11 @@ class _LoginPageState extends State<LoginPage> {
                         SizedBox(width: 4),
                         InkWell(
                           onTap: () {
-                            context.push(
-                                '/create-account'); // Use push em vez de go
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => AccountRegister()),
+                            );
                           },
                           child: Text(
                             'Registre-se agora!',

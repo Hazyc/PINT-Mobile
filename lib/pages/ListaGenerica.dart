@@ -10,10 +10,22 @@ import 'package:app_mobile/Components/EventoComponents/FormularioCriacaoEvento.d
 import 'package:app_mobile/Components/HomePageComponents/CriacaoRecomendacao.dart';
 import 'package:app_mobile/handlers/TokenHandler.dart';
 
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:app_mobile/Components/RecomendacaoComponents/RecomendacaoCard.dart';
+import 'package:app_mobile/Components/EventoComponents/EventoCard.dart';
+import 'package:app_mobile/models/Recomendacao.dart';
+import 'package:app_mobile/models/Evento.dart';
+import 'package:app_mobile/Components/EventoComponents/FormularioCriacaoEvento.dart';
+import 'package:app_mobile/Components/RecomendacaoComponents/FormularioCriacaoRecomendacao.dart';
+import 'package:app_mobile/handlers/TokenHandler.dart';
+
 class ListaGenerica extends StatefulWidget {
   final String initialSelectedArea;
+  final bool isGoRoute;
 
-  ListaGenerica({this.initialSelectedArea = 'Todos'});
+  ListaGenerica({this.initialSelectedArea = 'Todos' , this.isGoRoute = false});
 
   @override
   _ListaGenericaState createState() => _ListaGenericaState();
@@ -31,6 +43,9 @@ class _ListaGenericaState extends State<ListaGenerica> {
   bool showEvents = true;
 
   TokenHandler tokenHandler = TokenHandler();
+  
+  TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -54,7 +69,7 @@ class _ListaGenericaState extends State<ListaGenerica> {
 
       setState(() {
         recomendacoes = fetchedRecomendacoes;
-        recomendacoesoriginais = fetchedRecomendacoes; // Atualizar a lista original também
+        recomendacoesoriginais = fetchedRecomendacoes;
         eventos = fetchedEventos;
         areas = fetchedAreas;
       });
@@ -143,15 +158,19 @@ class _ListaGenericaState extends State<ListaGenerica> {
     List<dynamic> filteredList = [];
     if (showRecommendations) {
       filteredList.addAll(recomendacoes.where(
-        (item) => 
+        (item) =>
           (selectedArea == 'Todos' || item.categoria == selectedArea) &&
-          item.avaliacaoGeral >= minAvaliacao,  // Filtra pela avaliação geral
+          item.avaliacaoGeral >= minAvaliacao &&
+          (item.nomeLocal.toLowerCase().contains(_searchQuery) || _searchQuery.isEmpty),
       ));
     }
 
     if (showEvents) {
       filteredList.addAll(eventos.where(
-        (item) => selectedArea == 'Todos' || item.category == selectedArea));
+        (item) => 
+          (selectedArea == 'Todos' || item.category == selectedArea) &&
+          (item.eventName.toLowerCase().contains(_searchQuery) || _searchQuery.isEmpty),
+      ));
     }
     return filteredList;
   }
@@ -245,14 +264,14 @@ class _ListaGenericaState extends State<ListaGenerica> {
                 TextButton(
                   child: Text("Fechar"),
                   onPressed: () {
-                    aplicarFiltroAvaliacao(); // Aplica o filtro ao fechar
+                    aplicarFiltroAvaliacao();
                     Navigator.of(context).pop();
                   },
                 ),
                 TextButton(
                   child: Text("Aplicar"),
                   onPressed: () {
-                    aplicarFiltroAvaliacao(); // Aplica o filtro
+                    aplicarFiltroAvaliacao();
                     Navigator.of(context).pop();
                   },
                 ),
@@ -263,7 +282,6 @@ class _ListaGenericaState extends State<ListaGenerica> {
       },
     );
   }
-
 
   void _showCreateOptions() {
     showModalBottomSheet(
@@ -284,13 +302,14 @@ class _ListaGenericaState extends State<ListaGenerica> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.recommend),
+              leading: Icon(Icons.star),
               title: Text('Criar Recomendação'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ReviewPage()),
+                  MaterialPageRoute(
+                      builder: (context) => FormularioCriacaoRecomendacao()),
                 );
               },
             ),
@@ -312,6 +331,12 @@ class _ListaGenericaState extends State<ListaGenerica> {
         backgroundColor: const Color(0xFF0DCAF0),
         centerTitle: true,
         iconTheme: IconThemeData(color: Colors.white),
+        leading: widget.isGoRoute
+          ? IconButton(
+              icon: Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).pop(), // Voltar para a tela anterior
+            )
+          : null,
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list),
@@ -319,13 +344,43 @@ class _ListaGenericaState extends State<ListaGenerica> {
           ),
           IconButton(
             icon: Icon(Icons.star),
-            onPressed: _showAvaliacaoFilterDialog, // Botão para filtrar por avaliação
+            onPressed: _showAvaliacaoFilterDialog,
           ),
         ],
-
       ),
       body: Column(
         children: [
+          // Container de Pesquisa
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  spreadRadius: 1,
+                  blurRadius: 5,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            margin: EdgeInsets.all(10.0),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.toLowerCase();
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Pesquisar',
+                border: InputBorder.none,
+                icon: Icon(Icons.search),
+              ),
+            ),
+          ),
+          // Lista de Áreas
           Container(
             height: 70,
             child: ListView.builder(
@@ -339,10 +394,8 @@ class _ListaGenericaState extends State<ListaGenerica> {
                     });
                   },
                   child: Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-                    margin:
-                        EdgeInsets.symmetric(horizontal: 5.0, vertical: 10.0),
+                    padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                    margin: EdgeInsets.symmetric(horizontal: 5.0, vertical: 10.0),
                     decoration: BoxDecoration(
                       color: selectedArea == areas[index]
                           ? Color(0xFF0DCAF0)
@@ -366,9 +419,10 @@ class _ListaGenericaState extends State<ListaGenerica> {
               },
             ),
           ),
+          // Lista de Itens
           Expanded(
-            child: RefreshIndicator(  // Adiciona o RefreshIndicator aqui
-              onRefresh: _fetchData,  // Define a função que será chamada ao atualizar
+            child: RefreshIndicator(
+              onRefresh: _fetchData,
               child: ListView.builder(
                 itemCount: filteredItems.length,
                 itemBuilder: (context, index) {
@@ -393,3 +447,6 @@ class _ListaGenericaState extends State<ListaGenerica> {
     );
   }
 }
+
+
+

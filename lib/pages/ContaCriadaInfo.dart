@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../Components/LoginPageComponents/Botao.dart';
+import '../../Components/LoginPageComponents/botao.dart';
 import 'package:go_router/go_router.dart';
+import './LoginScreen.dart';
 
 
 class ContaCriadaPage extends StatelessWidget {

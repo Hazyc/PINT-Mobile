@@ -13,7 +13,7 @@ class RecomendacaoCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         context.push(
-          '/evento/${recomendacao.idRecomendacao}', 
+          '/recomendacao/${recomendacao.idRecomendacao}', 
           extra: recomendacao
         );
       },
