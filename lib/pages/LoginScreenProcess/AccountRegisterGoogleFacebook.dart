@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import '../LoginScreen.dart';
 import 'dart:convert';
@@ -94,30 +95,7 @@ class _AccountRegisterGoogleFacebook
     );
   }
 
-  void _navigateToContaCriadaPage() {
-    Navigator.pushAndRemoveUntil(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => LoginPage(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          const begin = Offset(1.0, 0.0);
-          const end = Offset.zero;
-          const curve = Curves.easeInOut;
-
-          var tween =
-              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-          var offsetAnimation = animation.drive(tween);
-
-          return SlideTransition(
-            position: offsetAnimation,
-            child: child,
-          );
-        },
-      ),
-      (Route<dynamic> route) =>
-          false, // Esta linha remove todas as rotas anteriores
-    );
-  }
+  
 
   Widget _buildTitle(String title) {
     return Container(
@@ -219,7 +197,7 @@ class _AccountRegisterGoogleFacebook
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         if (responseData['success']) {
-          _navigateToContaCriadaPage();
+          context.go('/conta-criada-sucesso');
         } else {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Erro: ${responseData['message']}'),

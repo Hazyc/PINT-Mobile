@@ -39,6 +39,8 @@ class _EventoViewState extends State<EventoView> {
   int displayedImageCount = 6;
   bool showAllImages = false;
   late bool estadoEvento;
+  List<Map<String, dynamic>> formFields = [];
+  String? idFormulario;
 
   @override
   void initState() {
@@ -50,6 +52,7 @@ class _EventoViewState extends State<EventoView> {
     _checkRegistrationStatus();
     _checkIfOrganizer();
     _loadAlbumImages();
+    _fetchFormFields();
   }
 
   void _showMoreImages() {
@@ -57,6 +60,78 @@ class _EventoViewState extends State<EventoView> {
       displayedImageCount = albumImages.length; // Mostra todas as imagens
       showAllImages = true;
     });
+  }
+
+  Future<void> _fetchFormIdAndFields() async {
+    try {
+      final token = await TokenHandler().getToken();
+      if (token == null || token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Token de autenticação não encontrado.')),
+        );
+        return;
+      }
+
+      // Aqui você faz a requisição para buscar o ID do formulário
+      final formIdResponse = await http.get(
+        Uri.parse('https://backendpint-5wnf.onrender.com/formulario/getbyidevento/${widget.evento.id}'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (formIdResponse.statusCode == 200) {
+        final formIdData = jsonDecode(formIdResponse.body);
+        setState(() {
+          idFormulario = formIdData['ID_FORMULARIO'];
+        });
+
+        // Agora que temos o ID do formulário, buscamos os campos
+        await _fetchFormFields();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao buscar ID do formulário')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao buscar ID do formulário: ${e.toString()}')),
+      );
+    }
+  }
+
+  Future<void> _fetchFormFields() async {
+    if (idFormulario == null) {
+      // Se idFormulario ainda for nulo, não tente buscar os campos
+      return;
+    }
+
+    try {
+      final token = await TokenHandler().getToken();
+      if (token == null || token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Token de autenticação não encontrado.')),
+        );
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('https://backendpint-5wnf.onrender.com/campo/getByIdFormulario/$idFormulario'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          formFields = List<Map<String, dynamic>>.from(jsonDecode(response.body)['data']);
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao buscar campos do formulário')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao buscar campos do formulário: ${e.toString()}')),
+      );
+    }
   }
 
   String formatarDataHoraPartilha(String dataHora) {
@@ -891,4 +966,19 @@ $url
       ),
     );
   }
+
+  Widget _buildEventDetail(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        SizedBox(height: 8),
+        Text(value, style: TextStyle(fontSize: 16)),
+      ],
+    );
+  }
 }
+
