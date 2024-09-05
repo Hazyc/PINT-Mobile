@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/Recomendacao.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app_mobile/handlers/TokenHandler.dart';
@@ -63,6 +64,24 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
     } else {
       throw Exception('Failed to fetch average price');
     }
+  }
+
+  void _shareRecomendacao() {
+    final String url =
+        'https://pint-web-alpha.vercel.app/recomendacao/${widget.recomendacao.idRecomendacao}';
+    final String message = '''
+Confira este local incrível!
+
+Nome: ${widget.recomendacao.nomeLocal}
+Localização: ${widget.recomendacao.endereco}
+Categoria: ${widget.recomendacao.categoria}
+
+Para mais detalhes, acede ao link abaixo:
+$url
+''';
+
+Share.share(message);
+
   }
 
   Future<void> fetchExistingReview() async {
@@ -707,6 +726,19 @@ class _RecomendacaoViewState extends State<RecomendacaoView> {
                     child: IconButton(
                       icon: Icon(Icons.attach_file, color: Color(0xFF0DCAF0)),
                       onPressed: _pickFiles,
+                      iconSize: 22,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 16,
+                  right: 16,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.white,
+                    radius: 22,
+                    child: IconButton(
+                      icon: Icon(Icons.share, color: Color(0xFF0DCAF0)),
+                      onPressed: _shareRecomendacao,
                       iconSize: 22,
                     ),
                   ),

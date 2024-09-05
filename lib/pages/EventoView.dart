@@ -3,12 +3,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:share_plus/share_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
 import 'dart:ui';
-import 'package:app_mobile/models/Evento.dart';
 import 'package:intl/intl.dart';
+
+import 'package:app_mobile/models/Evento.dart';
 import '../Components/EventoComponents/ChatPageEvento.dart';
 import '../handlers/TokenHandler.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -56,6 +57,41 @@ class _EventoViewState extends State<EventoView> {
       displayedImageCount = albumImages.length; // Mostra todas as imagens
       showAllImages = true;
     });
+  }
+
+  String formatarDataHoraPartilha(String dataHora) {
+  try {
+    // Converte a string ISO 8601 para um objeto DateTime
+    DateTime dateTime = DateTime.parse(dataHora);
+    
+    // Define o formato desejado
+    final DateFormat dateFormat = DateFormat('yyyy-MM-dd \'às\' HH:mm');
+    
+    // Formata o DateTime para a string desejada
+    return dateFormat.format(dateTime);
+  } catch (e) {
+    // Em caso de erro, retorna a string original ou uma mensagem padrão
+    return dataHora;
+  }
+}
+
+  void _shareEvent() {
+    final String url =
+        'https://pint-web-alpha.vercel.app/evento/${widget.evento.id}';
+    final String formattedDateTime = formatarDataHoraPartilha(widget.evento.dateTime);
+    final String message = '''
+Confira este evento incrível!
+
+Nome: ${widget.evento.eventName}
+Data e Hora: $formattedDateTime
+Localização: ${widget.evento.address}
+Categoria: ${widget.evento.category}
+
+Para mais detalhes e para te inscreveres, acede ao link abaixo:
+$url
+''';
+
+    Share.share(message);
   }
 
   List<String> getDisplayedImages() {
@@ -413,35 +449,35 @@ class _EventoViewState extends State<EventoView> {
   }
 
   Future<void> _pickFiles() async {
-  // O FilePicker não requer permissões explícitas para acesso a arquivos
-  try {
-    final result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
-      type: FileType.image,
-    );
-
-    if (result != null) {
-      final List<PlatformFile> files = result.files;
-
-      for (var file in files) {
-        if (file.path != null) {
-          final image = XFile(file.path!);
-          await _uploadImage(image);
-        }
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Imagens carregadas com sucesso!')),
+    // O FilePicker não requer permissões explícitas para acesso a arquivos
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.image,
       );
-    } else {
-      print("Nenhuma imagem selecionada.");
+
+      if (result != null) {
+        final List<PlatformFile> files = result.files;
+
+        for (var file in files) {
+          if (file.path != null) {
+            final image = XFile(file.path!);
+            await _uploadImage(image);
+          }
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Imagens carregadas com sucesso!')),
+        );
+      } else {
+        print("Nenhuma imagem selecionada.");
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao selecionar imagens: ${e.toString()}')),
+      );
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Erro ao selecionar imagens: ${e.toString()}')),
-    );
   }
-}
 
   void _navigateToChatPage() {
     Navigator.push(
@@ -653,6 +689,19 @@ class _EventoViewState extends State<EventoView> {
                     child: IconButton(
                       icon: Icon(Icons.attach_file, color: Color(0xFF0DCAF0)),
                       onPressed: _pickFiles,
+                      iconSize: 22,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 16,
+                  right: 16,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.white,
+                    radius: 22,
+                    child: IconButton(
+                      icon: Icon(Icons.share, color: Color(0xFF0DCAF0)),
+                      onPressed: _shareEvent,
                       iconSize: 22,
                     ),
                   ),
