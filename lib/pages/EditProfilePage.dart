@@ -221,7 +221,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<Map<String, dynamic>> _uploadImage(
-      double idImagem, String filePath, String type) async {
+      int idImagem, String filePath, String type) async {
     try {
       final String? token = await tokenHandler.getToken();
       if (token == null) {
@@ -243,9 +243,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (response.statusCode == 200) {
         var responseData = await http.Response.fromStream(response);
         var jsonResponse = json.decode(responseData.body);
+
         return jsonResponse['data'];
       } else {
         print('Falha ao fazer upload da imagem: ${response.statusCode}');
+        
         return {};
       }
     } catch (e) {
@@ -283,7 +285,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             imageResponse = await _uploadImage(
                 0, pickedFile.path, isBanner ? 'banner' : 'perfil');
           } else {
-            imageResponse = await _uploadImage(idImagem.toDouble(),
+            imageResponse = await _uploadImage(idImagem,
                 pickedFile.path, isBanner ? 'banner' : 'perfil');
           }
 

@@ -966,19 +966,5 @@ $url
       ),
     );
   }
-
-  Widget _buildEventDetail(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        SizedBox(height: 8),
-        Text(value, style: TextStyle(fontSize: 16)),
-      ],
-    );
-  }
 }
 

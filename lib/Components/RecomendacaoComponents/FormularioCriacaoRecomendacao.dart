@@ -400,10 +400,6 @@ class _FormularioCriacaoRecomendacaoState extends State<FormularioCriacaoRecomen
                           _buildTitle('Adicionar Banner'),
                           SizedBox(height: 8.0),
                           _buildBannerImagePicker('Adicionar Banner'),
-                          if (_bannerImage != null) ...[
-                            SizedBox(height: 8.0),
-                            _buildBannerImagePreview(),
-                          ],
                           SizedBox(height: 16.0),
                           _buildTitle('Descrição'),
                           SizedBox(height: 8.0),
@@ -498,62 +494,42 @@ class _FormularioCriacaoRecomendacaoState extends State<FormularioCriacaoRecomen
   }
 
   Widget _buildBannerImagePicker(String label) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 25.0),
-      child: GestureDetector(
-        onTap: () => _pickBannerImage(ImageSource.gallery),
-        child: Container(
-          height: 150,
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Center(
-            child: _bannerImage == null
-                ? Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_a_photo, size: 30, color: Colors.grey[600]),
-                      SizedBox(height: 8),
-                      Text(label),
-                    ],
-                  )
-                : ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.file(
-                      _bannerImage!,
-                      height: 150,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBannerImagePreview() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 25.0),
-      height: 150,
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Center(
-        child: ClipRRect(
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 25.0),
+    child: GestureDetector(
+      onTap: () => _pickBannerImage(ImageSource.gallery),
+      child: Container(
+        height: 300,
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
           borderRadius: BorderRadius.circular(10),
-          child: Image.file(
-            _bannerImage!,
-            height: 150,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
+        ),
+        child: Center(
+          child: _bannerImage == null
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add_a_photo, size: 30, color: Colors.grey[600]),
+                    SizedBox(height: 8),
+                    Text(label),
+                  ],
+                )
+              : ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.file(
+                    _bannerImage!,
+                    height: 300,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
+
 
   Widget _buildTagSelector() {
     if (isLoading) {
