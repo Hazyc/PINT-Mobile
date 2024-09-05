@@ -159,13 +159,19 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildMessage(Map<String, dynamic> message) {
-    final isCurrentUser = message['Criador']['NOME_UTILIZADOR'] == currentUser;
-    final alignment =
-        isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start;
-    final color = isCurrentUser ? Colors.blue[100] : Colors.grey[200];
-    final avatarRadius = 20.0;
+  final isCurrentUser = message['Criador']['NOME_UTILIZADOR'] == currentUser;
+  final alignment = isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+  final color = isCurrentUser ? Colors.blue[100] : Colors.grey[200];
+  final avatarRadius = 20.0;
 
-    return Column(
+  return Padding(
+    padding: EdgeInsets.fromLTRB(
+      isCurrentUser ? 10 : 10, // Margem esquerda para mensagens dos outros e margem direita para mensagens do usuário atual
+      10, // Margem superior
+      isCurrentUser ? 10 : 10, // Margem direita para mensagens do usuário atual e margem esquerda para mensagens dos outros
+      10, // Margem inferior
+    ),
+    child: Column(
       crossAxisAlignment: alignment,
       children: [
         Row(
@@ -181,7 +187,6 @@ class _ChatPageState extends State<ChatPage> {
             SizedBox(width: 10),
             Container(
               padding: EdgeInsets.all(10),
-              margin: EdgeInsets.symmetric(vertical: 5),
               constraints: BoxConstraints(maxWidth: 200),
               decoration: BoxDecoration(
                 color: color,
@@ -217,8 +222,9 @@ class _ChatPageState extends State<ChatPage> {
           ],
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
