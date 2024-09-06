@@ -78,12 +78,49 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   // Função para ocultar múltiplas notificações
   void hideSelectedNotifications() async {
+  // Mostra o diálogo de confirmação
+  bool? confirm = await showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Confirmar'),
+        content: Text('Tem a certeza de que deseja apagar as notificações selecionadas?'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(false); // Fecha o diálogo e retorna false
+            },
+            child: Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(true); // Fecha o diálogo e retorna true
+            },
+            child: Text('Confirmar'),
+          ),
+        ],
+      );
+    },
+  );
+
+  // Se o usuário confirmou, oculta as notificações
+  if (confirm == true) {
     for (int i = 0; i < notifications.length; i++) {
       if (selectedNotifications[i]) {
         await deleteNotification(notifications[i]['ID_NOTIFICACAO']);
       }
     }
+    // Atualiza a lista de notificações após todas as alterações
+    await fetchNotifications();
+
+    // Reseta o estado de seleção
+    setState(() {
+      isSelectionMode = false;
+      selectedNotifications = List.filled(notifications.length, false);
+      allSelected = false;
+    });
   }
+}
 
   Future<void> deleteNotification(int id) async {
   try {
@@ -139,6 +176,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
       }
     });
   }
+
+  
 
   @override
   Widget build(BuildContext context) {
