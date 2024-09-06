@@ -10,10 +10,12 @@ String formatarDataHora(String dateTime) {
 class NotificationCard extends StatelessWidget {
   final String title;
   final String date;
+  final String description;
 
   NotificationCard({
     required this.title,
     required this.date,
+    required this.description,
   
   });
 
@@ -38,6 +40,11 @@ class NotificationCard extends StatelessWidget {
                       color: Colors.cyan,
                     ),
                   ),
+                  SizedBox(height: 5),
+            Text(
+              description, // Exibindo a descrição
+              style: TextStyle(fontSize: 12),
+            ),
                   SizedBox(height: 5),
                   Text(
                    formatarDataHora(date),

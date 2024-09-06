@@ -12,21 +12,6 @@ import '../models/Profile.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async'; // Import the dart:async package
 
-void main() => runApp(MyApp());
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Profile Page',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: ProfilePage(),
-    );
-  }
-}
-
 class ProfilePage extends StatefulWidget {
   @override
   _ProfilePageState createState() => _ProfilePageState();
@@ -63,15 +48,25 @@ class _ProfilePageState extends State<ProfilePage> {
     super.dispose();
   }
 
+  bool _isFetching = false;
+
   void _startPeriodicFetch() {
-    _timer = Timer.periodic(Duration(seconds: 3), (timer) {
+  _timer = Timer.periodic(Duration(seconds: 3), (timer) async {
+    if (_isFetching) return;
+    setState(() => _isFetching = true);
+    try {
       if (isPublicationsSelected) {
-        _fetchPublications();
+        print('Buscando publicações...');
+        await _fetchPublications();
       } else {
-        _fetchEvents();
+        print('Buscando eventos...');
+        await _fetchEvents();
       }
-    });
-  }
+    } finally {
+      setState(() => _isFetching = false);
+    }
+  });
+}
 
   Future<void> _fetchUserData() async {
     try {
@@ -81,6 +76,8 @@ class _ProfilePageState extends State<ProfilePage> {
         print('Token não encontrado');
         return;
       }
+
+      print('Token encontrado: $token');
 
       final tokenResponse = await http.get(
         Uri.parse(
@@ -92,7 +89,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       if (tokenResponse.statusCode == 200) {
         final userData = json.decode(tokenResponse.body)['data'];
-        print('Dados do usuário recebidos: $userData'); // Adicione este log
+        print('Dados do usuário recebidos: $userData');
         setState(() {
           userName = userData['NOME_UTILIZADOR'] ?? '';
           userDescription = userData['DESCRICAO_UTILIZADOR'] ?? '';
@@ -104,8 +101,7 @@ class _ProfilePageState extends State<ProfilePage> {
           userPreferredArea = userData['AREA_PREFERENCIA'] ?? '';
         });
       } else {
-        print(
-            'Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
+        print('Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
       }
     } catch (e) {
       print('Erro ao buscar dados do usuário: $e');
@@ -121,18 +117,51 @@ class _ProfilePageState extends State<ProfilePage> {
         return;
       }
 
+      // Fazer a requisição para obter as recomendações do usuário
       final recomendacoesResponse = await http.get(
         Uri.parse(
-            'https://backendpint-5wnf.onrender.com/recomendacoes//listarRecomendacoesPorUser'),
+            'https://backendpint-5wnf.onrender.com/recomendacoes/listarRecomendacoesPorUser'),
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
 
       if (recomendacoesResponse.statusCode == 200) {
+        List<Map<String, dynamic>> recomendacoesData =
+            List<Map<String, dynamic>>.from(
+                json.decode(recomendacoesResponse.body)['data']);
+        // Para cada recomendação, buscar a média de avaliações
+        for (var recomendacao in recomendacoesData) {
+          try {
+            final mediaResponse = await http.get(
+              Uri.parse(
+                  'https://backendpint-5wnf.onrender.com/avaliacoes/mediaAvaliacaoporRecomendacao/${recomendacao['ID_RECOMENDACAO']}'),
+              headers: {'Authorization': 'Bearer $token'},
+            );
+
+            if (mediaResponse.statusCode == 200) {
+              final mediaData = jsonDecode(mediaResponse.body)['data'];
+              double media1 = mediaData['media1'].toDouble();
+              double media2 = mediaData['media2'].toDouble();
+              double media3 = mediaData['media3'].toDouble();
+              double avaliacaoGeral = (media1 + media2 + media3) / 3;
+              // Armazenar a avaliação geral na recomendação
+              recomendacao['avaliacaoGeral'] =
+                  double.parse(avaliacaoGeral.toStringAsFixed(1));
+                  
+            } else {
+              print(
+                  'Falha ao buscar média de avaliação para recomendação ${recomendacao['ID_RECOMENDACAO']}');
+            }
+          } catch (error) {
+            print(
+                'Erro ao buscar média de avaliação para recomendação ${recomendacao['ID_RECOMENDACAO']}: $error');
+          }
+        }
+
+        // Atualizar o estado com as recomendações e avaliações
         setState(() {
-          recomendacoes = List<Map<String, dynamic>>.from(
-              json.decode(recomendacoesResponse.body)['data']);
+          recomendacoes = recomendacoesData;
           if (isPublicationsSelected) {
             _showRecomendacoes();
           }
@@ -155,6 +184,8 @@ class _ProfilePageState extends State<ProfilePage> {
         return;
       }
 
+      print('Token encontrado: $token');
+
       final eventsResponse = await http.get(
         Uri.parse(
             'https://backendpint-5wnf.onrender.com/eventos/listarPorUser'),
@@ -163,11 +194,14 @@ class _ProfilePageState extends State<ProfilePage> {
         },
       );
 
+      print('Status da resposta de eventos: ${eventsResponse.statusCode}');
+
       if (eventsResponse.statusCode == 200) {
         setState(() {
           events = List<Map<String, dynamic>>.from(
               json.decode(eventsResponse.body)['data']);
           if (!isPublicationsSelected) {
+            print('Mostrando eventos...');
             _showEvents();
           }
         });
@@ -180,6 +214,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showRecomendacoes() {
+    print('Mostrando recomendações...');
     setState(() {
       isPublicationsSelected = true;
       items.clear();
@@ -195,6 +230,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showEvents() {
+    print('Mostrando eventos...');
     setState(() {
       isPublicationsSelected = false;
       items.clear();
@@ -203,7 +239,7 @@ class _ProfilePageState extends State<ProfilePage> {
           'title': event['TITULO_EVENTO'].toString(),
           'description': event['DESCRICAO_EVENTO'].toString(),
           'imageUrl': event['IMAGEM']?['NOME_IMAGEM']?.toString() ?? '',
-          'eventId': event['ID_EVENTO'].toString(), // Adiciona o ID do evento
+          'eventId': event['ID_EVENTO'].toString(),
         });
       }
     });
@@ -212,21 +248,34 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _pickImage(ImageSource source, bool isBanner) async {
     try {
       final pickedFile = await ImagePicker().pickImage(source: source);
+
       if (pickedFile != null) {
         setState(() {
           if (isBanner) {
             _bannerImage = File(pickedFile.path);
-            _uploadImage(_bannerImage!, 'banner');
           } else {
             _avatarImage = File(pickedFile.path);
-            _uploadImage(_avatarImage!, 'avatar');
           }
         });
-      } else {
-        print("Nenhuma imagem selecionada.");
+
+        final request = http.MultipartRequest(
+          'POST',
+          Uri.parse(
+              'https://backendpint-5wnf.onrender.com/utilizadores/uploadImagem'),
+        );
+        request.headers['Authorization'] = 'Bearer ${await tokenHandler.getToken()}';
+        request.files.add(await http.MultipartFile.fromPath('image', pickedFile.path));
+
+        final response = await request.send();
+
+        if (response.statusCode == 200) {
+          print('Imagem carregada com sucesso');
+        } else {
+          print('Falha ao carregar imagem: ${response.statusCode}');
+        }
       }
     } catch (e) {
-      print("Erro ao pegar imagem: $e");
+      print('Erro ao selecionar imagem: $e');
     }
   }
 
@@ -273,42 +322,54 @@ class _ProfilePageState extends State<ProfilePage> {
         estadoEvento: event['ATIVO_EVENTO'] ?? false);
 
     Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EventoView(evento: evento),
-      ),
-    );
+    context,
+    MaterialPageRoute(
+      builder: (context) => EventoView(evento: evento),
+    ),
+  );
   }
 
   void _navigateToRecomendacaoView(Map<String, dynamic> publication) {
-    Recomendacao recomendacao = Recomendacao(
+  Recomendacao recomendacao = Recomendacao(
       idRecomendacao: publication['ID_RECOMENDACAO'],
       bannerImage: publication['IMAGEM']['NOME_IMAGEM'] ?? '',
       nomeLocal: publication['TITULO_RECOMENDACAO'] ?? '',
       endereco: publication['MORADA_RECOMENDACAO'] ?? '',
-      avaliacaoGeral: (publication['AVALIACAO_GERAL'] ?? 0.0).toDouble(),
+      avaliacaoGeral: (publication['avaliacaoGeral'] ?? 0.0).toDouble(),
       descricao: publication['DESCRICAO_RECOMENDACAO'] ?? '',
       categoria: publication['SUBAREA']['AREA']['NOME_AREA'] ?? '',
       subcategoria: publication['SUBAREA']['NOME_SUBAREA'] ?? '',
       idAlbum: publication['ID_ALBUM'] ?? '',
     );
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RecomendacaoView(recomendacao: recomendacao),
-      ),
-    );
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => RecomendacaoView(recomendacao: recomendacao),
+    ),
+  );
+}
+
+bool _isFetchingPublications = false;
+
+Future<void> _refreshData() async {
+  if (_isFetchingPublications) return; // Evita chamadas repetidas
+
+  setState(() {
+    _isFetchingPublications = true;
+  });
+
+  await _fetchUserData();
+  if (isPublicationsSelected) {
+    await _fetchPublications();
+  } else {
+    await _fetchEvents();
   }
 
-  Future<void> _refreshData() async {
-    await _fetchUserData();
-    if (isPublicationsSelected) {
-      await _fetchPublications();
-    } else {
-      await _fetchEvents();
-    }
-  }
+  setState(() {
+    _isFetchingPublications = false;
+  });
+}
 
   @override
   Widget build(BuildContext context) {

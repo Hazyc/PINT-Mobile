@@ -1,3 +1,4 @@
+import 'dart:async'; // Importação para o Timer
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -13,18 +14,28 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   List<dynamic> notifications = [];
+  List<bool> selectedNotifications = [];
+  bool isSelectionMode = false;
+  bool allSelected = false;
   TokenHandler tokenHandler = TokenHandler();
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     fetchNotifications();
+    startAutoRefresh();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // Cancela o autorefresh ao sair da página
+    super.dispose();
   }
 
   Future<void> fetchNotifications() async {
     try {
       final token = await tokenHandler.getToken();
-      print('Token: $token');
       if (token == null) {
         print('Token is null. Please log in again.');
         return;
@@ -35,14 +46,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
         headers: {'x-access-token': 'Bearer $token'},
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['data'] != null && data['success']) {
           setState(() {
             notifications = data['data'];
+            selectedNotifications = List.filled(notifications.length, false); // Inicializa a lista de seleções
+            notifications.sort((a, b) {
+              DateTime dateA = DateTime.parse(a['NOTIFICACAO']['DATA_HORA_NOTIFICACAO']);
+              DateTime dateB = DateTime.parse(b['NOTIFICACAO']['DATA_HORA_NOTIFICACAO']);
+              return dateB.compareTo(dateA); // Coloca as mais recentes no topo
+            });
           });
         } else {
           print('Failed to load notifications: ${data['message']}');
@@ -55,114 +69,142 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
-  void deleteNotification(int id) async {
-    try {
-      final token = await tokenHandler.getToken();
-      if (token == null) {
-        print('Token is null. Please log in again.');
-        return;
-      }
+  // Inicia o autorefresh com um intervalo de 1 minuto (60000 ms)
+   void startAutoRefresh() {
+    _timer = Timer.periodic(Duration(minutes: 1), (timer) {
+      fetchNotifications();
+    });
+  }
 
-      final response = await http.put(
-        Uri.parse('https://backendpint-5wnf.onrender.com/utilizadoresnotificacao/esconderNotificacao/$id'),
-        headers: {'x-access-token': 'Bearer $token'},
-      );
-        print('Response status: ${response.statusCode}');
-        print('Response body: ${response.body}');
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        print ('Response body: ${response.body}');
-        if (data['success']) {
-          setState(() {
-            notifications.removeWhere((notification) => notification['ID_NOTIFICACAO'] == id);
-          });
-          print('Notificação apagada com sucesso');
-        } else {
-          print('Falha ao apagar notificação: ${data['message']}');
-        }
-      } else {
-        print('Falha ao apagar notificação. Status code: ${response.statusCode}');
+  // Função para ocultar múltiplas notificações
+  void hideSelectedNotifications() async {
+    for (int i = 0; i < notifications.length; i++) {
+      if (selectedNotifications[i]) {
+        await deleteNotification(notifications[i]['ID_NOTIFICACAO']);
       }
-    } catch (e) {
-      print(e);
     }
   }
 
-  void showDeleteConfirmationDialog(int id) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Confirmar'),
-          content: Text('Deseja realmente apagar esta notificação?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () {
-                deleteNotification(id);
-                Navigator.of(context).pop();
-              },
-              child: Text('Apagar'),
-            ),
-          ],
-        );
-      },
+  Future<void> deleteNotification(int id) async {
+  try {
+    final token = await tokenHandler.getToken();
+    if (token == null) {
+      print('Token is null. Please log in again.');
+      return;
+    }
+
+    final response = await http.put(
+      Uri.parse('https://backendpint-5wnf.onrender.com/utilizadoresnotificacao/esconderTodasNotificacoesUtilizador'),
+      headers: {'x-access-token': 'Bearer $token'},
     );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['success']) {
+        // Atualiza a lista de notificações após sucesso na ocultação
+        setState(() {
+          notifications.removeWhere((notification) => notification['ID_NOTIFICACAO'] == id);
+        });
+        // Atualiza a lista de notificações após sucesso
+        await fetchNotifications();
+      } else {
+        print('Falha ao apagar notificação: ${data['message']}');
+      }
+    } else {
+      print('Falha ao apagar notificação. Status code: ${response.statusCode}');
+    }
+  } catch (e) {
+    print(e);
+  }
+}
+
+  void toggleSelection(int index) {
+    setState(() {
+      selectedNotifications[index] = !selectedNotifications[index];
+      if (!selectedNotifications.contains(true)) {
+        isSelectionMode = false; // Desativa o modo de seleção se nenhuma notificação estiver selecionada
+        allSelected = false; // Desmarca o botão de selecionar todos
+      }
+    });
   }
 
-  void navigateToDetails(Map<String, dynamic> notification) {
-    if (notification['ID_EVENTO'] != null) {
-      // Navigator.push(
-      //   context,
-      //   MaterialPageRoute(builder: (context) => EventoView(eventId: notification['ID_EVENTO'])),
-      // );
-    } else if (notification['ID_RECOMENDACAO'] != null) {
-      // Navigator.push(
-      //   context,
-      //   MaterialPageRoute(builder: (context) => RecomendacaoView(recommendationId: notification['ID_RECOMENDACAO'])),
-      // );
-    }
+  void selectAll() {
+    setState(() {
+      if (allSelected) {
+        selectedNotifications = List.filled(notifications.length, false); // Desmarca todas
+        allSelected = false;
+      } else {
+        selectedNotifications = List.filled(notifications.length, true); // Marca todas
+        allSelected = true;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Notificações' , style: TextStyle(color: Colors.white, fontSize: 24.0)),
+        title: Text('Notificações', style: TextStyle(color: Colors.white, fontSize: 24.0)),
         backgroundColor: Colors.cyan,
         iconTheme: IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.filter_list),
-            onPressed: () {
-              // Implement filter functionality here
-            },
-          ),
-        ],
+        actions: isSelectionMode
+            ? [
+                IconButton(
+                  icon: Icon(allSelected ? Icons.check_box : Icons.check_box_outline_blank),
+                  onPressed: selectAll,
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete),
+                  onPressed: hideSelectedNotifications,
+                ),
+              ]
+            : [],
       ),
-      body: ListView.builder(
-        padding: EdgeInsets.all(10),
-        itemCount: notifications.length,
-        itemBuilder: (context, index) {
-          final notification = notifications[index];
-          return GestureDetector(
-            onTap: () {
-              navigateToDetails(notification);
-            },
-            onLongPress: () {
-              showDeleteConfirmationDialog(notification['ID_NOTIFICACAO']);
-            },
-            child: NotificationCard(
-              title: notification['NOTIFICACAO']['TITULO_NOTIFICACAO'],
-              date: (notification['NOTIFICACAO']['DATA_HORA_NOTIFICACAO']).toString(),
-            ),
-          );
-        },
+      body: RefreshIndicator(
+        onRefresh: fetchNotifications,
+        child: ListView.builder(
+          padding: EdgeInsets.all(10),
+          itemCount: notifications.length,
+          itemBuilder: (context, index) {
+            final notification = notifications[index];
+            return GestureDetector(
+              onTap: () {
+                if (isSelectionMode) {
+                  toggleSelection(index);
+                }
+              },
+              onLongPress: () {
+                setState(() {
+                  isSelectionMode = true;
+                  toggleSelection(index);
+                });
+              },
+              child: Container(
+                color: selectedNotifications[index] ? Colors.grey[300] : Colors.white,
+                child: Row(
+                  children: [
+                    if (isSelectionMode)
+                      Checkbox(
+                        value: selectedNotifications[index],
+                        onChanged: (bool? value) {
+                          toggleSelection(index);
+                        },
+                      ),
+                    Expanded(
+                      child: NotificationCard(
+                        title: notification['NOTIFICACAO']['TITULO_NOTIFICACAO'],
+                        description: notification['NOTIFICACAO']['MENSAGEM_NOTIFICACAO'] ?? 'Sem descrição disponível',
+                        date: DateTime.parse(notification['NOTIFICACAO']['DATA_HORA_NOTIFICACAO'])
+                            .toLocal()
+                            .toString(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
