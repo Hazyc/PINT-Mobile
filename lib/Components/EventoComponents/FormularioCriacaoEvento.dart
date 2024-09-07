@@ -1,12 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import '../../handlers/TokenHandler.dart';
 import '../../pages/MapPage.dart';
+import '../../models/Campo.dart';
 
 class FormularioCriacaoEvento extends StatefulWidget {
   @override
@@ -25,15 +28,102 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   String? _category;
   String? _subcategory;
 
+  //dados de formulario
+
+  String _nomeFormulario = ''; //TITULO_FORMULARIO
+  List<Campo> campos = []; //CAMPOS
+  bool _mostrarFormulario = false;
+  late TextEditingController _nomeFormularioController;
+
   TextEditingController _locationController = TextEditingController();
 
   Map<String, List<String>> categoriesWithSubcategories = {};
+  final Map<int, TextEditingController> _controladores = {};
 
   @override
   void initState() {
     super.initState();
     _fetchCategories();
     _locationController.text = _address;
+    _nomeFormularioController = TextEditingController(text: _nomeFormulario);
+  }
+
+  void dispose() {
+    // Dispose todos os controladores quando o widget for descartado
+    _controladores.values.forEach((controller) => controller.dispose());
+    _nomeFormularioController.dispose();
+    super.dispose();
+  }
+
+  //parte dos campos do formulario
+  int _proximoId = 0;
+
+  void _clearFormFields() {
+    setState(() {
+      _category = null;
+      _subcategory = null;
+      _eventName = '';
+      _address = '';
+      _description = '';
+      _dateTime = null;
+      _image = null;
+    });
+  }
+
+  void _adicionarCampo(String tipo) {
+    setState(() {
+      final controller = TextEditingController();
+      _controladores[_proximoId] = controller;
+
+      campos.add(Campo(
+          id_campo: _proximoId++,
+          tipo_campo: tipo,
+          nome_campo: '',
+          required_campo: false));
+      _proximoId++;
+    });
+  }
+
+  void _removerCampo(int id) {
+    setState(() {
+      _controladores.remove(id)?.dispose();
+      campos.removeWhere((element) => element.id_campo == id);
+    });
+  }
+
+  void _atualizarCampo(int id, String tipo, String nome, bool required) {
+    setState(() {
+      campos.forEach((element) {
+        if (element.id_campo == id) {
+          element.tipo_campo = tipo;
+          element.nome_campo = nome;
+          element.required_campo = required;
+          print('Campo atualizado');
+        }
+      });
+    });
+  }
+
+  void _criarFormulario() {
+    setState(() {
+      _mostrarFormulario = !_mostrarFormulario;
+      campos = [];
+      _controladores.values.forEach((controller) => controller.dispose());
+      _controladores.clear();
+      _nomeFormularioController.text = '';
+      _proximoId = 0;
+    });
+  }
+
+  void _cancelarFormulario() {
+    setState(() {
+      _controladores.values.forEach((controller) => controller.dispose());
+      _controladores.clear();
+      _mostrarFormulario = !_mostrarFormulario;
+      campos = [];
+      _proximoId = 0;
+      _nomeFormularioController.text = '';
+    });
   }
 
   Future<void> _fetchCategories() async {
@@ -141,7 +231,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
       _formKey.currentState!.save();
 
       try {
-        String? imageId;
+        int? imageId;
 
         if (_image != null) {
           var uploadRequest = http.MultipartRequest(
@@ -159,7 +249,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
 
           if (uploadResponse.statusCode == 200) {
             var jsonResponse = jsonDecode(uploadResponseString);
-            imageId = jsonResponse['data']['ID_IMAGEM'].toString();
+            imageId = int.parse(jsonResponse['data']['ID_IMAGEM']);
           } else {
             _showErrorDialog(
                 'Falha ao fazer upload da imagem. Por favor, tente novamente.');
@@ -185,21 +275,77 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           }),
         );
 
+        print(imageId);
+        print(_city);
+        print(_subcategory);
+        print(_eventName);
+        print(_address);
+        print(_description);
+
         if (response.statusCode == 200) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Evento salvo com sucesso!'),
-              backgroundColor: Colors.blue,
-            ),
-          );
-          setState(() {
-            _subcategory = '';
-            _eventName = '';
-            _address = '';
-            _description = '';
-            _dateTime = null;
-            _image = null;
-          });
+          print('Evento criado com sucesso');
+          print(response.body);
+
+          if (_mostrarFormulario) {
+            try {
+              final resposta = await http.post(
+                Uri.parse(
+                    'https://backendpint-5wnf.onrender.com/formulario/create'),
+                headers: <String, String>{
+                  'Content-Type': 'application/json; charset=UTF-8',
+                  'Authorization': 'Bearer $token',
+                },
+                body: jsonEncode(<String, dynamic>{
+                  'TITULO_FORMULARIO': _nomeFormulario,
+                  'ID_EVENTO': jsonDecode(response.body)['data']['ID_EVENTO'],
+                }),
+              );
+              print("ola");
+              if (resposta.statusCode == 200) {
+                print('Formulário criado com sucesso');
+
+                for (var campo in campos) {
+                  print('Criando campo: ${campo}');
+                  final respostaCampo = await http.post(
+                    Uri.parse(
+                        'https://backendpint-5wnf.onrender.com/campo/create'),
+                    headers: <String, String>{
+                      'Content-Type': 'application/json; charset=UTF-8',
+                      'Authorization': 'Bearer $token',
+                    },
+                    body: jsonEncode(<String, dynamic>{
+                      'ID_FORMULARIO': jsonDecode(resposta.body)['data']
+                          ['ID_FORMULARIO'],
+                      'TIPO_CAMPO': campo.tipo_campo,
+                      'LABEL_CAMPO': campo.nome_campo,
+                      'REQUIRED_CAMPO': campo.required_campo,
+                    }),
+                  );
+                  if (respostaCampo.statusCode == 200) {
+                    print('Campo criado com sucesso');
+                  } else {
+                    print('Erro ao criar campo');
+                    _showErrorDialog(
+                        'Ocorreu um erro. Por favor, tente novamente.');
+                  }
+                }
+              } else {
+                print('Erro ao criar formulário');
+                _clearFormFields();
+                _showErrorDialog(
+                    'Ocorreu um erro. Por favor, tente novamente.');
+              }
+            } catch (error) {
+              print("Erro ao criar formulário:");
+
+              _clearFormFields();
+
+              print('Erro: $error');
+              _showErrorDialog('Ocorreu um erro. Por favor, tente novamente.');
+            }
+          }
+
+          _clearFormFields();
 
           Navigator.pop(context);
         } else {
@@ -359,6 +505,23 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
                             _buildSubcategoryDropdown(),
                           ],
                           SizedBox(height: 16.0),
+                          if (_mostrarFormulario == false)
+                            Container(
+                              child: ElevatedButton(
+                                onPressed: _criarFormulario,
+                                child: Text('Criar Formulário'),
+                              ),
+                            ),
+                          if (_mostrarFormulario == true)
+                            Container(
+                              child: ElevatedButton(
+                                onPressed: _cancelarFormulario,
+                                child: Text('Cancelar Formulário'),
+                              ),
+                            ),
+                          SizedBox(height: 16.0),
+                          if (_mostrarFormulario) _buildFormulario(),
+                          SizedBox(height: 16.0),
                           Container(
                             margin: EdgeInsets.only(bottom: 20.0),
                             child: ElevatedButton(
@@ -409,6 +572,138 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           fontWeight: FontWeight.bold,
           color: Colors.blue,
         ),
+      ),
+    );
+  }
+
+  //campo de formulario
+
+  Widget _buildFormulario() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10.0),
+      padding: const EdgeInsets.all(10.0),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.blueAccent),
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Nome do Formulário: $_nomeFormulario',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+          SizedBox(height: 10),
+          TextField(
+            controller: _nomeFormularioController,
+            decoration: InputDecoration(
+              labelText: 'Nome do Formulário',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              setState(() {
+                _nomeFormulario = value;
+              });
+            },
+          ),
+          SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: () {
+              _adicionarCampo("checkbox");
+            },
+            child: Text('Adicionar Checkbox'),
+          ),
+          SizedBox(height: 10),
+          SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: () {
+              _adicionarCampo("contagem");
+            },
+            child: Text('Adicionar Contagem'),
+          ),
+          Column(
+            children: campos.map((campo) => _buildCampo(campo)).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCampo(Campo campo) {
+    // Certifique-se de criar um novo controlador somente quando o campo for criado
+    // e não o recrie a cada reconstrução do widget.
+    final controller = _controladores[campo.id_campo] ??
+        TextEditingController(text: campo.nome_campo);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10.0),
+      padding: const EdgeInsets.all(10.0),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.blueAccent),
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Campo de ${campo.tipo_campo}',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+              SizedBox(width: 10),
+              IconButton(
+                icon: Icon(Icons.delete, color: Colors.red),
+                onPressed: () {
+                  // Remove o campo e limpa o controlador associado
+                  setState(() {
+                    _removerCampo(campo.id_campo);
+                  });
+                },
+              ),
+            ],
+          ),
+          SizedBox(height: 10),
+          TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: 'Nome do Campo',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              _atualizarCampo(campo.id_campo, campo.tipo_campo, value,
+                  campo.required_campo);
+            },
+          ),
+          SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Obrigatório:',
+                style: TextStyle(
+                  fontSize: 16,
+                ),
+              ),
+              Checkbox(
+                value: campo.required_campo,
+                onChanged: (bool? newValue) {
+                  _atualizarCampo(campo.id_campo, campo.tipo_campo,
+                      campo.nome_campo, newValue ?? false);
+                },
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -519,7 +814,10 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           hint: Text('Selecione uma categoria'),
-          value: _category,
+          value: categoriesWithSubcategories.containsKey(_category)
+              ? _category
+              : null,
+          isExpanded: true, // Adiciona flexibilidade ao dropdown
           items: categoriesWithSubcategories.keys.map((category) {
             return DropdownMenuItem<String>(
               value: category,
@@ -528,8 +826,8 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           }).toList(),
           onChanged: (newValue) {
             setState(() {
-              _category = newValue;
-              _subcategory = null;
+              _category = newValue; // Define a nova categoria
+              _subcategory = null; // Reseta a subcategoria
             });
           },
         ),
@@ -538,6 +836,9 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   }
 
   Widget _buildSubcategoryDropdown() {
+    final subcategories =
+        _category != null ? categoriesWithSubcategories[_category] : [];
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25.0),
       padding: EdgeInsets.symmetric(horizontal: 12.0),
@@ -548,9 +849,9 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           hint: Text('Selecione uma subcategoria'),
-          value: _subcategory,
-          items:
-              (categoriesWithSubcategories[_category] ?? []).map((subcategory) {
+          value: subcategories!.contains(_subcategory) ? _subcategory : null,
+          isExpanded: true, // Adiciona flexibilidade ao dropdown
+          items: subcategories!.map((subcategory) {
             return DropdownMenuItem<String>(
               value: subcategory,
               child: Text(subcategory),
@@ -558,7 +859,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           }).toList(),
           onChanged: (newValue) {
             setState(() {
-              _subcategory = newValue;
+              _subcategory = newValue; // Define a nova subcategoria
             });
           },
         ),
