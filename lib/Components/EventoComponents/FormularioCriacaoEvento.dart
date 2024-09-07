@@ -301,7 +301,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
                 }),
               );
               print("ola");
-              if (resposta.statusCode == 200) {
+              if (resposta.statusCode == 201) {
                 print('Formulário criado com sucesso');
 
                 for (var campo in campos) {
@@ -321,7 +321,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
                       'REQUIRED_CAMPO': campo.required_campo,
                     }),
                   );
-                  if (respostaCampo.statusCode == 200) {
+                  if (respostaCampo.statusCode == 201) {
                     print('Campo criado com sucesso');
                   } else {
                     print('Erro ao criar campo');
