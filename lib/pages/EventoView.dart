@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 
 import 'package:app_mobile/models/Evento.dart';
 import '../Components/EventoComponents/ChatPageEvento.dart';
+import '../Components/EventoComponents/CountField.dart';
 import '../handlers/TokenHandler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../Components/EventoComponents/EditEventoPage.dart';
@@ -40,7 +41,9 @@ class _EventoViewState extends State<EventoView> {
   bool showAllImages = false;
   late bool estadoEvento;
   List<Map<String, dynamic>> formFields = [];
-  String? idFormulario;
+  int? idFormulario;
+  final Map<String, dynamic> respostas = {};
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -52,55 +55,61 @@ class _EventoViewState extends State<EventoView> {
     _checkRegistrationStatus();
     _checkIfOrganizer();
     _loadAlbumImages();
-    _fetchFormFields();
-  }
-
-  void _showMoreImages() {
-    setState(() {
-      displayedImageCount = albumImages.length; // Mostra todas as imagens
-      showAllImages = true;
-    });
+    _fetchFormIdAndFields();
   }
 
   Future<void> _fetchFormIdAndFields() async {
-    try {
-      final token = await TokenHandler().getToken();
-      if (token == null || token.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Token de autenticação não encontrado.')),
-        );
-        return;
-      }
-
-      // Aqui você faz a requisição para buscar o ID do formulário
-      final formIdResponse = await http.get(
-        Uri.parse('https://backendpint-5wnf.onrender.com/formulario/getbyidevento/${widget.evento.id}'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      if (formIdResponse.statusCode == 200) {
-        final formIdData = jsonDecode(formIdResponse.body);
-        setState(() {
-          idFormulario = formIdData['ID_FORMULARIO'];
-        });
-
-        // Agora que temos o ID do formulário, buscamos os campos
-        await _fetchFormFields();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao buscar ID do formulário')),
-        );
-      }
-    } catch (e) {
+  try {
+    final token = await TokenHandler().getToken();
+    if (token == null || token.isEmpty) {
+      // Exibe o erro apenas se o token não for encontrado
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao buscar ID do formulário: ${e.toString()}')),
+        SnackBar(content: Text('Token de autenticação não encontrado.')),
       );
+      return;
     }
-  }
 
-  Future<void> _fetchFormFields() async {
+    final formIdResponse = await http.get(
+      Uri.parse(
+          'https://backendpint-5wnf.onrender.com/formulario/getbyidevento/${widget.evento.id}'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (formIdResponse.statusCode == 200) {
+      final formIdData = jsonDecode(formIdResponse.body);
+
+      // Verifica se a estrutura de dados está correta
+      if (formIdData != null && formIdData['data'] != null) {
+        final formId = formIdData['data']['ID_FORMULARIO'];
+
+        if (formId != null) {
+          setState(() {
+            idFormulario = formId;
+          });
+
+          // Se o formulário existir, busca os campos do formulário
+          await _fetchFormFields(idFormulario);
+        } else {
+          // Mensagem de log para o programador
+          print('O evento ${widget.evento.id} não possui um formulário associado.');
+        }
+      } else {
+        // Mensagem de log para o programador
+        print('ID do formulário não encontrado na resposta para o evento ${widget.evento.id}.');
+      }
+    } else {
+      // Mensagem de log para o programador
+      print('Erro ao buscar ID do formulário para o evento ${widget.evento.id}. StatusCode: ${formIdResponse.statusCode}');
+    }
+  } catch (e) {
+    // Mensagem de log para o programador
+    print('Erro ao buscar ID do formulário: ${e.toString()}');
+  }
+}
+
+
+  Future<void> _fetchFormFields(int? idFormulario) async {
     if (idFormulario == null) {
-      // Se idFormulario ainda for nulo, não tente buscar os campos
       return;
     }
 
@@ -114,13 +123,17 @@ class _EventoViewState extends State<EventoView> {
       }
 
       final response = await http.get(
-        Uri.parse('https://backendpint-5wnf.onrender.com/campo/getByIdFormulario/$idFormulario'),
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/campo/getByIdFormulario/${idFormulario}'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
+      print(response.body);
+
       if (response.statusCode == 200) {
         setState(() {
-          formFields = List<Map<String, dynamic>>.from(jsonDecode(response.body)['data']);
+          formFields = List<Map<String, dynamic>>.from(
+              jsonDecode(response.body)['data']);
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -129,31 +142,174 @@ class _EventoViewState extends State<EventoView> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao buscar campos do formulário: ${e.toString()}')),
+        SnackBar(
+            content:
+                Text('Erro ao buscar campos do formulário: ${e.toString()}')),
       );
     }
   }
 
-  String formatarDataHoraPartilha(String dataHora) {
-  try {
-    // Converte a string ISO 8601 para um objeto DateTime
-    DateTime dateTime = DateTime.parse(dataHora);
-    
-    // Define o formato desejado
-    final DateFormat dateFormat = DateFormat('yyyy-MM-dd \'às\' HH:mm');
-    
-    // Formata o DateTime para a string desejada
-    return dateFormat.format(dateTime);
-  } catch (e) {
-    // Em caso de erro, retorna a string original ou uma mensagem padrão
-    return dataHora;
+  void _showFormModal() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Responder Formulário'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: formFields.map((campo) {
+                switch (campo['TIPO_CAMPO']) {
+                  case 'checkbox':
+                    // Retrieve the current value from respostas or default to false
+                    bool checkboxValue =
+                        respostas[campo['ID_CAMPO'].toString()] == 'true';
+
+                    return StatefulBuilder(
+                      builder: (BuildContext context, StateSetter setState) {
+                        return CheckboxListTile(
+                          key: Key(campo['ID_CAMPO'].toString()),
+                          title: Text(campo['LABEL_CAMPO']),
+                          value:
+                              checkboxValue, // Reflects the current state from 'respostas'
+                          onChanged: (bool? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                // Update the local checkboxValue and respostas map
+                                checkboxValue =
+                                    newValue; // Update local checkboxValue
+                                respostas[campo['ID_CAMPO'].toString()] =
+                                    checkboxValue
+                                        ? 'true'
+                                        : 'false'; // Update responses map
+                                print(
+                                    'Checkbox ${campo['ID_CAMPO']} updated to: ${respostas[campo['ID_CAMPO'].toString()]}');
+                              });
+                            }
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                          subtitle: campo['REQUIRED_CAMPO']
+                              ? Text('Este campo é obrigatório',
+                                  style: TextStyle(color: Colors.red))
+                              : null,
+                        );
+                      },
+                    );
+
+                  case 'contagem':
+                    return CountField(
+                      campoId: campo['ID_CAMPO'].toString(),
+                      label: campo['LABEL_CAMPO'],
+                      initialValue: respostas[campo['ID_CAMPO']] ?? '0',
+                      onChanged: (newValue) {
+                        setState(() {
+                          respostas[campo['ID_CAMPO'].toString()] =
+                              newValue.toString();
+                        });
+                      },
+                    );
+
+                  default:
+                    return Container();
+                }
+              }).toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Fecha o modal
+              },
+              child: Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                _sendFormResponses(); // Envia as respostas
+                Navigator.of(context).pop(); // Fecha o modal
+              },
+              child: Text('Enviar'),
+            ),
+          ],
+        );
+      },
+    );
   }
-}
+
+  Future<void> _sendFormResponses() async {
+    try {
+      List<Map<String, dynamic>> respostasArray =
+          respostas.entries.map((entry) {
+        return {
+          'ID_CAMPO': entry.key,
+          'VALOR_RESPOSTA': entry.value,
+        };
+      }).toList();
+
+      final token = await TokenHandler().getToken();
+      if (token == null || token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Token de autenticação não encontrado.')),
+        );
+        return;
+      }
+
+      final response = await http.post(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/respostasformulario/create'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-access-token': 'Bearer $token',
+        },
+        body: json.encode({
+          'ID_FORMULARIO': idFormulario,
+          'respostas': respostasArray,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Respostas enviadas com sucesso!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao enviar respostas. Tente novamente.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao enviar respostas. Tente novamente.')),
+      );
+      print('Erro ao enviar respostas: $e');
+    }
+  }
+
+  void _showMoreImages() {
+    setState(() {
+      displayedImageCount = albumImages.length; // Mostra todas as imagens
+      showAllImages = true;
+    });
+  }
+
+  String formatarDataHoraPartilha(String dataHora) {
+    try {
+      // Converte a string ISO 8601 para um objeto DateTime
+      DateTime dateTime = DateTime.parse(dataHora);
+
+      // Define o formato desejado
+      final DateFormat dateFormat = DateFormat('yyyy-MM-dd \'às\' HH:mm');
+
+      // Formata o DateTime para a string desejada
+      return dateFormat.format(dateTime);
+    } catch (e) {
+      // Em caso de erro, retorna a string original ou uma mensagem padrão
+      return dataHora;
+    }
+  }
 
   void _shareEvent() {
     final String url =
         'https://pint-web-alpha.vercel.app/evento/${widget.evento.id}';
-    final String formattedDateTime = formatarDataHoraPartilha(widget.evento.dateTime);
+    final String formattedDateTime =
+        formatarDataHoraPartilha(widget.evento.dateTime);
     final String message = '''
 Confira este evento incrível!
 
@@ -499,8 +655,12 @@ $url
             ),
             TextButton(
               onPressed: () async {
+                // Chama a função para se inscrever no evento
                 await _registerForEvent();
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // Fecha o diálogo de confirmação
+
+                // Exibe o formulário modal após o fechamento do diálogo
+                _showFormModal();
               },
               child: Text('Inscrever'),
             ),
@@ -967,4 +1127,3 @@ $url
     );
   }
 }
-

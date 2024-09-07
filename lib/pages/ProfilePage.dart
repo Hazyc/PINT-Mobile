@@ -51,22 +51,26 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isFetching = false;
 
   void _startPeriodicFetch() {
-  _timer = Timer.periodic(Duration(seconds: 3), (timer) async {
-    if (_isFetching) return;
-    setState(() => _isFetching = true);
-    try {
-      if (isPublicationsSelected) {
-        print('Buscando publicações...');
-        await _fetchPublications();
-      } else {
-        print('Buscando eventos...');
-        await _fetchEvents();
+    _timer = Timer.periodic(Duration(seconds: 3), (timer) async {
+      if (_isFetching) return;
+      setState(() => _isFetching = true);
+      try {
+        // Adiciona a chamada para atualizar os dados do usuário
+        await _fetchUserData();
+
+        // Atualiza as publicações ou eventos conforme a seleção
+        if (isPublicationsSelected) {
+          print('Buscando publicações...');
+          await _fetchPublications();
+        } else {
+          print('Buscando eventos...');
+          await _fetchEvents();
+        }
+      } finally {
+        setState(() => _isFetching = false);
       }
-    } finally {
-      setState(() => _isFetching = false);
-    }
-  });
-}
+    });
+  }
 
   Future<void> _fetchUserData() async {
     try {
@@ -101,7 +105,8 @@ class _ProfilePageState extends State<ProfilePage> {
           userPreferredArea = userData['AREA_PREFERENCIA'] ?? '';
         });
       } else {
-        print('Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
+        print(
+            'Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
       }
     } catch (e) {
       print('Erro ao buscar dados do usuário: $e');
@@ -148,7 +153,6 @@ class _ProfilePageState extends State<ProfilePage> {
               // Armazenar a avaliação geral na recomendação
               recomendacao['avaliacaoGeral'] =
                   double.parse(avaliacaoGeral.toStringAsFixed(1));
-                  
             } else {
               print(
                   'Falha ao buscar média de avaliação para recomendação ${recomendacao['ID_RECOMENDACAO']}');
@@ -263,8 +267,10 @@ class _ProfilePageState extends State<ProfilePage> {
           Uri.parse(
               'https://backendpint-5wnf.onrender.com/utilizadores/uploadImagem'),
         );
-        request.headers['Authorization'] = 'Bearer ${await tokenHandler.getToken()}';
-        request.files.add(await http.MultipartFile.fromPath('image', pickedFile.path));
+        request.headers['Authorization'] =
+            'Bearer ${await tokenHandler.getToken()}';
+        request.files
+            .add(await http.MultipartFile.fromPath('image', pickedFile.path));
 
         final response = await request.send();
 
@@ -280,29 +286,34 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _uploadImage(File imageFile, String type) async {
-    try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('https://backendpint-5wnf.onrender.com/imagens/upload'),
-      );
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'image',
-          imageFile.path,
-          filename: '${type}_${DateTime.now().millisecondsSinceEpoch}.jpg',
-        ),
-      );
-      var res = await request.send();
-      if (res.statusCode == 200) {
-        print('Upload de $type bem-sucedido');
-        _fetchUserData(); // Atualiza os dados após o upload
-      } else {
-        print('Falha no upload de $type: ${res.statusCode}');
-      }
-    } catch (e) {
-      print('Erro ao enviar imagem: $e');
+  try {
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('https://backendpint-5wnf.onrender.com/imagens/upload'),
+    );
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'image',
+        imageFile.path,
+        filename: '${type}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      ),
+    );
+    var res = await request.send();
+
+    // Adicione este trecho para garantir que a resposta seja decodificada corretamente
+    var response = await http.Response.fromStream(res);
+    var decodedResponse = jsonDecode(response.body); // <-- Aqui você obtém o Map ou List
+
+    if (res.statusCode == 200) {
+      print('Upload de $type bem-sucedido');
+      _fetchUserData(); // Atualiza os dados após o upload
+    } else {
+      print('Falha no upload de $type: ${res.statusCode}');
     }
+  } catch (e) {
+    print('Erro ao enviar imagem: $e');
   }
+}
 
   void _navigateToEventoView(Map<String, dynamic> event) {
     Evento evento = Evento(
@@ -322,15 +333,15 @@ class _ProfilePageState extends State<ProfilePage> {
         estadoEvento: event['ATIVO_EVENTO'] ?? false);
 
     Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => EventoView(evento: evento),
-    ),
-  );
+      context,
+      MaterialPageRoute(
+        builder: (context) => EventoView(evento: evento),
+      ),
+    );
   }
 
   void _navigateToRecomendacaoView(Map<String, dynamic> publication) {
-  Recomendacao recomendacao = Recomendacao(
+    Recomendacao recomendacao = Recomendacao(
       idRecomendacao: publication['ID_RECOMENDACAO'],
       bannerImage: publication['IMAGEM']['NOME_IMAGEM'] ?? '',
       nomeLocal: publication['TITULO_RECOMENDACAO'] ?? '',
@@ -342,34 +353,34 @@ class _ProfilePageState extends State<ProfilePage> {
       idAlbum: publication['ID_ALBUM'] ?? '',
     );
 
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => RecomendacaoView(recomendacao: recomendacao),
-    ),
-  );
-}
-
-bool _isFetchingPublications = false;
-
-Future<void> _refreshData() async {
-  if (_isFetchingPublications) return; // Evita chamadas repetidas
-
-  setState(() {
-    _isFetchingPublications = true;
-  });
-
-  await _fetchUserData();
-  if (isPublicationsSelected) {
-    await _fetchPublications();
-  } else {
-    await _fetchEvents();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RecomendacaoView(recomendacao: recomendacao),
+      ),
+    );
   }
 
-  setState(() {
-    _isFetchingPublications = false;
-  });
-}
+  bool _isFetchingPublications = false;
+
+  Future<void> _refreshData() async {
+    if (_isFetchingPublications) return; // Evita chamadas repetidas
+
+    setState(() {
+      _isFetchingPublications = true;
+    });
+
+    await _fetchUserData();
+    if (isPublicationsSelected) {
+      await _fetchPublications();
+    } else {
+      await _fetchEvents();
+    }
+
+    setState(() {
+      _isFetchingPublications = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

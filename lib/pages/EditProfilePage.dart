@@ -220,7 +220,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
-  Future<Map<String, dynamic>> _uploadImage(
+   Future<Map<String, dynamic>> _uploadImage(
       int idImagem, String filePath, String type) async {
     try {
       final String? token = await tokenHandler.getToken();
@@ -290,15 +290,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
           }
 
           if (imageResponse.isNotEmpty) {
-            setState(() {
-              if (isBanner) {
-                _bannerImageUrl = imageResponse['NOME_IMAGEM'];
-                _bannerID = imageResponse['ID_IMAGEM'].toDouble();
-              } else {
-                _avatarImageUrl = imageResponse['NOME_IMAGEM'];
-                _avatarID = imageResponse['ID_IMAGEM'].toDouble();
-              }
-            });
+              setState(() {
+  if (isBanner) {
+    _bannerImageUrl = imageResponse['NOME_IMAGEM'];
+    _bannerID = imageResponse['ID_IMAGEM'].toDouble();
+  } else {
+    _avatarImageUrl = imageResponse['NOME_IMAGEM'];
+    _avatarID = imageResponse['ID_IMAGEM'].toDouble();
+  }
+});
           }
         } else {
           print("Nenhuma imagem selecionada.");
