@@ -27,8 +27,8 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   String _bannerImageUrl = '';
   String _avatarImageUrl = '';
-  double _bannerID = 0;
-  double _avatarID = 0;
+  String _bannerID = '';
+  String _avatarID = '';
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   int? _selectedAreaId;
@@ -220,7 +220,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
-   Future<Map<String, dynamic>> _uploadImage(
+  Future<Map<String, dynamic>> _uploadImage(
       int idImagem, String filePath, String type) async {
     try {
       final String? token = await tokenHandler.getToken();
@@ -247,7 +247,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         return jsonResponse['data'];
       } else {
         print('Falha ao fazer upload da imagem: ${response.statusCode}');
-        
+
         return {};
       }
     } catch (e) {
@@ -285,20 +285,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
             imageResponse = await _uploadImage(
                 0, pickedFile.path, isBanner ? 'banner' : 'perfil');
           } else {
-            imageResponse = await _uploadImage(idImagem,
-                pickedFile.path, isBanner ? 'banner' : 'perfil');
+            imageResponse = await _uploadImage(
+                idImagem, pickedFile.path, isBanner ? 'banner' : 'perfil');
           }
 
           if (imageResponse.isNotEmpty) {
-              setState(() {
-  if (isBanner) {
-    _bannerImageUrl = imageResponse['NOME_IMAGEM'];
-    _bannerID = imageResponse['ID_IMAGEM'].toDouble();
-  } else {
-    _avatarImageUrl = imageResponse['NOME_IMAGEM'];
-    _avatarID = imageResponse['ID_IMAGEM'].toDouble();
-  }
-});
+            setState(() {
+              if (isBanner) {
+                _bannerImageUrl = imageResponse['NOME_IMAGEM'];
+                _bannerID = imageResponse['ID_IMAGEM'];
+              } else {
+                _avatarImageUrl = imageResponse['NOME_IMAGEM'];
+                _avatarID = imageResponse['ID_IMAGEM'];
+              }
+            });
           }
         } else {
           print("Nenhuma imagem selecionada.");
