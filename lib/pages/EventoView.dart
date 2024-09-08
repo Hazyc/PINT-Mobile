@@ -435,9 +435,6 @@ $url
       final Map<String, dynamic> responseData = json.decode(responseBody);
 
       if (response.statusCode == 200 && responseData['success']) {
-        /*ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fotos carregadas com sucesso!')),
-        );*/
         // Atualize a lista de imagens após o upload
         _loadAlbumImages();
       } else {

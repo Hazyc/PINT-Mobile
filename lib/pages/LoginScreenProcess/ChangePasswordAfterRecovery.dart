@@ -54,7 +54,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     try {
       final response = await http.put(
         Uri.parse(
-            'https://backendpint-5wnf.onrender.com/utilizadores//trocarPasswordNormal'),
+            'https://backendpint-5wnf.onrender.com/utilizadores/trocarPasswordNormal'),
         headers: {
           'Content-Type': 'application/json',
         },

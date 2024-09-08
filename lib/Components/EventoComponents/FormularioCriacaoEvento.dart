@@ -378,28 +378,30 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   }
 
   void _openMapPage() async {
-    final selectedAddress = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MapPage(
-          initialAddress: _address,
-          onAddressSelected: (address) {
-            setState(() {
-              _address =
-                  address; // Atualiza o campo de localização com o endereço selecionado
-            });
-            Navigator.pop(context, address); // Retorna o endereço selecionado
-          },
-        ),
+  final selectedAddress = await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => MapPage(
+        initialAddress: _address,
+        onAddressSelected: (address) {
+          setState(() {
+            _address = address; // Atualiza o campo de localização com o endereço selecionado
+            _locationController.text = _address; // Atualiza o controlador do campo de texto
+            print('Endereço recebido no callback: $address');
+          });
+        },
       ),
-    );
+    ),
+  );
 
-    if (selectedAddress != null) {
-      setState(() {
-        _address = selectedAddress; // Confirma a atualização do estado
-      });
-    }
+  if (selectedAddress != null) {
+    setState(() {
+      _address = selectedAddress; // Confirma a atualização do estado
+      _locationController.text = _address; // Atualiza o controlador do campo de texto
+      print('Endereço selecionado retornado da página: $selectedAddress');
+    });
   }
+}
 
   Widget _buildLocationField() {
     return _buildTextField(
