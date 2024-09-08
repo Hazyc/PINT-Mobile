@@ -118,7 +118,7 @@ Widget build(BuildContext context) {
                   child: IconButton(
                     icon: Icon(Icons.arrow_back, color: Colors.black, size: 30),
                     onPressed: () {
-                      Navigator.pop(context);
+                      context.go('/login');
                     },
                   ),
                 ),
