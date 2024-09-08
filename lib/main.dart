@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:app_mobile/handlers/TokenHandler.dart';
 import 'package:intl/intl.dart';
+import 'pages/NetworkStatus.dart'; // Importar NetworkStatusWidget
 
 import 'pages/LoginScreen.dart';
 import 'pages/LoginScreenProcess/AccountRegister.dart';
@@ -308,23 +309,25 @@ final GoRouter _router = GoRouter(
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      routerConfig: _router,
-      debugShowCheckedModeBanner: false,
-      title: 'Navigation Example',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+    return NetworkStatusWidget(
+      child: MaterialApp.router(
+        routerConfig: _router,
+        debugShowCheckedModeBanner: false,
+        title: 'Navigation Example',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: [
+          const Locale('en', 'US'), // English
+          const Locale('pt', 'BR'), // Portuguese
+        ],
+        locale: Locale('pt', 'BR'), // Defina o idioma padrão como português
       ),
-      localizationsDelegates: [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: [
-        const Locale('en', 'US'), // English
-        const Locale('pt', 'BR'), // Portuguese
-      ],
-      locale: Locale('pt', 'BR'), // Defina o idioma padrão como português
     );
   }
 }
