@@ -79,7 +79,11 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           id_campo: _proximoId++,
           tipo_campo: tipo,
           nome_campo: '',
-          required_campo: false));
+          required_campo: false,
+          novo: false,
+          ));
+             
+
       _proximoId++;
     });
   }
