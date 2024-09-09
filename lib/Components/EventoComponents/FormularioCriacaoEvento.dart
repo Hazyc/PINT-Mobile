@@ -231,9 +231,10 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
       _formKey.currentState!.save();
 
       try {
-        int? imageId;
+        String? imageId;
 
         if (_image != null) {
+          print('Image path: ${_image!.path}'); // Log do caminho da imagem
           var uploadRequest = http.MultipartRequest(
             'POST',
             Uri.parse('https://backendpint-5wnf.onrender.com/imagens/upload'),
@@ -247,9 +248,12 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           var uploadResponseString =
               await uploadResponse.stream.bytesToString();
 
+          print(
+              'Upload response: $uploadResponseString'); // Log da resposta do upload
+
           if (uploadResponse.statusCode == 200) {
             var jsonResponse = jsonDecode(uploadResponseString);
-            imageId = int.parse(jsonResponse['data']['ID_IMAGEM']);
+            imageId = jsonResponse['data']['ID_IMAGEM'].toString();
           } else {
             _showErrorDialog(
                 'Falha ao fazer upload da imagem. Por favor, tente novamente.');
@@ -275,12 +279,12 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           }),
         );
 
-        print(imageId);
-        print(_city);
-        print(_subcategory);
-        print(_eventName);
-        print(_address);
-        print(_description);
+        print('ImageId: $imageId');
+        print('Cidade: $_city');
+        print('SubCategoria: $_subcategory');
+        print('EventName: $_eventName');
+        print('Morada: $_address');
+        print('Descrição: $_description');
 
         if (response.statusCode == 200) {
           print('Evento criado com sucesso');
@@ -300,7 +304,6 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
                   'ID_EVENTO': jsonDecode(response.body)['data']['ID_EVENTO'],
                 }),
               );
-              print("ola");
               if (resposta.statusCode == 201) {
                 print('Formulário criado com sucesso');
 
@@ -378,30 +381,33 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   }
 
   void _openMapPage() async {
-  final selectedAddress = await Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => MapPage(
-        initialAddress: _address,
-        onAddressSelected: (address) {
-          setState(() {
-            _address = address; // Atualiza o campo de localização com o endereço selecionado
-            _locationController.text = _address; // Atualiza o controlador do campo de texto
-            print('Endereço recebido no callback: $address');
-          });
-        },
+    final selectedAddress = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MapPage(
+          initialAddress: _address,
+          onAddressSelected: (address) {
+            setState(() {
+              _address =
+                  address; // Atualiza o campo de localização com o endereço selecionado
+              _locationController.text =
+                  _address; // Atualiza o controlador do campo de texto
+              print('Endereço recebido no callback: $address');
+            });
+          },
+        ),
       ),
-    ),
-  );
+    );
 
-  if (selectedAddress != null) {
-    setState(() {
-      _address = selectedAddress; // Confirma a atualização do estado
-      _locationController.text = _address; // Atualiza o controlador do campo de texto
-      print('Endereço selecionado retornado da página: $selectedAddress');
-    });
+    if (selectedAddress != null) {
+      setState(() {
+        _address = selectedAddress; // Confirma a atualização do estado
+        _locationController.text =
+            _address; // Atualiza o controlador do campo de texto
+        print('Endereço selecionado retornado da página: $selectedAddress');
+      });
+    }
   }
-}
 
   Widget _buildLocationField() {
     return _buildTextField(
@@ -828,6 +834,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           }).toList(),
           onChanged: (newValue) {
             setState(() {
+              print('Valor da nova categoria: $newValue'); // Depuração
               _category = newValue; // Define a nova categoria
               _subcategory = null; // Reseta a subcategoria
             });
@@ -860,6 +867,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
             );
           }).toList(),
           onChanged: (newValue) {
+            print('Valor da nova sub-categoria: $newValue'); // Depuração
             setState(() {
               _subcategory = newValue; // Define a nova subcategoria
             });

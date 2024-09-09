@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
 import 'dart:io';
-import 'package:provider/provider.dart';
+import 'package:flutter/widgets.dart';
 import '../LoginPageComponents/Botao.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 import '../../handlers/TokenHandler.dart';
+import '../../pages/MapPage.dart';
 
 class FormularioCriacaoRecomendacao extends StatefulWidget {
   @override
@@ -332,6 +333,41 @@ class _FormularioCriacaoRecomendacaoState extends State<FormularioCriacaoRecomen
   }
 }
 
+void _openMapPage() async {
+  final selectedAddress = await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => MapPage(
+        initialAddress: _addressController.text,
+        onAddressSelected: (address) {
+          setState(() {
+            _addressController.text = address;
+            print('Endereço recebido no callback: $address');
+          });
+        },
+      ),
+    ),
+  );
+
+  if (selectedAddress != null) {
+    setState(() {
+      _addressController.text = selectedAddress;
+      print('Endereço selecionado retornado da página: $selectedAddress');
+    });
+  }
+}
+
+Widget _buildLocationField() {
+  return _buildTextField(
+    hintText: 'Insira a localização do evento',
+    controller: _addressController, // Usa o controlador definido na classe
+    suffixIcon: IconButton(
+      icon: Icon(Icons.map, color: Colors.grey[600]),
+      onPressed: _openMapPage, // Abre a página do mapa
+    ),
+  );
+}
+
 
   void _selectTag(String tag) {
     setState(() {
@@ -411,9 +447,7 @@ class _FormularioCriacaoRecomendacaoState extends State<FormularioCriacaoRecomen
                           SizedBox(height: 16.0),
                           _buildTitle('Localização'), // Adicionando o campo de morada
                           SizedBox(height: 8.0),
-                          _buildTextField(
-                            hintText: 'Digite a morada aqui...',
-                            controller: _addressController,
+                          _buildLocationField(
                           ),
                           SizedBox(height: 16.0),
                           _buildTitle('Área'),
@@ -468,30 +502,32 @@ class _FormularioCriacaoRecomendacaoState extends State<FormularioCriacaoRecomen
   }
 
   Widget _buildTextField({
-    required String hintText,
-    required TextEditingController controller,
-    bool obscureText = false,
-    int maxLines = 1,
-  }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 25.0),
-      child: TextFormField(
-        controller: controller,
-        obscureText: obscureText,
-        maxLines: maxLines,
-        decoration: InputDecoration(
-          hintText: hintText,
-          border: OutlineInputBorder(
-            borderSide: BorderSide.none,
-            borderRadius: BorderRadius.circular(10),
+      required String hintText,
+      required TextEditingController controller,
+      bool obscureText = false,
+      int maxLines = 1,
+      Widget? suffixIcon, // Add the 'suffixIcon' named parameter
+    }) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 25.0),
+        child: TextFormField(
+          controller: controller,
+          obscureText: obscureText,
+          maxLines: maxLines,
+          decoration: InputDecoration(
+            hintText: hintText,
+            border: OutlineInputBorder(
+              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            filled: true,
+            fillColor: Colors.grey[200],
+            contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+            suffixIcon: suffixIcon, // Assign the 'suffixIcon' named parameter to the 'suffixIcon' property of InputDecoration
           ),
-          filled: true,
-          fillColor: Colors.grey[200],
-          contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
         ),
-      ),
-    );
-  }
+      );
+    }
 
   Widget _buildBannerImagePicker(String label) {
   return Container(
