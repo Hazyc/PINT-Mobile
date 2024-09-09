@@ -29,7 +29,7 @@ factory Campo.fromJson(Map<String, dynamic> json) {
     return Campo(
       id_campo: json['ID_CAMPO'] ?? 0,
       tipo_campo: json['TIPO_CAMPO'] ?? '',
-      nome_campo: json['NOME_CAMPO'] ?? '',
+      nome_campo: json['LABEL_CAMPO'] ?? '',
       required_campo: json['REQUIRED_CAMPO'] ?? false,
       novo: json['NOVO'] ?? false, //nao vem do banco, mas precisa de estar aqui senao dá erro
     );

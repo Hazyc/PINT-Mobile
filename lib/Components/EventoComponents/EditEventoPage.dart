@@ -33,9 +33,9 @@ class _EditEventoPageState extends State<EditEventoPage> {
   List<Campo> _campos = []; //lista de campos do formulario que já existem
   bool _existeFormulatio = false;
   late TextEditingController _nomeFormularioController;
-  Map<int, TextEditingController> _controladores = {}; //vai ser usado para os campos do formulario
-
-
+  Map<int, TextEditingController> _controladores =
+      {}; //vai ser usado para os campos do formulario
+  int id_formulario = 0;
 
   Map<String, List<String>> categoriesWithSubcategories = {};
   List<String> _categories = [];
@@ -72,28 +72,26 @@ class _EditEventoPageState extends State<EditEventoPage> {
     super.dispose();
   }
 
-int _proximoId = 0;
+  int _proximoId = 0;
 
-void _adicionarCampo (String tipo){
-
-  setState(() {
+  void _adicionarCampo(String tipo) {
+    setState(() {
       final controller = TextEditingController();
       _controladores[_proximoId] = controller;
       //parte de criaçao de um controller para cada campo
- 
-  _campos.add(Campo(
-      id_campo: _proximoId++,
-      nome_campo: '',
-      tipo_campo: tipo,
-      required_campo: false,
-      novo: true,
+
+      _campos.add(Campo(
+        id_campo: _proximoId++,
+        nome_campo: '',
+        tipo_campo: tipo,
+        required_campo: false,
+        novo: true,
       ));
-   });
-}
+    });
+  }
 
- void  _removerCampo(int id) async {
-
-  final token = await TokenHandler().getToken();
+  void _removerCampo(int id) async {
+    final token = await TokenHandler().getToken();
 
     if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,47 +99,44 @@ void _adicionarCampo (String tipo){
       );
       return;
     }
-    
-    
-    if(_campos.any((campo) => campo.id_campo == id && campo.novo)){
+
+    if (_campos.any((campo) => campo.id_campo == id && campo.novo)) {
       setState(() {
         _campos.removeWhere((campo) => campo.id_campo == id);
         _controladores.remove(id);
       });
-    }else if(_campos.any((campo) => campo.id_campo == id && !campo.novo)){
-
-      try{
-
-        final response = await http.delete(Uri.parse('https://backendpint-5wnf.onrender.com/campo/delete/$id'),
-
-            headers: {'Authorization': 'Bearer $token'},
+    } else if (_campos.any((campo) => campo.id_campo == id && !campo.novo)) {
+      try {
+        final response = await http.delete(
+          Uri.parse('https://backendpint-5wnf.onrender.com/campo/delete/$id'),
+          headers: {'Authorization': 'Bearer $token'},
         );
-        if(response.statusCode == 200){
+        if (response.statusCode == 200) {
           setState(() {
             _campos.removeWhere((campo) => campo.id_campo == id);
             _controladores.remove(id);
           });
-        }else{
+        } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao remover campo: ${response.reasonPhrase}')),
+            SnackBar(
+                content:
+                    Text('Erro ao remover campo: ${response.reasonPhrase}')),
           );
         }
-
-      }catch(e){
+      } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao remover campo: ${e.toString()}')),
         );
       }
-
     }
-
   }
 
-void _atualizarCampo(int id, String tipo, String nome, bool required) async {
-
-  setState(() {
+  void _atualizarCampo(    
+      int id, String tipo, String nome, bool required, bool newCampo) async {
+        print("atualizando campo");
+    setState(() {
       _campos.forEach((element) {
-        if (element.id_campo == id) {
+        if (element.id_campo == id && element.novo == newCampo) {
           element.tipo_campo = tipo;
           element.nome_campo = nome;
           element.required_campo = required;
@@ -149,11 +144,7 @@ void _atualizarCampo(int id, String tipo, String nome, bool required) async {
         }
       });
     });
-  
-}
-
-
-
+  }
 
   Future<void> _selectDateTime() async {
     DateTime currentDateTime = _selectedDateTime ?? DateTime.now();
@@ -224,31 +215,38 @@ void _atualizarCampo(int id, String tipo, String nome, bool required) async {
     try {
       final response = await http.get(
         Uri.parse(
-            'https://backendpint-5wnf.onrender.com/formulario/getByIdEvento/${widget.evento.id}'
-            ),
+            'https://backendpint-5wnf.onrender.com/formulario/getByIdEvento/${widget.evento.id}'),
         headers: {'Authorization': 'Bearer $token'},
       );
-      
+
+      print(response.body);
+
       if (response.statusCode == 200 &&
           json.decode(response.body)['success'] == true) {
         setState(() {
           _nomeFormulario =
-              json.decode(response.body)['data']['NOME_FORMULARIO'];
+              json.decode(response.body)['data']['TITULO_FORMULARIO'] ?? '';
+          id_formulario = json.decode(response.body)['data']['ID_FORMULARIO'];
           _existeFormulatio = true;
+          
         });
 
         try {
           final resposta = await http.get(
             Uri.parse(
-                'https://backendpint-5wnf.onrender.com/campo/getByIdFormulario/${json.decode(response.body)['data']['ID_FORMULARIO']}'
-               
-                ),
+                'https://backendpint-5wnf.onrender.com/campo/getByIdFormulario/${json.decode(response.body)['data']['ID_FORMULARIO']}'),
             headers: {'Authorization': 'Bearer $token'},
           );
           if (resposta.statusCode == 200) {
             setState(() {
               List<dynamic> campos = json.decode(resposta.body)['data'];
               _campos = campos.map((campo) => Campo.fromJson(campo)).toList();
+
+              _campos.forEach((campo) {
+                _controladores[campo.id_campo] =
+                    TextEditingController(text: campo.nome_campo);
+                    campo.novo = false;
+              });
             });
           }
         } catch (e) {
@@ -498,7 +496,6 @@ void _atualizarCampo(int id, String tipo, String nome, bool required) async {
     }
   }
 
-
   //falta alterar aqui para dar update ao formulario
   Future<void> _updateEvent() async {
     if (_formKey.currentState?.validate() ?? false) {
@@ -543,6 +540,104 @@ void _atualizarCampo(int id, String tipo, String nome, bool required) async {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Evento atualizado com sucesso!')),
           );
+
+          if (_existeFormulatio) {
+            print("FORMULARIO EXISTE------------------------------------------------------------------------------");
+            print(_nomeFormulario);
+            final corpo = {
+              'TITULO_FORMULARIO': _nomeFormulario,
+            };
+
+            try {
+              final repsosta = await http.put(
+                  Uri.parse(
+                      "https://backendpint-5wnf.onrender.com/formulario/update/${id_formulario}"),
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer $token',
+                  },
+                  body: jsonEncode(corpo));
+
+              if (repsosta.statusCode == 200) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Formulario atualizado com sucesso!')),
+                );
+                print('Formulario atualizado com sucesso!');
+                print(repsosta.body);
+                print(_campos[0].nome_campo); //está a dar print ao primeiro campo
+                _campos.forEach((campo) async {
+                  if (campo.novo) {
+                    final corpo = {
+                      'ID_FORMULARIO': id_formulario,
+                      'TIPO_CAMPO': campo.tipo_campo,
+                      'LABEL_CAMPO': campo.nome_campo,
+                      'REQUIRED_CAMPO': campo.required_campo,
+                    };
+                    try {
+                      final camponovoresposta = await http.post(
+                          Uri.parse(
+                              "https://backendpint-5wnf.onrender.com/campo/create"),
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer $token',
+                          },
+                          body: jsonEncode(corpo));
+                      if (camponovoresposta.statusCode == 201) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text('Campo adicionado com sucesso!')),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Erro ao adicionar campo')),
+                        );
+                      }
+                    } catch (e) {
+                      print('Erro ao adicionar campo novo: $e');
+                    }
+                  } else {
+                    final corpo = {
+                      'TIPO_CAMPO': campo.tipo_campo,
+                      'LABEL_CAMPO': campo.nome_campo,
+                      'REQUIRED_CAMPO': campo.required_campo,
+                    };
+                    try {
+                      final campoeditresposta = await http.put(
+                          Uri.parse(
+                              "https://backendpint-5wnf.onrender.com/campo/update/${campo.id_campo}"),
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer $token',
+                          },
+                          body: jsonEncode(corpo));
+                      if (campoeditresposta.statusCode == 200) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Campo editado com sucesso!')),
+                        );
+                        print("Campo editado com sucesso");
+                        print(campoeditresposta.body);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text('Erro ao editar campo antigo')),
+                        );
+                      }
+                    } catch (e) {
+                      print('Erro ao atualizar campo antigo: $e');
+                    }
+                  }
+                });
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Erro ao atualizar formulario')),
+                );
+                print('Erro ao atualizar formulario');
+              }
+            } catch (e) {
+              print('Erro ao atualizar formulario: $e');
+            }
+          }
+
           Navigator.of(context).pop(); // Volta para a tela anterior
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -659,8 +754,7 @@ void _atualizarCampo(int id, String tipo, String nome, bool required) async {
                           SizedBox(height: 8.0),
                           _buildAlbumImages(),
                           SizedBox(height: 16.0),
-                          if(_existeFormulatio)
-                          _buildFormulario(),
+                          if (_existeFormulatio) _buildFormulario(),
                           SizedBox(height: 16.0),
                           Container(
                             margin: EdgeInsets.only(bottom: 20.0),
@@ -912,10 +1006,14 @@ void _atualizarCampo(int id, String tipo, String nome, bool required) async {
   }
 
   Widget _buildCampo(Campo campo) {
-    // Certifique-se de criar um novo controlador somente quando o campo for criado
-    // e não o recrie a cada reconstrução do widget.
+    // Verifique se o controlador já existe no mapa _controladores
     final controller = _controladores[campo.id_campo] ??
         TextEditingController(text: campo.nome_campo);
+
+    // Se o controlador já existir, garanta que o texto inicial não seja reconfigurado desnecessariamente
+    if (!_controladores.containsKey(campo.id_campo)) {
+      _controladores[campo.id_campo] = controller;
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10.0),
@@ -945,6 +1043,7 @@ void _atualizarCampo(int id, String tipo, String nome, bool required) async {
                   // Remove o campo e limpa o controlador associado
                   setState(() {
                     _removerCampo(campo.id_campo);
+                    _controladores.remove(campo.id_campo);
                   });
                 },
               ),
@@ -958,8 +1057,13 @@ void _atualizarCampo(int id, String tipo, String nome, bool required) async {
               border: OutlineInputBorder(),
             ),
             onChanged: (value) {
-              _atualizarCampo(campo.id_campo, campo.tipo_campo, value,
-                  campo.required_campo);
+              // Atualiza o campo quando o valor do TextField mudar
+              _atualizarCampo(
+                  campo.id_campo,
+                  campo.tipo_campo,
+                  value, // O valor atualizado do TextField
+                  campo.required_campo,
+                  campo.novo);
             },
           ),
           SizedBox(height: 10),
@@ -976,7 +1080,7 @@ void _atualizarCampo(int id, String tipo, String nome, bool required) async {
                 value: campo.required_campo,
                 onChanged: (bool? newValue) {
                   _atualizarCampo(campo.id_campo, campo.tipo_campo,
-                      campo.nome_campo, newValue ?? false);
+                      campo.nome_campo, newValue!, campo.novo);
                 },
               ),
             ],
@@ -985,8 +1089,4 @@ void _atualizarCampo(int id, String tipo, String nome, bool required) async {
       ),
     );
   }
-
-
-
 }
-
