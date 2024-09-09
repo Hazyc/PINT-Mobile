@@ -409,7 +409,7 @@ class _FormularioCriacaoRecomendacaoState extends State<FormularioCriacaoRecomen
                             maxLines: 5,
                           ),
                           SizedBox(height: 16.0),
-                          _buildTitle('Morada'), // Adicionando o campo de morada
+                          _buildTitle('Localização'), // Adicionando o campo de morada
                           SizedBox(height: 8.0),
                           _buildTextField(
                             hintText: 'Digite a morada aqui...',

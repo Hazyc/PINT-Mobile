@@ -109,8 +109,11 @@ class _MapPageState extends State<MapPage> {
 
   void _confirmSelection() {
   if (widget.onAddressSelected != null) {
-    widget.onAddressSelected!(_address);  // Aqui o endereço é passado para o callback
-    Navigator.pop(context);
+    // Imprime a morada selecionada no terminal antes de retornar à tela anterior
+    print('Endereço confirmado: $_address');
+
+    widget.onAddressSelected!(_address); // Passa o endereço para o callback
+    Navigator.pop(context, _address); // Passa o endereço selecionado como resultado
   }
 }
 
