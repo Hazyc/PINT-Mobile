@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:app_mobile/models/Evento.dart';
 import '../../handlers/TokenHandler.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../models/Campo.dart';
 
 class EditEventoPage extends StatefulWidget {
   final Evento evento;
@@ -27,6 +28,15 @@ class _EditEventoPageState extends State<EditEventoPage> {
   late String _bannerImage;
   late int _bannerID;
 
+  //formulario
+  late String _nomeFormulario;
+  List<Campo> _campos = []; //lista de campos do formulario que já existem
+  bool _existeFormulatio = false;
+  late TextEditingController _nomeFormularioController;
+  Map<int, TextEditingController> _controladores = {}; //vai ser usado para os campos do formulario
+
+
+
   Map<String, List<String>> categoriesWithSubcategories = {};
   List<String> _categories = [];
   List<String> _subcategories = [];
@@ -36,6 +46,8 @@ class _EditEventoPageState extends State<EditEventoPage> {
   @override
   void initState() {
     super.initState();
+    //parte do formulario
+    _nomeFormularioController = TextEditingController();
     _title = widget.evento.eventName;
     _description = widget.evento.description;
     _selectedDateTime = DateTime.parse(widget.evento.dateTime);
@@ -50,68 +62,215 @@ class _EditEventoPageState extends State<EditEventoPage> {
     print('Banner ID: ${widget.evento.bannerID}');
     _fetchCategories();
     _fetchAlbumImages();
+    _fetchformulario();
   }
 
   @override
   void dispose() {
     _dateTimeController.dispose();
+    _controladores.values.forEach((controller) => controller.dispose());
     super.dispose();
   }
 
+int _proximoId = 0;
+
+void _adicionarCampo (String tipo){
+
+  setState(() {
+      final controller = TextEditingController();
+      _controladores[_proximoId] = controller;
+      //parte de criaçao de um controller para cada campo
+ 
+  _campos.add(Campo(
+      id_campo: _proximoId++,
+      nome_campo: '',
+      tipo_campo: tipo,
+      required_campo: false,
+      novo: true,
+      ));
+   });
+}
+
+ void  _removerCampo(int id) async {
+
+  final token = await TokenHandler().getToken();
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Token não encontrado')),
+      );
+      return;
+    }
+    
+    
+    if(_campos.any((campo) => campo.id_campo == id && campo.novo)){
+      setState(() {
+        _campos.removeWhere((campo) => campo.id_campo == id);
+        _controladores.remove(id);
+      });
+    }else if(_campos.any((campo) => campo.id_campo == id && !campo.novo)){
+
+      try{
+
+        final response = await http.delete(Uri.parse('https://backendpint-5wnf.onrender.com/campo/delete/$id'),
+
+            headers: {'Authorization': 'Bearer $token'},
+        );
+        if(response.statusCode == 200){
+          setState(() {
+            _campos.removeWhere((campo) => campo.id_campo == id);
+            _controladores.remove(id);
+          });
+        }else{
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao remover campo: ${response.reasonPhrase}')),
+          );
+        }
+
+      }catch(e){
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao remover campo: ${e.toString()}')),
+        );
+      }
+
+    }
+
+  }
+
+void _atualizarCampo(int id, String tipo, String nome, bool required) async {
+
+  setState(() {
+      _campos.forEach((element) {
+        if (element.id_campo == id) {
+          element.tipo_campo = tipo;
+          element.nome_campo = nome;
+          element.required_campo = required;
+          print('Campo atualizado');
+        }
+      });
+    });
+  
+}
+
+
+
+
   Future<void> _selectDateTime() async {
-  DateTime currentDateTime = _selectedDateTime ?? DateTime.now();
+    DateTime currentDateTime = _selectedDateTime ?? DateTime.now();
 
-  // Ajusta a data mínima para a data atual ou a data selecionada
-  DateTime initialDate = currentDateTime.isBefore(DateTime.now()) 
-      ? DateTime.now() 
-      : currentDateTime;
+    // Ajusta a data mínima para a data atual ou a data selecionada
+    DateTime initialDate = currentDateTime.isBefore(DateTime.now())
+        ? DateTime.now()
+        : currentDateTime;
 
-  // Seleção de Data
-  final DateTime? pickedDate = await showDatePicker(
-    context: context,
-    initialDate: initialDate,
-    firstDate: DateTime.now(), // Configura a data mínima para hoje
-    lastDate: DateTime(2101),
-  );
-
-  if (pickedDate != null) {
-    // Define a hora inicial como a hora atual
-    TimeOfDay initialTime = TimeOfDay.now();
-
-    // Seleção de Hora
-    final TimeOfDay? pickedTime = await showTimePicker(
+    // Seleção de Data
+    final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialTime: initialTime,
+      initialDate: initialDate,
+      firstDate: DateTime.now(), // Configura a data mínima para hoje
+      lastDate: DateTime(2101),
     );
 
-    if (pickedTime != null) {
-      // Cria o DateTime com a data e hora selecionadas
-      DateTime selectedDateTime = DateTime(
-        pickedDate.year,
-        pickedDate.month,
-        pickedDate.day,
-        pickedTime.hour,
-        pickedTime.minute,
+    if (pickedDate != null) {
+      // Define a hora inicial como a hora atual
+      TimeOfDay initialTime = TimeOfDay.now();
+
+      // Seleção de Hora
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: initialTime,
       );
 
-      if (selectedDateTime.isBefore(DateTime.now())) {
-        // Se a data e hora selecionadas forem anteriores à data e hora atuais, exibe uma mensagem de erro
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'A data e hora selecionadas não podem ser anteriores ao momento atual.',
-            ),
-          ),
+      if (pickedTime != null) {
+        // Cria o DateTime com a data e hora selecionadas
+        DateTime selectedDateTime = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
         );
-      } else {
-        setState(() {
-          _selectedDateTime = selectedDateTime;
-          _dateTimeController.text = DateFormat('dd/MM/yyyy HH:mm').format(_selectedDateTime!);
-        });
+
+        if (selectedDateTime.isBefore(DateTime.now())) {
+          // Se a data e hora selecionadas forem anteriores à data e hora atuais, exibe uma mensagem de erro
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'A data e hora selecionadas não podem ser anteriores ao momento atual.',
+              ),
+            ),
+          );
+        } else {
+          setState(() {
+            _selectedDateTime = selectedDateTime;
+            _dateTimeController.text =
+                DateFormat('dd/MM/yyyy HH:mm').format(_selectedDateTime!);
+          });
+        }
       }
     }
   }
-}
+
+  Future<void> _fetchformulario() async {
+    final token = await TokenHandler().getToken();
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Token não encontrado')),
+      );
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/formulario/getByIdEvento/${widget.evento.id}'
+            ),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      
+      if (response.statusCode == 200 &&
+          json.decode(response.body)['success'] == true) {
+        setState(() {
+          _nomeFormulario =
+              json.decode(response.body)['data']['NOME_FORMULARIO'];
+          _existeFormulatio = true;
+        });
+
+        try {
+          final resposta = await http.get(
+            Uri.parse(
+                'https://backendpint-5wnf.onrender.com/campo/getByIdFormulario/${json.decode(response.body)['data']['ID_FORMULARIO']}'
+               
+                ),
+            headers: {'Authorization': 'Bearer $token'},
+          );
+          if (resposta.statusCode == 200) {
+            setState(() {
+              List<dynamic> campos = json.decode(resposta.body)['data'];
+              _campos = campos.map((campo) => Campo.fromJson(campo)).toList();
+            });
+          }
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao buscar campos: ${e.toString()}')),
+          );
+        }
+      } else if (json.decode(response.body)['success'] == false) {
+        return;
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text('Erro ao buscar formulário: ${response.reasonPhrase}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao buscar formulário: ${e.toString()}')),
+      );
+    }
+  }
 
   Future<void> _fetchCategories() async {
     final token = await TokenHandler().getToken();
@@ -305,7 +464,8 @@ class _EditEventoPageState extends State<EditEventoPage> {
 
           if (data != null && data['data'] != null) {
             setState(() {
-              _bannerID = int.tryParse(data['data']['ID_IMAGEM'].toString()) ?? 0;
+              _bannerID =
+                  int.tryParse(data['data']['ID_IMAGEM'].toString()) ?? 0;
               _bannerImage = data['data']['NOME_IMAGEM'];
             });
             ScaffoldMessenger.of(context).showSnackBar(
@@ -338,6 +498,8 @@ class _EditEventoPageState extends State<EditEventoPage> {
     }
   }
 
+
+  //falta alterar aqui para dar update ao formulario
   Future<void> _updateEvent() async {
     if (_formKey.currentState?.validate() ?? false) {
       _formKey.currentState?.save(); // Salva os valores dos campos
@@ -361,7 +523,8 @@ class _EditEventoPageState extends State<EditEventoPage> {
           'ID_IMAGEM': _bannerID,
         };
 
-        print('Corpo da requisição para atualizar o evento: ${jsonEncode(body)}');
+        print(
+            'Corpo da requisição para atualizar o evento: ${jsonEncode(body)}');
 
         final uri = Uri.parse(
           'https://backendpint-5wnf.onrender.com/eventos/update/${widget.evento.id}',
@@ -496,6 +659,9 @@ class _EditEventoPageState extends State<EditEventoPage> {
                           SizedBox(height: 8.0),
                           _buildAlbumImages(),
                           SizedBox(height: 16.0),
+                          if(_existeFormulatio)
+                          _buildFormulario(),
+                          SizedBox(height: 16.0),
                           Container(
                             margin: EdgeInsets.only(bottom: 20.0),
                             child: ElevatedButton(
@@ -536,42 +702,44 @@ class _EditEventoPageState extends State<EditEventoPage> {
     );
   }
 
- Widget _buildBanner() {
-  return Container(
-    margin: const EdgeInsets.symmetric(horizontal: 25.0),
-    child: GestureDetector(
-      onTap: _uploadBanner, // Função para selecionar o banner
-      child: Container(
-        height: 300,
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Center(
-          child: _bannerImage.isEmpty
-              ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_photo_alternate, 
-                        size: 30, color: Colors.grey[600]),
-                    SizedBox(height: 8),
-                    Text('Alterar Banner', style: TextStyle(color: Colors.grey[600])),
-                  ],
-                )
-              : ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.network(
-                    _bannerImage,
-                    width: double.infinity,
-                    height: 300,
-                    fit: BoxFit.cover, // Garante que a imagem cubra toda a área do Container
+  Widget _buildBanner() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 25.0),
+      child: GestureDetector(
+        onTap: _uploadBanner, // Função para selecionar o banner
+        child: Container(
+          height: 300,
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Center(
+            child: _bannerImage.isEmpty
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_photo_alternate,
+                          size: 30, color: Colors.grey[600]),
+                      SizedBox(height: 8),
+                      Text('Alterar Banner',
+                          style: TextStyle(color: Colors.grey[600])),
+                    ],
+                  )
+                : ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(
+                      _bannerImage,
+                      width: double.infinity,
+                      height: 300,
+                      fit: BoxFit
+                          .cover, // Garante que a imagem cubra toda a área do Container
+                    ),
                   ),
-                ),
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildAlbumImages() {
     return Column(
@@ -687,4 +855,138 @@ class _EditEventoPageState extends State<EditEventoPage> {
       ),
     );
   }
+
+  Widget _buildFormulario() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10.0),
+      padding: const EdgeInsets.all(10.0),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.blueAccent),
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Nome do Formulário: $_nomeFormulario',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+          SizedBox(height: 10),
+          TextField(
+            controller: _nomeFormularioController,
+            decoration: InputDecoration(
+              labelText: 'Nome do Formulário',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              setState(() {
+                _nomeFormulario = value;
+              });
+            },
+          ),
+          SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: () {
+              _adicionarCampo("checkbox");
+            },
+            child: Text('Adicionar Checkbox'),
+          ),
+          SizedBox(height: 10),
+          SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: () {
+              _adicionarCampo("contagem");
+            },
+            child: Text('Adicionar Contagem'),
+          ),
+          Column(
+            children: _campos.map((campo) => _buildCampo(campo)).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCampo(Campo campo) {
+    // Certifique-se de criar um novo controlador somente quando o campo for criado
+    // e não o recrie a cada reconstrução do widget.
+    final controller = _controladores[campo.id_campo] ??
+        TextEditingController(text: campo.nome_campo);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10.0),
+      padding: const EdgeInsets.all(10.0),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.blueAccent),
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Campo de ${campo.tipo_campo}',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+              SizedBox(width: 10),
+              IconButton(
+                icon: Icon(Icons.delete, color: Colors.red),
+                onPressed: () {
+                  // Remove o campo e limpa o controlador associado
+                  setState(() {
+                    _removerCampo(campo.id_campo);
+                  });
+                },
+              ),
+            ],
+          ),
+          SizedBox(height: 10),
+          TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: 'Nome do Campo',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              _atualizarCampo(campo.id_campo, campo.tipo_campo, value,
+                  campo.required_campo);
+            },
+          ),
+          SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Obrigatório:',
+                style: TextStyle(
+                  fontSize: 16,
+                ),
+              ),
+              Checkbox(
+                value: campo.required_campo,
+                onChanged: (bool? newValue) {
+                  _atualizarCampo(campo.id_campo, campo.tipo_campo,
+                      campo.nome_campo, newValue ?? false);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
 }
+
