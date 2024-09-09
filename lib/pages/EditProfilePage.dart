@@ -27,8 +27,8 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   String _bannerImageUrl = '';
   String _avatarImageUrl = '';
-  String _bannerID = '';
-  String _avatarID = '';
+  int? _bannerID = null;
+  int? _avatarID = null;
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   int? _selectedAreaId;
@@ -128,26 +128,37 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (tokenResponse.statusCode == 200) {
         final userData = json.decode(tokenResponse.body)['data'];
         int userId = userData['ID_UTILIZADOR'];
+        String email = userData['EMAIL_UTILIZADOR'];
         if (_bannerID == 0) {
-          _bannerID = userData['ID_IMAGEM_BANNER'].toDouble();
+          _bannerID = null;
         }
         if (_avatarID == 0) {
-          _avatarID = userData['ID_IMAGEM_PERFIL'].toDouble();
+          _avatarID = null;
         }
+
+        print('Atualizando perfil com os seguintes dados:');
+        print('ID_IMAGEM_BANNER: $_bannerID');
+        print('ID_IMAGEM_PERFIL: $_avatarID');
+        print('NOME_UTILIZADOR: ${_nameController.text}');
+        print('DESCRICAO_UTILIZADOR: ${_descriptionController.text}');
+        print('EMAIL_UTILIZADOR: $email'); // Logar o email
 
         // Atualiza o perfil do usuário
         final profileUpdateResponse = await http.put(
           Uri.parse(
-              'https://backendpint-5wnf.onrender.com/utilizadores/update/$userId'),
+              'https://backendpint-5wnf.onrender.com/utilizadores/updatemobile'),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',
           },
           body: json.encode({
-            'ID_IMAGEM_BANNER': _bannerID,
-            'ID_IMAGEM_PERFIL': _avatarID,
-            'NOME_UTILIZADOR': _nameController.text,
-            'DESCRICAO_UTILIZADOR': _descriptionController.text,
+            'ID_IMAGEM_BANNER': _bannerID == 0 ? null : _bannerID,
+            'ID_IMAGEM_PERFIL': _avatarID == 0 ? null : _avatarID,
+            'NOME_UTILIZADOR': _nameController.text.isEmpty ? null : _nameController.text,
+            'DESCRICAO_UTILIZADOR': _descriptionController.text.isEmpty
+                ? null
+                : _descriptionController.text,
+            'EMAIL_UTILIZADOR': email, // Adicionar o email ao corpo da requisição
           }),
         );
 
@@ -156,6 +167,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         } else {
           print(
               'Falha ao atualizar perfil: ${profileUpdateResponse.statusCode}');
+          print('Resposta do backend: ${profileUpdateResponse.body}');
         }
 
         // Verifica se o usuário já tem uma área de interesse
@@ -290,27 +302,27 @@ class _EditProfilePageState extends State<EditProfilePage> {
           }
 
           if (imageResponse.isNotEmpty) {
-            setState(() {
-              if (isBanner) {
-                _bannerImageUrl = imageResponse['NOME_IMAGEM'];
-                _bannerID = imageResponse['ID_IMAGEM'];
-              } else {
-                _avatarImageUrl = imageResponse['NOME_IMAGEM'];
-                _avatarID = imageResponse['ID_IMAGEM'];
-              }
-            });
-          }
-        } else {
-          print("Nenhuma imagem selecionada.");
+          setState(() {
+            if (isBanner) {
+              _bannerImageUrl = '${imageResponse['NOME_IMAGEM']}?t=${DateTime.now().millisecondsSinceEpoch}';
+              _bannerID = imageResponse['ID_IMAGEM'];
+            } else {
+              _avatarImageUrl = '${imageResponse['NOME_IMAGEM']}?t=${DateTime.now().millisecondsSinceEpoch}';
+              _avatarID = imageResponse['ID_IMAGEM'];
+            }
+          });
         }
       } else {
-        print(
-            'Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
+        print("Nenhuma imagem selecionada.");
       }
-    } catch (e) {
-      print("Erro ao pegar imagem: $e");
+    } else {
+      print(
+          'Falha ao carregar dados do usuário: ${tokenResponse.statusCode}');
     }
+  } catch (e) {
+    print("Erro ao pegar imagem: $e");
   }
+}
 
   void _showImageSourceDialog(bool isBanner) {
     showDialog(
