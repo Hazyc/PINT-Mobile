@@ -42,8 +42,12 @@ class _EventoViewState extends State<EventoView> {
   late bool estadoEvento;
   List<Map<String, dynamic>> formFields = [];
   int? idFormulario;
-  final Map<String, dynamic> respostas = {};
+  Map<String, dynamic> respostas = {};
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  //parte para o formulário
+  String _nomeFormulario = '';
+  List<Map<String, dynamic>> respostascampos = [];
 
   @override
   void initState() {
@@ -58,55 +62,109 @@ class _EventoViewState extends State<EventoView> {
     _fetchFormIdAndFields();
   }
 
-  Future<void> _fetchFormIdAndFields() async {
-  try {
+  void fetchrespostas() async {
+    // Limpa as respostas anteriores antes de buscar novamente
     final token = await TokenHandler().getToken();
-    if (token == null || token.isEmpty) {
-      // Exibe o erro apenas se o token não for encontrado
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Token de autenticação não encontrado.')),
-      );
-      return;
+
+    for (var element in formFields) {
+      final data = element['ID_CAMPO'];
+      print('ID_CAMPO: $data');
+      print(
+          '------------------------------------------------------------------');
+
+      try {
+        // Busca a resposta total para cada campo usando o ID_CAMPO
+        final response = await http.get(
+          Uri.parse(
+              "https://backendpint-5wnf.onrender.com/campo/getRespostasTotal/${element['ID_CAMPO']}"),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          // Verifica se a resposta foi bem-sucedida
+          if (data['success']) {
+            print(
+                "success--------------------------------------------------------");
+            setState(() {
+              // Para campo do tipo 'contagem'
+              if (element['TIPO_CAMPO'] == 'contagem') {
+                respostas[element['ID_CAMPO'].toString()] = data['data'];
+              } else if (element['TIPO_CAMPO'] == 'checkbox') {
+                respostas[element['ID_CAMPO'].toString()] = {
+                  'countZero': data['data']['countZero'],
+                  'countOne': data['data']['countOne'],
+                };
+              }
+            });
+            print("Respostas: ${data['data']}");
+            print('---------------------------------------------------------');
+          } else {
+            print("Falha ao buscar respostas: ${data['message']}");
+          }
+        } else {
+          print("Erro na requisição: ${response.statusCode}");
+        }
+      } catch (e) {
+        print('Erro ao buscar respostas: $e');
+      }
     }
+    
+  }
 
-    final formIdResponse = await http.get(
-      Uri.parse(
-          'https://backendpint-5wnf.onrender.com/formulario/getbyidevento/${widget.evento.id}'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
+  Future<void> _fetchFormIdAndFields() async {
+    try {
+      final token = await TokenHandler().getToken();
+      if (token == null || token.isEmpty) {
+        // Exibe o erro apenas se o token não for encontrado
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Token de autenticação não encontrado.')),
+        );
+        return;
+      }
 
-    if (formIdResponse.statusCode == 200) {
-      final formIdData = jsonDecode(formIdResponse.body);
+      final formIdResponse = await http.get(
+        Uri.parse(
+            'https://backendpint-5wnf.onrender.com/formulario/getbyidevento/${widget.evento.id}'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
 
-      // Verifica se a estrutura de dados está correta
-      if (formIdData != null && formIdData['data'] != null) {
-        final formId = formIdData['data']['ID_FORMULARIO'];
+      if (formIdResponse.statusCode == 200) {
+        final formIdData = jsonDecode(formIdResponse.body);
 
-        if (formId != null) {
-          setState(() {
-            idFormulario = formId;
-          });
+        // Verifica se a estrutura de dados está correta
+        if (formIdData != null && formIdData['data'] != null) {
+          final formId = formIdData['data']['ID_FORMULARIO'];
+          _nomeFormulario = formIdData['data']['TITULO_FORMULARIO'];
 
-          // Se o formulário existir, busca os campos do formulário
-          await _fetchFormFields(idFormulario);
+          if (formId != null) {
+            setState(() {
+              idFormulario = formId;
+            });
+
+            // Se o formulário existir, busca os campos do formulário
+            await _fetchFormFields(idFormulario);
+          } else {
+            // Mensagem de log para o programador
+            print(
+                'O evento ${widget.evento.id} não possui um formulário associado.');
+          }
         } else {
           // Mensagem de log para o programador
-          print('O evento ${widget.evento.id} não possui um formulário associado.');
+          print(
+              'ID do formulário não encontrado na resposta para o evento ${widget.evento.id}.');
         }
       } else {
         // Mensagem de log para o programador
-        print('ID do formulário não encontrado na resposta para o evento ${widget.evento.id}.');
+        print(
+            'Erro ao buscar ID do formulário para o evento ${widget.evento.id}. StatusCode: ${formIdResponse.statusCode}');
       }
-    } else {
+    } catch (e) {
       // Mensagem de log para o programador
-      print('Erro ao buscar ID do formulário para o evento ${widget.evento.id}. StatusCode: ${formIdResponse.statusCode}');
+      print('Erro ao buscar ID do formulário: ${e.toString()}');
     }
-  } catch (e) {
-    // Mensagem de log para o programador
-    print('Erro ao buscar ID do formulário: ${e.toString()}');
   }
-}
-
 
   Future<void> _fetchFormFields(int? idFormulario) async {
     if (idFormulario == null) {
@@ -135,6 +193,7 @@ class _EventoViewState extends State<EventoView> {
           formFields = List<Map<String, dynamic>>.from(
               jsonDecode(response.body)['data']);
         });
+        fetchrespostas();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao buscar campos do formulário')),
@@ -1082,7 +1141,7 @@ $url
                             style: TextStyle(fontSize: 16, color: Colors.white),
                           ),
                         ),
-                        SizedBox(width: 16),
+                        SizedBox(width: 10),
                         CircleAvatar(
                           backgroundColor: Color(0xFF0DCAF0),
                           radius: 22,
@@ -1112,6 +1171,110 @@ $url
                               iconSize: 22,
                             ),
                           ),
+                        SizedBox(width: 16),
+                        if (isOrganizer && !estadoEvento)
+                          CircleAvatar(
+                            backgroundColor: Color(0xFF0DCAF0),
+                            radius: 22,
+                            child: IconButton(
+                              icon: Icon(Icons.task, color: Colors.white),
+                              onPressed: () {
+                                showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        title: Text(
+                                          _nomeFormulario.isNotEmpty
+                                              ? _nomeFormulario
+                                              : "Formulário Sem Título", // Título do formulário
+                                        ),
+                                        content: SingleChildScrollView(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                "Este é o conteúdo do formulário:",
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              SizedBox(height: 10),
+                                              ...formFields.map((campo) {
+                                                print(campo);
+                                                return Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(vertical: 5.0),
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        "${campo['LABEL_CAMPO']}:",
+                                                        style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .bold),
+                                                      ),
+                                                      SizedBox(height: 5),
+                                                      // Verifica se o campo é de "contagem" ou "checkbox"
+                                                      if (campo['TIPO_CAMPO'] ==
+                                                          'contagem')
+                                                        // Campo de contagem
+                                                        Text(
+                                                          respostas.containsKey(
+                                                                  campo['ID_CAMPO']
+                                                                      .toString()) // Verifica usando String
+                                                              ? "Total de contagem: ${respostas[campo['ID_CAMPO'].toString()]}" // Mostra a soma, se houver
+                                                              : "Sem contagem",
+                                                          style: TextStyle(
+                                                              color: Colors
+                                                                  .grey[600]),
+                                                        )
+                                                      else if (campo[
+                                                              'TIPO_CAMPO'] ==
+                                                          'checkbox')
+                                                        // Campo de checkbox
+                                                        Text(
+                                                          respostas.containsKey(
+                                                                  campo['ID_CAMPO']
+                                                                      .toString())
+                                                              ? "Checkbox: ${respostas[campo['ID_CAMPO'].toString()]['countOne']} assinalaram, ${respostas[campo['ID_CAMPO'].toString()]['countZero']} não assinalaram"
+                                                              : "Sem respostas", // Mostra as contagens de checkbox, se houver
+                                                          style: TextStyle(
+                                                              color: Colors
+                                                                  .grey[600]),
+                                                        )
+                                                      else
+                                                        // Outro tipo de campo
+                                                        Text(
+                                                          "Tipo de campo desconhecido ou sem resposta",
+                                                          style: TextStyle(
+                                                              color: Colors
+                                                                  .grey[600]),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                );
+                                              }).toList(),
+                                            ],
+                                          ),
+                                        ),
+                                        actions: <Widget>[
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: const Text('Cancelar'),
+                                          ),
+                                        ],
+                                      );
+                                    });
+                              },
+                              iconSize: 22,
+                            ),
+                          )
                       ],
                     ),
                   ),
