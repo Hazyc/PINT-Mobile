@@ -161,13 +161,45 @@ class _HomePageState extends State<HomePage> {
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body)['data'];
       print('Dados recebidos: $data'); // Debug
+
+      List<Recomendacao> recomendacoesProcessadas =
+          data.map((json) => Recomendacao.fromJson(json)).where((recomendacao) {
+        return areasDeInteresse.contains(recomendacao.categoria);
+      }).toList();
+
+      // Para cada recomendação, buscar a média de avaliações
+      for (var recomendacao in recomendacoesProcessadas) {
+        try {
+          final mediaResponse = await http.get(
+            Uri.parse(
+                '$baseUrl/avaliacoes/mediaAvaliacaoporRecomendacao/${recomendacao.idRecomendacao}'),
+            headers: {'Authorization': 'Bearer $token'},
+          );
+
+          if (mediaResponse.statusCode == 200) {
+            final mediaData = jsonDecode(mediaResponse.body)['data'];
+            double media1 = mediaData['media1'].toDouble();
+            double media2 = mediaData['media2'].toDouble();
+            double media3 = mediaData['media3'].toDouble();
+            double avaliacaoGeral = (media1 + media2 + media3) / 3;
+
+            // Armazenar a avaliação geral na recomendação
+            recomendacao.avaliacaoGeral =
+                double.parse(avaliacaoGeral.toStringAsFixed(1));
+          } else {
+            print(
+                'Falha ao buscar média de avaliação para recomendação ${recomendacao.idRecomendacao}');
+          }
+        } catch (error) {
+          print(
+              'Erro ao buscar média de avaliação para recomendação ${recomendacao.idRecomendacao}: $error');
+        }
+      }
+
       setState(() {
-        recomendacoes = data
-            .map((json) => Recomendacao.fromJson(json))
-            .where((recomendacao) {
-          return areasDeInteresse.contains(recomendacao.categoria);
-        }).toList();
+        recomendacoes = recomendacoesProcessadas;
       });
+
       print('Recomendações processadas: $recomendacoes'); // Debug
     } else {
       throw Exception('Falha ao carregar recomendações');
@@ -279,11 +311,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _navigateToEventoView(BuildContext context, Evento evento) {
-     Navigator.push(
+    Navigator.push(
       context,
-      MaterialPageRoute(
-          builder: (context) => EventoView(
-              evento: evento)),
+      MaterialPageRoute(builder: (context) => EventoView(evento: evento)),
     );
   }
 
@@ -292,8 +322,7 @@ class _HomePageState extends State<HomePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-          builder: (context) => RecomendacaoView(
-              recomendacao: recomendacao)),
+          builder: (context) => RecomendacaoView(recomendacao: recomendacao)),
     );
   }
 
@@ -311,7 +340,8 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final greeting = _getGreeting();
-    final combinedList = _combineLists(eventos, recomendacoes); // Combine eventos e recomendações
+    final combinedList = _combineLists(
+        eventos, recomendacoes); // Combine eventos e recomendações
 
     return Scaffold(
       drawer: Container(
@@ -326,7 +356,8 @@ class _HomePageState extends State<HomePage> {
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: SingleChildScrollView(
-          physics: AlwaysScrollableScrollPhysics(), // Garante que o scroll seja sempre possível
+          physics:
+              AlwaysScrollableScrollPhysics(), // Garante que o scroll seja sempre possível
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -351,7 +382,8 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         Builder(
                           builder: (context) => IconButton(
-                            icon: Icon(Icons.menu, size: 30, color: Colors.white),
+                            icon:
+                                Icon(Icons.menu, size: 30, color: Colors.white),
                             onPressed: () => Scaffold.of(context).openDrawer(),
                           ),
                         ),
@@ -439,8 +471,8 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     Text(
                       "Poderá gostar de...",
-                      style:
-                          TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          fontSize: 20.0, fontWeight: FontWeight.bold),
                     ),
                     TextButton(
                       onPressed: () {
@@ -523,7 +555,8 @@ class _HomePageState extends State<HomePage> {
                         padding: EdgeInsets.only(
                             left: index == 0 ? 16.0 : 8.0, right: 8.0),
                         child: GestureDetector(
-                          onTap: () => _navigateToRecomendacaoView(context, item),
+                          onTap: () =>
+                              _navigateToRecomendacaoView(context, item),
                           child: Container(
                             width: 200.0,
                             decoration: BoxDecoration(

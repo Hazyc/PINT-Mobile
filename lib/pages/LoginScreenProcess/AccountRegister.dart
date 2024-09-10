@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:go_router/go_router.dart';
+import '../LoginScreen.dart';
 import '../ContaCriadaInfo.dart';
 
 class AccountRegister extends StatefulWidget {
@@ -191,7 +192,8 @@ class _AccountRegister extends State<AccountRegister> {
           ),
           filled: true,
           fillColor: Colors.grey[200],
-          contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
           errorStyle: TextStyle(color: Colors.red), // Cor do texto de erro
         ),
       ),
@@ -263,7 +265,12 @@ class _AccountRegister extends State<AccountRegister> {
                       icon:
                           Icon(Icons.arrow_back, color: Colors.black, size: 30),
                       onPressed: () {
-                        context.go('/login');
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LoginPage(),
+                          ),
+                        );
                       },
                     ),
                   ),
@@ -305,14 +312,13 @@ class _AccountRegister extends State<AccountRegister> {
                   _buildTextField(
                     hintText: 'Insira o seu nome',
                     controller: nameController,
-                  validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Campo é obrigatório';
-                        }
-                        return null;
-                      },
-                    ),
-
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Campo é obrigatório';
+                      }
+                      return null;
+                    },
+                  ),
                   SizedBox(height: 16.0),
                   _buildTitle('Email'),
                   SizedBox(height: 8.0),
@@ -320,12 +326,12 @@ class _AccountRegister extends State<AccountRegister> {
                     hintText: 'Insira o seu email',
                     controller: emailController,
                     validator: (value) {
-                        if (value == null || !value.contains('@')) {
-                          return 'Insira um email válido';
-                        }
-                        return null;
-                      },
-                    ),
+                      if (value == null || !value.contains('@')) {
+                        return 'Insira um email válido';
+                      }
+                      return null;
+                    },
+                  ),
                   SizedBox(height: 16.0),
                   _buildTitle('Cargo'),
                   SizedBox(height: 8.0),
@@ -333,12 +339,12 @@ class _AccountRegister extends State<AccountRegister> {
                     hintText: 'Insira o seu cargo',
                     controller: cargoController,
                     validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Cargo é obrigatório';
-                        }
-                        return null;
-                      },
-                    ),
+                      if (value == null || value.isEmpty) {
+                        return 'Cargo é obrigatório';
+                      }
+                      return null;
+                    },
+                  ),
                   SizedBox(height: 16.0),
                   _buildTitle('Morada'),
                   SizedBox(height: 8.0),
@@ -346,12 +352,12 @@ class _AccountRegister extends State<AccountRegister> {
                     hintText: 'Insira a sua morada',
                     controller: moradaController,
                     validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Campo é obrigatório';
-                        }
-                        return null;
-                      },
-                    ),
+                      if (value == null || value.isEmpty) {
+                        return 'Campo é obrigatório';
+                      }
+                      return null;
+                    },
+                  ),
                   SizedBox(height: 16.0),
                   _buildTitle('Descrição'),
                   SizedBox(height: 8.0),
@@ -359,12 +365,12 @@ class _AccountRegister extends State<AccountRegister> {
                     hintText: 'Insira uma descrição',
                     controller: descricaoController,
                     validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Campo é obrigatório';
-                        }
-                        return null;
-                      },
-                    ),
+                      if (value == null || value.isEmpty) {
+                        return 'Campo é obrigatório';
+                      }
+                      return null;
+                    },
+                  ),
                   SizedBox(height: 16.0),
                   _buildTitle('Cidade'),
                   SizedBox(height: 8.0),

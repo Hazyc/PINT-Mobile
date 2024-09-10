@@ -25,9 +25,9 @@ class NotificationCard extends StatelessWidget {
 
   void _onTap(BuildContext context) {
     if (eventId != null) {
-      context.go('/evento/$eventId');
+      context.push('/evento/$eventId');
     } else if (recommendationId != null) {
-      context.go('/recomendacao/$recommendationId');
+      context.push('/recomendacao/$recommendationId');
     } else {
       // Handle cases where neither eventId nor recommendationId is provided
       print('Nenhum ID fornecido para navegação');

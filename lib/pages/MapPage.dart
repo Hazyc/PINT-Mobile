@@ -43,7 +43,7 @@ class _MapPageState extends State<MapPage> {
   }
 
   void _startAutoRefresh() {
-    _timer = Timer.periodic(Duration(seconds: 15), (timer) async {
+    _timer = Timer.periodic(Duration(minutes: 2), (timer) async {
       await _refreshMap();
     });
   }
