@@ -132,9 +132,9 @@ class _EditEventoPageState extends State<EditEventoPage> {
     }
   }
 
-  void _atualizarCampo(    
+  void _atualizarCampo(
       int id, String tipo, String nome, bool required, bool newCampo) async {
-        print("atualizando campo");
+    print("atualizando campo");
     setState(() {
       _campos.forEach((element) {
         if (element.id_campo == id && element.novo == newCampo) {
@@ -229,7 +229,8 @@ class _EditEventoPageState extends State<EditEventoPage> {
               json.decode(response.body)['data']['TITULO_FORMULARIO'] ?? '';
           id_formulario = json.decode(response.body)['data']['ID_FORMULARIO'];
           _existeFormulatio = true;
-          ativoformulario = json.decode(response.body)['data']['ESTADO_FORMULARIO'];
+          ativoformulario =
+              json.decode(response.body)['data']['ESTADO_FORMULARIO'];
         });
 
         try {
@@ -246,7 +247,7 @@ class _EditEventoPageState extends State<EditEventoPage> {
               _campos.forEach((campo) {
                 _controladores[campo.id_campo] =
                     TextEditingController(text: campo.nome_campo);
-                    campo.novo = false;
+                campo.novo = false;
               });
             });
           }
@@ -543,7 +544,8 @@ class _EditEventoPageState extends State<EditEventoPage> {
           );
 
           if (_existeFormulatio) {
-            print("FORMULARIO EXISTE------------------------------------------------------------------------------");
+            print(
+                "FORMULARIO EXISTE------------------------------------------------------------------------------");
             print(_nomeFormulario);
             final corpo = {
               'TITULO_FORMULARIO': _nomeFormulario,
@@ -561,10 +563,10 @@ class _EditEventoPageState extends State<EditEventoPage> {
                   body: jsonEncode(corpo));
 
               if (repsosta.statusCode == 200) {
-               
                 print('Formulario atualizado com sucesso!');
                 print(repsosta.body);
-                print(_campos[0].nome_campo); //está a dar print ao primeiro campo
+                print(
+                    _campos[0].nome_campo); //está a dar print ao primeiro campo
                 _campos.forEach((campo) async {
                   if (campo.novo) {
                     final corpo = {
@@ -583,10 +585,7 @@ class _EditEventoPageState extends State<EditEventoPage> {
                           },
                           body: jsonEncode(corpo));
                       if (camponovoresposta.statusCode == 201) {
-                        
-                      } else {
-                       
-                      }
+                      } else {}
                     } catch (e) {
                       print('Erro ao adicionar campo novo: $e');
                     }
@@ -606,19 +605,15 @@ class _EditEventoPageState extends State<EditEventoPage> {
                           },
                           body: jsonEncode(corpo));
                       if (campoeditresposta.statusCode == 200) {
-                        
                         print("Campo editado com sucesso");
                         print(campoeditresposta.body);
-                      } else {
-                        
-                      }
+                      } else {}
                     } catch (e) {
                       print('Erro ao atualizar campo antigo: $e');
                     }
                   }
                 });
               } else {
-               
                 print('Erro ao atualizar formulario');
               }
             } catch (e) {
@@ -628,8 +623,7 @@ class _EditEventoPageState extends State<EditEventoPage> {
 
           Navigator.of(context).pop(); // Volta para a tela anterior
         } else {
-         print("Erro ao atualizar evento: ${response.reasonPhrase}");
-          
+          print("Erro ao atualizar evento: ${response.reasonPhrase}");
         }
       } catch (error) {
         print('Erro ao atualizar evento: $error');
@@ -974,10 +968,12 @@ class _EditEventoPageState extends State<EditEventoPage> {
             onPressed: () {
               _adicionarCampo("checkbox");
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue,
-            shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
             child: Text('Adicionar Checkbox',
                 style: TextStyle(color: Colors.white)),
           ),
@@ -987,10 +983,12 @@ class _EditEventoPageState extends State<EditEventoPage> {
             onPressed: () {
               _adicionarCampo("contagem");
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue,
-            shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
             child: Text('Adicionar Contagem',
                 style: TextStyle(color: Colors.white)),
           ),
@@ -1001,20 +999,25 @@ class _EditEventoPageState extends State<EditEventoPage> {
           ElevatedButton(
             onPressed: () {
               setState(() {
-                  ativoformulario = !ativoformulario;
+                ativoformulario = !ativoformulario;
               });
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue,
-            shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),),
-            child: 
-            ativoformulario ? Text('Desativar Formulário',
-            style: TextStyle(color: Colors.white),
-            ) : Text('Ativar Formulário',
-           style: TextStyle(color: Colors.white),),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: ativoformulario
+                ? Text(
+                    'Desativar Formulário',
+                    style: TextStyle(color: Colors.white),
+                  )
+                : Text(
+                    'Ativar Formulário',
+                    style: TextStyle(color: Colors.white),
+                  ),
           ),
-          
         ],
       ),
     );

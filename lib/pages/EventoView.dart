@@ -64,6 +64,7 @@ class _EventoViewState extends State<EventoView> {
 
   void fetchrespostas() async {
     // Limpa as respostas anteriores antes de buscar novamente
+    
     final token = await TokenHandler().getToken();
 
     for (var element in formFields) {
@@ -110,7 +111,6 @@ class _EventoViewState extends State<EventoView> {
         print('Erro ao buscar respostas: $e');
       }
     }
-    
   }
 
   Future<void> _fetchFormIdAndFields() async {
@@ -219,9 +219,9 @@ class _EventoViewState extends State<EventoView> {
               children: formFields.map((campo) {
                 switch (campo['TIPO_CAMPO']) {
                   case 'checkbox':
-                    // Retrieve the current value from respostas or default to false
+                    // Retrieve the current value from respostas or default to 0 (unchecked)
                     bool checkboxValue =
-                        respostas[campo['ID_CAMPO'].toString()] == 'true';
+                        respostas[campo['ID_CAMPO'].toString()] == '1';
 
                     return StatefulBuilder(
                       builder: (BuildContext context, StateSetter setState) {
@@ -238,8 +238,8 @@ class _EventoViewState extends State<EventoView> {
                                     newValue; // Update local checkboxValue
                                 respostas[campo['ID_CAMPO'].toString()] =
                                     checkboxValue
-                                        ? 'true'
-                                        : 'false'; // Update responses map
+                                        ? '1'
+                                        : '0'; // Store 1 for true, 0 for false
                                 print(
                                     'Checkbox ${campo['ID_CAMPO']} updated to: ${respostas[campo['ID_CAMPO'].toString()]}');
                               });
@@ -334,6 +334,7 @@ class _EventoViewState extends State<EventoView> {
     } catch (e) {
       print('Erro ao enviar respostas: $e');
     }
+    fetchrespostas();
   }
 
   void _showMoreImages() {
@@ -1220,7 +1221,7 @@ $url
                                                         Text(
                                                           respostas.containsKey(
                                                                   campo['ID_CAMPO']
-                                                                      .toString()) // Verifica usando String
+                                                                      .toString())
                                                               ? "Total de contagem: ${respostas[campo['ID_CAMPO'].toString()]}" // Mostra a soma, se houver
                                                               : "Sem contagem",
                                                           style: TextStyle(
@@ -1231,16 +1232,26 @@ $url
                                                               'TIPO_CAMPO'] ==
                                                           'checkbox')
                                                         // Campo de checkbox
-                                                        Text(
-                                                          respostas.containsKey(
-                                                                  campo['ID_CAMPO']
-                                                                      .toString())
-                                                              ? "Checkbox: ${respostas[campo['ID_CAMPO'].toString()]['countOne']} assinalaram, ${respostas[campo['ID_CAMPO'].toString()]['countZero']} não assinalaram"
-                                                              : "Sem respostas", // Mostra as contagens de checkbox, se houver
-                                                          style: TextStyle(
-                                                              color: Colors
-                                                                  .grey[600]),
-                                                        )
+                                                        respostas.containsKey(campo[
+                                                                        'ID_CAMPO']
+                                                                    .toString()) &&
+                                                                respostas[campo[
+                                                                        'ID_CAMPO']
+                                                                    .toString()] is Map
+                                                            ? Text(
+                                                                "Checkbox: ${respostas[campo['ID_CAMPO'].toString()]['countOne']} assinalaram, ${respostas[campo['ID_CAMPO'].toString()]['countZero']} não assinalaram",
+                                                                style: TextStyle(
+                                                                    color: Colors
+                                                                            .grey[
+                                                                        600]),
+                                                              )
+                                                            : Text(
+                                                                "Sem respostas", // Mostra as contagens de checkbox, se houver
+                                                                style: TextStyle(
+                                                                    color: Colors
+                                                                            .grey[
+                                                                        600]),
+                                                              )
                                                       else
                                                         // Outro tipo de campo
                                                         Text(

@@ -313,6 +313,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
         );
 
         print('ImageId: $imageId');
+        print('Cidade: $_cidadeSelecionada');
         print('SubCategoria: $_subcategory');
         print('EventName: $_eventName');
         print('Morada: $_address');
@@ -969,7 +970,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           hint: Text('Selecione a cidade mais próxima'),
-          value: _cidadeSelecionada,
+          value: cidades.contains(_cidadeSelecionada) ? _cidadeSelecionada : null,
           isExpanded: true,
           items: cidades.isNotEmpty
               ? cidades.map((cidade) {
@@ -981,7 +982,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
               : [], // Lista de itens
           onChanged: (newValue) {
             setState(() {
-              _cidadeSelecionada = newValue!;
+              _cidadeSelecionada = newValue;
             });
           },
         ),
