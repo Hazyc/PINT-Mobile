@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:app_mobile/handlers/TokenHandler.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:async';
 
 class MapPage extends StatefulWidget {
   final String? initialAddress;
@@ -18,6 +19,7 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
+  Timer? _timer;
   TokenHandler tokenHandler = TokenHandler();
   GoogleMapController? _controller;
   Position? _currentPosition;
@@ -25,6 +27,8 @@ class _MapPageState extends State<MapPage> {
   List<Marker> _markers = [];
   Marker? _selectedMarker;
   String _address = '';
+
+  
 
   @override
   void initState() {
@@ -35,7 +39,28 @@ class _MapPageState extends State<MapPage> {
     if (widget.initialAddress != null) {
       _convertAddressToLatLng(widget.initialAddress!);
     }
+    _startAutoRefresh();
   }
+
+  void _startAutoRefresh() {
+    _timer = Timer.periodic(Duration(seconds: 15), (timer) async {
+      await _refreshMap();
+    });
+  }
+
+ @override
+  void dispose() {
+    _timer?.cancel(); // Cancela o timer quando o widget é destruído
+    super.dispose();
+  }
+
+  Future<void> _refreshMap() async {
+  setState(() {
+    _markers.clear();
+  });
+  await _fetchAddressesAndAddMarkers();
+  await _fetchAddressesAndAddMarkersRecomendacoes();
+}
 
  Future<void> _fetchAddressesAndAddMarkersRecomendacoes() async {
   try {

@@ -279,7 +279,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _navigateToEventoView(BuildContext context, Evento evento) {
-    GoRouter.of(context).go('/event/${evento.id}');
+     Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => EventoView(
+              evento: evento)),
+    );
   }
 
   void _navigateToRecomendacaoView(
