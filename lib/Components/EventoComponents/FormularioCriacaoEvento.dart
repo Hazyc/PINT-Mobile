@@ -24,9 +24,10 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   String _description = '';
   File? _image;
   String _address = '';
-  String _city = 'Viseu'; // exemplo de cidade fixa
   String? _category;
   String? _subcategory;
+  List<Map<String, dynamic>> cidades = [];
+  String? _cidadeSelecionada;
 
   //dados de formulario
 
@@ -44,6 +45,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
   void initState() {
     super.initState();
     _fetchCategories();
+    _fetchCidades();
     _locationController.text = _address;
     _nomeFormularioController = TextEditingController(text: _nomeFormulario);
   }
@@ -76,13 +78,12 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
       _controladores[_proximoId] = controller;
 
       campos.add(Campo(
-          id_campo: _proximoId++,
-          tipo_campo: tipo,
-          nome_campo: '',
-          required_campo: false,
-          novo: false,
-          ));
-             
+        id_campo: _proximoId++,
+        tipo_campo: tipo,
+        nome_campo: '',
+        required_campo: false,
+        novo: false,
+      ));
 
       _proximoId++;
     });
@@ -128,6 +129,34 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
       _proximoId = 0;
       _nomeFormularioController.text = '';
     });
+  }
+
+  Future<void> _fetchCidades() async {
+    TokenHandler tokenHandler = TokenHandler();
+    final String? token = await tokenHandler.getToken();
+
+    if (token == null) {
+      print('Token não encontrado');
+      return;
+    }
+
+    final response = await http.get(
+      Uri.parse('https://backendpint-5wnf.onrender.com/cidades/list'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> cidadesData = json.decode(response.body)['data'];
+
+      // Atualize o estado de uma vez, após coletar os dados
+      setState(() {
+        cidades = cidadesData.map((cidade) {
+          return {'nome': cidade['NOME_CIDADE'], 'id': cidade['ID_CIDADE']};
+        }).toList();
+      });
+    } else {
+      print('Erro ao buscar cidades');
+    }
   }
 
   Future<void> _fetchCategories() async {
@@ -273,7 +302,7 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
           },
           body: jsonEncode(<String, dynamic>{
             'ID_IMAGEM': imageId,
-            'CIDADE': _city,
+            'CIDADE': _cidadeSelecionada,
             'NOME_SUBAREA': _subcategory ?? '',
             'TITULO_EVENTO': _eventName,
             'MORADA_EVENTO': _address,
@@ -284,7 +313,6 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
         );
 
         print('ImageId: $imageId');
-        print('Cidade: $_city');
         print('SubCategoria: $_subcategory');
         print('EventName: $_eventName');
         print('Morada: $_address');
@@ -497,6 +525,9 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
                                 ? 'Por favor insira os detalhes do evento.'
                                 : null,
                           ),
+                          _buildTitle('Cidade mais proxima'),
+                          SizedBox(height: 8.0),
+                          _cidadesDropdown(),
                           SizedBox(height: 16.0),
                           _buildTitle('Localização'),
                           SizedBox(height: 8.0),
@@ -521,14 +552,38 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
                             Container(
                               child: ElevatedButton(
                                 onPressed: _criarFormulario,
-                                child: Text('Criar Formulário'),
+                                child: Text('Criar Formulário',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                ),
+                                
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
                               ),
                             ),
                           if (_mostrarFormulario == true)
                             Container(
                               child: ElevatedButton(
                                 onPressed: _cancelarFormulario,
-                                child: Text('Cancelar Formulário'),
+                                style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                ),
+                                child: Text(
+                                  'Cancelar Formulário',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
                             ),
                           SizedBox(height: 16.0),
@@ -627,7 +682,18 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
             onPressed: () {
               _adicionarCampo("checkbox");
             },
-            child: Text('Adicionar Checkbox'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text('Adicionar Checkbox',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.white,
+              ),
+            ),
           ),
           SizedBox(height: 10),
           SizedBox(height: 10),
@@ -635,7 +701,18 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
             onPressed: () {
               _adicionarCampo("contagem");
             },
-            child: Text('Adicionar Contagem'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text('Adicionar Contagem',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.white,
+            ),
+            ),
           ),
           Column(
             children: campos.map((campo) => _buildCampo(campo)).toList(),
@@ -874,6 +951,37 @@ class _FormularioCriacaoEventoState extends State<FormularioCriacaoEvento> {
             print('Valor da nova sub-categoria: $newValue'); // Depuração
             setState(() {
               _subcategory = newValue; // Define a nova subcategoria
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _cidadesDropdown() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 25.0),
+      padding: EdgeInsets.symmetric(horizontal: 12.0),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          hint: Text('Selecione a cidade mais próxima'),
+          value: _cidadeSelecionada,
+          isExpanded: true,
+          items: cidades.isNotEmpty
+              ? cidades.map((cidade) {
+                  return DropdownMenuItem<String>(
+                    value: cidade['nome'],
+                    child: Text(cidade['nome']),
+                  );
+                }).toList()
+              : [], // Lista de itens
+          onChanged: (newValue) {
+            setState(() {
+              _cidadeSelecionada = newValue!;
             });
           },
         ),

@@ -329,14 +329,9 @@ class _EventoViewState extends State<EventoView> {
           SnackBar(content: Text('Respostas enviadas com sucesso!')),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao enviar respostas. Tente novamente.')),
-        );
+        print('Erro ao enviar respostas: ${response.statusCode}');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao enviar respostas. Tente novamente.')),
-      );
       print('Erro ao enviar respostas: $e');
     }
   }
@@ -1172,7 +1167,7 @@ $url
                             ),
                           ),
                         SizedBox(width: 16),
-                        if (isOrganizer && !estadoEvento)
+                        if (isOrganizer)
                           CircleAvatar(
                             backgroundColor: Color(0xFF0DCAF0),
                             radius: 22,

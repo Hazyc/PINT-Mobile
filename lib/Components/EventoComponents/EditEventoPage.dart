@@ -974,7 +974,12 @@ class _EditEventoPageState extends State<EditEventoPage> {
             onPressed: () {
               _adicionarCampo("checkbox");
             },
-            child: Text('Adicionar Checkbox'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue,
+            shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),),
+            child: Text('Adicionar Checkbox',
+                style: TextStyle(color: Colors.white)),
           ),
           SizedBox(height: 10),
           SizedBox(height: 10),
@@ -982,7 +987,12 @@ class _EditEventoPageState extends State<EditEventoPage> {
             onPressed: () {
               _adicionarCampo("contagem");
             },
-            child: Text('Adicionar Contagem'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue,
+            shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),),
+            child: Text('Adicionar Contagem',
+                style: TextStyle(color: Colors.white)),
           ),
           Column(
             children: _campos.map((campo) => _buildCampo(campo)).toList(),
@@ -994,8 +1004,15 @@ class _EditEventoPageState extends State<EditEventoPage> {
                   ativoformulario = !ativoformulario;
               });
             },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue,
+            shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),),
             child: 
-            ativoformulario ? Text('Desativar Formulário') : Text('Ativar Formulário'),
+            ativoformulario ? Text('Desativar Formulário',
+            style: TextStyle(color: Colors.white),
+            ) : Text('Ativar Formulário',
+           style: TextStyle(color: Colors.white),),
           ),
           
         ],

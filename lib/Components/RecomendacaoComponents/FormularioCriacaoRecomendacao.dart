@@ -27,6 +27,8 @@ class _FormularioCriacaoRecomendacaoState extends State<FormularioCriacaoRecomen
   bool _isLoading = false;
   String? _selectedTag;
   String? _selectedSubarea;
+  List<Map<String, dynamic>> cidades = [];
+  String? _cidadeSelecionada;
 
   Map<String, List<String>> subareas = {};
   bool isLoading = true;
@@ -35,7 +37,36 @@ class _FormularioCriacaoRecomendacaoState extends State<FormularioCriacaoRecomen
   void initState() {
     super.initState();
     fetchAreasAndSubareas();
+    _fetchCidades();
   }
+
+  Future<void> _fetchCidades() async {
+  TokenHandler tokenHandler = TokenHandler();
+  final String? token = await tokenHandler.getToken();
+
+  if (token == null) {
+    print('Token não encontrado');
+    return;
+  }
+
+  final response = await http.get(
+    Uri.parse('https://backendpint-5wnf.onrender.com/cidades/list'),
+    headers: {'Authorization': 'Bearer $token'},
+  );
+
+  if (response.statusCode == 200) {
+    List<dynamic> cidadesData = json.decode(response.body)['data'];
+
+    // Atualize o estado de uma vez, após coletar os dados
+    setState(() {
+      cidades = cidadesData.map((cidade) {
+        return {'nome': cidade['NOME_CIDADE'], 'id': cidade['ID_CIDADE']};
+      }).toList();
+    });
+  } else {
+    print('Erro ao buscar cidades');
+  }
+}
 
   Future<void> fetchAreasAndSubareas() async {
     TokenHandler tokenHandler = TokenHandler();
@@ -261,6 +292,7 @@ class _FormularioCriacaoRecomendacaoState extends State<FormularioCriacaoRecomen
       },
       body: jsonEncode(<String, dynamic>{
         'ID_IMAGEM': imageId,
+        'CIDADE': _cidadeSelecionada,
         'NOME_SUBAREA': _selectedSubarea ?? '',
         'TITULO_RECOMENDACAO': _locationController.text,
         'DESCRICAO_RECOMENDACAO': _commentController.text,
@@ -444,6 +476,10 @@ Widget _buildLocationField() {
                             controller: _commentController,
                             maxLines: 5,
                           ),
+                          SizedBox(height: 16.0),
+                          _buildTitle('Cidade mais proxima'),
+                          SizedBox(height: 16.0),
+                          _cidadesDropdown(),
                           SizedBox(height: 16.0),
                           _buildTitle('Localização'), // Adicionando o campo de morada
                           SizedBox(height: 8.0),
@@ -795,4 +831,35 @@ Widget _buildLocationField() {
       ),
     );
   }
+
+    Widget _cidadesDropdown() {
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 25.0),
+    padding: EdgeInsets.symmetric(horizontal: 12.0),
+    decoration: BoxDecoration(
+      color: Colors.grey[200],
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        hint: Text('Selecione a cidade mais próxima'),
+        value: _cidadeSelecionada,
+        isExpanded: true,
+        items: cidades.isNotEmpty
+            ? cidades.map((cidade) {
+                return DropdownMenuItem<String>(
+                  value: cidade['nome'],
+                  child: Text(cidade['nome']),
+                );
+              }).toList()
+            : [], // Lista de itens
+        onChanged: (newValue) {
+          setState(() {
+            _cidadeSelecionada = newValue!;
+          });
+        },
+      ),
+    ),
+  );
+}
 }
