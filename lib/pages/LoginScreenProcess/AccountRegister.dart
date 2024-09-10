@@ -16,6 +16,7 @@ class _AccountRegister extends State<AccountRegister> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController cargoController = TextEditingController();
   final TextEditingController moradaController = TextEditingController();
+  final TextEditingController descricaoController = TextEditingController();
   File? _avatarImage;
   final ImagePicker _picker = ImagePicker();
   Map<String, String>? selectedCity;
@@ -92,6 +93,7 @@ class _AccountRegister extends State<AccountRegister> {
     final String email = emailController.text;
     final String cargo = cargoController.text;
     final String morada = moradaController.text;
+    final String descricao = descricaoController.text;
 
     if (_avatarImage == null) {
       setState(() {
@@ -118,6 +120,7 @@ class _AccountRegister extends State<AccountRegister> {
       request.fields['CARGO_UTILIZADOR'] = cargo;
       request.fields['MORADA_UTILIZADOR'] = morada;
       request.fields['CIDADE'] = cidadeNome;
+      request.fields['DESCRICAO_UTILIZADOR'] = descricao;
 
       if (_avatarImage != null) {
         request.files.add(
@@ -172,22 +175,24 @@ class _AccountRegister extends State<AccountRegister> {
     required String hintText,
     required TextEditingController controller,
     bool obscureText = false,
+    required String? Function(String?) validator, // Função de validação
   }) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25.0),
       child: TextFormField(
         controller: controller,
         obscureText: obscureText,
+        validator: validator, // Aplica a validação
         decoration: InputDecoration(
           hintText: hintText,
           border: OutlineInputBorder(
-            borderSide: BorderSide.none,
             borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
           ),
           filled: true,
           fillColor: Colors.grey[200],
-          contentPadding:
-              EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+          contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+          errorStyle: TextStyle(color: Colors.red), // Cor do texto de erro
         ),
       ),
     );
@@ -295,33 +300,71 @@ class _AccountRegister extends State<AccountRegister> {
                     ),
                   ),
                   SizedBox(height: 16.0),
-                  _buildTitle('Nome'),
+                  _buildTitle('Nome e Sobrenome'),
                   SizedBox(height: 8.0),
                   _buildTextField(
                     hintText: 'Insira o seu nome',
                     controller: nameController,
-                  ),
+                  validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Campo é obrigatório';
+                        }
+                        return null;
+                      },
+                    ),
+
                   SizedBox(height: 16.0),
                   _buildTitle('Email'),
                   SizedBox(height: 8.0),
                   _buildTextField(
                     hintText: 'Insira o seu email',
                     controller: emailController,
-                  ),
+                    validator: (value) {
+                        if (value == null || !value.contains('@')) {
+                          return 'Insira um email válido';
+                        }
+                        return null;
+                      },
+                    ),
                   SizedBox(height: 16.0),
                   _buildTitle('Cargo'),
                   SizedBox(height: 8.0),
                   _buildTextField(
                     hintText: 'Insira o seu cargo',
                     controller: cargoController,
-                  ),
+                    validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Cargo é obrigatório';
+                        }
+                        return null;
+                      },
+                    ),
                   SizedBox(height: 16.0),
                   _buildTitle('Morada'),
                   SizedBox(height: 8.0),
                   _buildTextField(
                     hintText: 'Insira a sua morada',
                     controller: moradaController,
-                  ),
+                    validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Campo é obrigatório';
+                        }
+                        return null;
+                      },
+                    ),
+                  SizedBox(height: 16.0),
+                  _buildTitle('Descrição'),
+                  SizedBox(height: 8.0),
+                  _buildTextField(
+                    hintText: 'Insira uma descrição',
+                    controller: descricaoController,
+                    validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Campo é obrigatório';
+                        }
+                        return null;
+                      },
+                    ),
                   SizedBox(height: 16.0),
                   _buildTitle('Cidade'),
                   SizedBox(height: 8.0),

@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:app_mobile/handlers/TokenHandler.dart';
+import 'package:go_router/go_router.dart';
 
 class MapPage extends StatefulWidget {
   final String? initialAddress;
-  final Function(String)?
-      onAddressSelected; // Função callback para retornar o endereço
+  final Function(String)? onAddressSelected;
 
   MapPage({this.initialAddress, this.onAddressSelected});
 
@@ -15,6 +18,7 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
+  TokenHandler tokenHandler = TokenHandler();
   GoogleMapController? _controller;
   Position? _currentPosition;
   LatLng? _initialPosition;
@@ -26,8 +30,158 @@ class _MapPageState extends State<MapPage> {
   void initState() {
     super.initState();
     _getCurrentLocation();
+    _fetchAddressesAndAddMarkers();
+    _fetchAddressesAndAddMarkersRecomendacoes();
     if (widget.initialAddress != null) {
       _convertAddressToLatLng(widget.initialAddress!);
+    }
+  }
+
+ Future<void> _fetchAddressesAndAddMarkersRecomendacoes() async {
+  try {
+    final String? token = await tokenHandler.getToken();
+
+    if (token == null) {
+      print('Token não encontrado');
+      return;
+    }
+
+    final String apiUrl =
+        'https://backendpint-5wnf.onrender.com/recomendacoes/fetchMoradasRecomendacoes';
+
+    final response = await http.get(
+      Uri.parse(apiUrl),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final List addresses = data['data'];
+
+      print('Recomendações recebidas: $addresses');  // Verifique o conteúdo das recomendações
+
+      for (var address in addresses) {
+        String morada = address['MORADA_RECOMENDACAO'];
+        int idRecomendacao = address['ID_RECOMENDACAO'];
+        String nomeRecomendacao = address['TITULO_RECOMENDACAO'];
+        String nomeSubArea = address['SUBAREA']['NOME_SUBAREA'];
+        String nomeArea = address['SUBAREA']['AREA']['NOME_AREA'];
+        String corArea = address['SUBAREA']['AREA']['COR_AREA'];
+
+        try {
+          List<Location> locations = await locationFromAddress(morada);
+          if (locations.isNotEmpty) {
+            LatLng latLng =
+                LatLng(locations.first.latitude, locations.first.longitude);
+
+            Marker marker = Marker(
+              markerId: MarkerId('recomendacao_$idRecomendacao'),
+              position: latLng,
+              icon: BitmapDescriptor.defaultMarkerWithHue(_getRecomendacaoMarkerHue()),
+              infoWindow: InfoWindow(title: morada),
+              onTap: () {
+                _showRecomendacaoDetailsBottomSheet(
+                  idRecomendacao,
+                  nomeRecomendacao,
+                  morada,
+                  nomeSubArea,
+                  nomeArea,
+                  corArea,
+                );
+              },
+            );
+
+            setState(() {
+              _markers.add(marker);
+            });
+          } else {
+            print('Localizações não encontradas para o endereço: $morada');
+          }
+        } catch (e) {
+          print('Erro ao converter o endereço $morada: $e');
+        }
+      }
+    } else {
+      print('Erro ao buscar as moradas: ${response.statusCode}');
+    }
+  } catch (e) {
+    print('Erro: $e');
+  }
+}
+
+  double _getEventMarkerHue() {
+  return BitmapDescriptor.hueOrange; // Defina a cor desejada para eventos
+}
+
+double _getRecomendacaoMarkerHue() {
+  return BitmapDescriptor.hueViolet; // Defina a cor desejada para recomendações
+}
+
+  Future<void> _fetchAddressesAndAddMarkers() async {
+    try {
+      final String? token = await tokenHandler.getToken();
+
+      if (token == null) {
+        print('Token não encontrado');
+        return;
+      }
+
+      final String apiUrl =
+          'https://backendpint-5wnf.onrender.com/eventos/fetchMoradasEventos';
+
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List addresses = data['data'];
+
+        for (var address in addresses) {
+          String morada = address['MORADA_EVENTO'];
+          int idEvento = address['ID_EVENTO'];
+          String nomeEvento = address['TITULO_EVENTO'];
+          String nomeSubArea = address['SUBAREA']['NOME_SUBAREA'];
+          String nomeArea = address['SUBAREA']['AREA']['NOME_AREA'];
+          String corArea = address['SUBAREA']['AREA']['COR_AREA'];
+
+          try {
+            List<Location> locations = await locationFromAddress(morada);
+            if (locations.isNotEmpty) {
+              LatLng latLng =
+                  LatLng(locations.first.latitude, locations.first.longitude);
+
+              Marker marker = Marker(
+                markerId: MarkerId(idEvento.toString()),
+                position: latLng,
+                icon: BitmapDescriptor.defaultMarkerWithHue(_getEventMarkerHue()),
+                infoWindow: InfoWindow(title: morada),
+                onTap: () {
+                  _showEventDetailsBottomSheet(
+                    idEvento,
+                    nomeEvento,
+                    morada,
+                    nomeSubArea,
+                    nomeArea,
+                    corArea,
+                  );
+                },
+              );
+
+              setState(() {
+                _markers.add(marker);
+              });
+            }
+          } catch (e) {
+            print('Erro ao converter o endereço $morada: $e');
+          }
+        }
+      } else {
+        print('Erro ao buscar as moradas: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Erro: $e');
     }
   }
 
@@ -95,9 +249,6 @@ class _MapPageState extends State<MapPage> {
           _address = placemarks.first.street ?? 'Endereço desconhecido';
         });
 
-        // Imprime o endereço selecionado no terminal
-        print('Endereço selecionado: $_address');
-
         if (_controller != null) {
           _controller!.animateCamera(CameraUpdate.newLatLng(location));
         }
@@ -107,22 +258,152 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  void _confirmSelection() {
-  if (widget.onAddressSelected != null) {
-    // Imprime a morada selecionada no terminal antes de retornar à tela anterior
-    print('Endereço confirmado: $_address');
-
-    widget.onAddressSelected!(_address); // Passa o endereço para o callback
-    Navigator.pop(context, _address); // Passa o endereço selecionado como resultado
-  }
+  void _showEventDetailsBottomSheet(int idEvento, String nomeEvento, String morada,
+    String nomeSubArea, String nomeArea, String corArea) {
+  showModalBottomSheet(
+    context: context,
+    builder: (context) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,  // Alinhar à esquerda
+          children: [
+            Text(
+              'Evento: $nomeEvento',  // Exibe o nome do evento primeiro
+              style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            Text(
+              'Localização: $morada',  // Exibe a morada logo abaixo
+              style: TextStyle(fontSize: 16.0),
+            ),
+            SizedBox(height: 10),
+            Row(
+              children: [
+                Text(
+                  'Área: ',  // Exibe "Área:" em uma cor padrão
+                  style: TextStyle(fontSize: 16.0),
+                ),
+                Text(
+                  nomeArea,  // Exibe o nome da área com a cor específica
+                  style: TextStyle(
+                    fontSize: 16.0,
+                    color: Color(int.parse(corArea.replaceAll('#', '0xff'))),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 5),
+            Text(
+              'Subárea: $nomeSubArea',  // Exibe a subárea por último
+              style: TextStyle(fontSize: 16.0),
+            ),
+            SizedBox(height: 20),
+            Center(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF0DCAF0),  // Define a cor de fundo
+                  foregroundColor: Colors.white,  // Define a cor do texto
+                  padding: EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),  // Tamanho do botão
+                ),
+                onPressed: () {
+                  Navigator.pop(context);  // Fecha o BottomSheet
+                  context.push('/evento/$idEvento');  // Navega para a página de detalhes
+                },
+                child: Text(
+                  'Ver mais detalhes',
+                  style: TextStyle(fontSize: 16.0),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }
+
+void _showRecomendacaoDetailsBottomSheet(int idRecomendacao, String nomeRecomendacao, String morada,
+    String nomeSubArea, String nomeArea, String corArea) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Recomendação: $nomeRecomendacao',
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              Text(
+                'Localização: $morada',
+                style: TextStyle(fontSize: 16.0),
+              ),
+              SizedBox(height: 10),
+              Row(
+                children: [
+                  Text(
+                    'Área: ',
+                    style: TextStyle(fontSize: 16.0),
+                  ),
+                  Text(
+                    nomeArea,
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      color: Color(int.parse(corArea.replaceAll('#', '0xff'))),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 5),
+              Text(
+                'Subárea: $nomeSubArea',
+                style: TextStyle(fontSize: 16.0),
+              ),
+              SizedBox(height: 20),
+              Center(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF0DCAF0),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    context.push('/recomendacao/$idRecomendacao');
+                  },
+                  child: Text(
+                    'Ver mais detalhes',
+                    style: TextStyle(fontSize: 16.0),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+
+  void _confirmSelection() {
+    if (widget.onAddressSelected != null) {
+      widget.onAddressSelected!(_address);
+      Navigator.pop(context, _address);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Mapa',
+          'Mapa Softshares',
           style: TextStyle(color: Colors.white, fontSize: 24.0),
         ),
         backgroundColor: const Color(0xFF0DCAF0),

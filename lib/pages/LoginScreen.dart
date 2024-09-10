@@ -117,7 +117,7 @@ class _LoginPageState extends State<LoginPage> {
 
           if (responseData['token'] != null) {
             TokenHandler().saveToken(responseData['token']);
-            Navigator.pushReplacementNamed(context, '/home');
+            context.go('/home');
           } else {
             // Redirecionar para a página de criação de conta com os dados preenchidos
             Navigator.push(
