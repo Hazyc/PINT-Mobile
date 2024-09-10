@@ -3,14 +3,26 @@ import 'package:app_mobile/models/Evento.dart';
 import 'package:app_mobile/pages/EventoView.dart';
 import 'package:go_router/go_router.dart';
 
+
 class EventoCard extends StatelessWidget {
   final Evento evento;
   final VoidCallback onLocationTap;
+  
+  
 
   EventoCard({required this.evento, required this.onLocationTap});
 
+
+
   @override
+
+
+
   Widget build(BuildContext context) {
+
+    
+
+
     return GestureDetector(
       onTap: () {
         context.push(

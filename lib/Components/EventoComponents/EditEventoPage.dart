@@ -29,6 +29,7 @@ class _EditEventoPageState extends State<EditEventoPage> {
   late int _bannerID;
 
   //formulario
+  late bool ativoformulario;
   late String _nomeFormulario;
   List<Campo> _campos = []; //lista de campos do formulario que já existem
   bool _existeFormulatio = false;
@@ -228,7 +229,7 @@ class _EditEventoPageState extends State<EditEventoPage> {
               json.decode(response.body)['data']['TITULO_FORMULARIO'] ?? '';
           id_formulario = json.decode(response.body)['data']['ID_FORMULARIO'];
           _existeFormulatio = true;
-          
+          ativoformulario = json.decode(response.body)['data']['ESTADO_FORMULARIO'];
         });
 
         try {
@@ -546,6 +547,7 @@ class _EditEventoPageState extends State<EditEventoPage> {
             print(_nomeFormulario);
             final corpo = {
               'TITULO_FORMULARIO': _nomeFormulario,
+              'ESTADO_FORMULARIO': ativoformulario,
             };
 
             try {
@@ -559,9 +561,7 @@ class _EditEventoPageState extends State<EditEventoPage> {
                   body: jsonEncode(corpo));
 
               if (repsosta.statusCode == 200) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Formulario atualizado com sucesso!')),
-                );
+               
                 print('Formulario atualizado com sucesso!');
                 print(repsosta.body);
                 print(_campos[0].nome_campo); //está a dar print ao primeiro campo
@@ -583,14 +583,9 @@ class _EditEventoPageState extends State<EditEventoPage> {
                           },
                           body: jsonEncode(corpo));
                       if (camponovoresposta.statusCode == 201) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text('Campo adicionado com sucesso!')),
-                        );
+                        
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Erro ao adicionar campo')),
-                        );
+                       
                       }
                     } catch (e) {
                       print('Erro ao adicionar campo novo: $e');
@@ -611,16 +606,11 @@ class _EditEventoPageState extends State<EditEventoPage> {
                           },
                           body: jsonEncode(corpo));
                       if (campoeditresposta.statusCode == 200) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Campo editado com sucesso!')),
-                        );
+                        
                         print("Campo editado com sucesso");
                         print(campoeditresposta.body);
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text('Erro ao editar campo antigo')),
-                        );
+                        
                       }
                     } catch (e) {
                       print('Erro ao atualizar campo antigo: $e');
@@ -628,9 +618,7 @@ class _EditEventoPageState extends State<EditEventoPage> {
                   }
                 });
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Erro ao atualizar formulario')),
-                );
+               
                 print('Erro ao atualizar formulario');
               }
             } catch (e) {
@@ -640,9 +628,8 @@ class _EditEventoPageState extends State<EditEventoPage> {
 
           Navigator.of(context).pop(); // Volta para a tela anterior
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao atualizar o evento.')),
-          );
+         print("Erro ao atualizar evento: ${response.reasonPhrase}");
+          
         }
       } catch (error) {
         print('Erro ao atualizar evento: $error');
@@ -1000,6 +987,17 @@ class _EditEventoPageState extends State<EditEventoPage> {
           Column(
             children: _campos.map((campo) => _buildCampo(campo)).toList(),
           ),
+          SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                  ativoformulario = !ativoformulario;
+              });
+            },
+            child: 
+            ativoformulario ? Text('Desativar Formulário') : Text('Ativar Formulário'),
+          ),
+          
         ],
       ),
     );
