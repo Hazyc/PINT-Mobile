@@ -287,12 +287,12 @@ class _CustomDrawerState extends State<CustomDrawer> {
               },
             ),
             Divider(),
-            ListTile(
+            /*ListTile(
               leading: Icon(Icons.settings),
               title: Text('Definições'),
               onTap: () => context.push(
                 '/settings'),
-            ),
+            ),*/
             ListTile(
               leading: Icon(Icons.exit_to_app),
               title: Text('Sair'),
