@@ -44,7 +44,6 @@ class _AccountRegister extends State<AccountRegister> {
             .toList();
       });
     } else {
-      // Handle error
       print('Falha ao buscar cidades');
     }
   }
@@ -96,17 +95,29 @@ class _AccountRegister extends State<AccountRegister> {
     final String morada = moradaController.text;
     final String descricao = descricaoController.text;
 
-    if (_avatarImage == null) {
-      setState(() {
-        errorMessage = "Por favor, selecione uma imagem.";
-      });
+    // Verifica se todos os campos estão preenchidos
+    if (nome.isEmpty ||
+        email.isEmpty ||
+        cargo.isEmpty ||
+        morada.isEmpty ||
+        descricao.isEmpty ||
+        cidadeNome == null ||
+        _avatarImage == null) {
+      // Exibe SnackBar se algum campo estiver vazio
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Por favor, preencha todos os campos!'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
       return;
-    }
-
-    if (cidadeNome == null || cidadeNome.isEmpty) {
-      setState(() {
-        errorMessage = "Por favor, selecione uma cidade.";
-      });
+    } else if (email.contains('@') == false) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Por favor, insira um email válido!'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
       return;
     }
 
@@ -151,10 +162,9 @@ class _AccountRegister extends State<AccountRegister> {
       }
     } catch (e) {
       setState(() {
-        errorMessage =
-            "Erro ao registrar usuário: ${e.toString()}"; // Captura a mensagem completa do erro
+        errorMessage = "Erro ao registrar usuário: ${e.toString()}";
       });
-      print("Erro: $e"); // Adiciona um print para ajudar na depuração
+      print("Erro: $e");
     }
   }
 
@@ -176,14 +186,14 @@ class _AccountRegister extends State<AccountRegister> {
     required String hintText,
     required TextEditingController controller,
     bool obscureText = false,
-    required String? Function(String?) validator, // Função de validação
+    required String? Function(String?) validator,
   }) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 25.0),
       child: TextFormField(
         controller: controller,
         obscureText: obscureText,
-        validator: validator, // Aplica a validação
+        validator: validator,
         decoration: InputDecoration(
           hintText: hintText,
           border: OutlineInputBorder(
@@ -194,7 +204,7 @@ class _AccountRegister extends State<AccountRegister> {
           fillColor: Colors.grey[200],
           contentPadding:
               EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
-          errorStyle: TextStyle(color: Colors.red), // Cor do texto de erro
+          errorStyle: TextStyle(color: Colors.red),
         ),
       ),
     );
